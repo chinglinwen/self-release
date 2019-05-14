@@ -1,0 +1,114 @@
+
+====2019/05/13 17:10:48 readbody ok
+"data"&main.TagPushEvent{
+  ObjectKind:   "tag_push",
+  EventName:    "tag_push",
+  Before:       "0000000000000000000000000000000000000000",
+  After:        "c12d9814671fb378fa220ed2ca00712556e4c46a",
+  Ref:          "refs/tags/v1.0.2",
+  CheckoutSha:  "1151ff0d392edec7ba8091a0bd3456f8c4110095",
+  Message:      "",
+  UserID:       75,
+  UserName:     "wenzhenglin",
+  UserUsername: "wenzhenglin",
+  UserEmail:    "wenzhenglin@haodai.net",
+  UserAvatar:   "http://g.haodai.net/uploads/-/system/user/avatar/75/avatar.png",
+  ProjectID:    290,
+  Project:      struct { ID int "json:\"id\""; Name string "json:\"name\""; Description string "json:\"description\""; WebURL string "json:\"web_url\""; AvatarURL string "json:\"avatar_url\""; GitSSHURL string "json:\"git_ssh_url\""; GitHTTPURL string "json:\"git_http_url\""; Namespace string "json:\"namespace\""; VisibilityLevel int "json:\"visibility_level\""; PathWithNamespace string "json:\"path_with_namespace\""; DefaultBranch string "json:\"default_branch\""; CiConfigPath string "json:\"ci_config_path\""; Homepage string "json:\"homepage\""; URL string "json:\"url\""; SSHURL string "json:\"ssh_url\""; HTTPURL string "json:\"http_url\"" }{
+    ID:                290,
+    Name:              "test",
+    Description:       "test",
+    WebURL:            "http://g.haodai.net/wenzhenglin/test",
+    AvatarURL:         "",
+    GitSSHURL:         "git@g.haodai.net:wenzhenglin/test.git",
+    GitHTTPURL:        "http://g.haodai.net/wenzhenglin/test.git",
+    Namespace:         "wenzhenglin",
+    VisibilityLevel:   20,
+    PathWithNamespace: "wenzhenglin/test",
+    DefaultBranch:     "master",
+    CiConfigPath:      "",
+    Homepage:          "http://g.haodai.net/wenzhenglin/test",
+    URL:               "git@g.haodai.net:wenzhenglin/test.git",
+    SSHURL:            "git@g.haodai.net:wenzhenglin/test.git",
+    HTTPURL:           "http://g.haodai.net/wenzhenglin/test.git",
+  },
+  Commits:           []struct { ID string "json:\"id\""; Message string "json:\"message\""; Timestamp time.Time "json:\"timestamp\""; URL string "json:\"url\""; Author struct { Name string "json:\"name\""; Email string "json:\"email\"" } "json:\"author\""; Added []string "json:\"added\""; Modified []string "json:\"modified\""; Removed []string "json:\"removed\"" }{},
+  TotalCommitsCount: 0,
+  Repository:        struct { Name string "json:\"name\""; URL string "json:\"url\""; Description string "json:\"description\""; Homepage string "json:\"homepage\""; GitHTTPURL string "json:\"git_http_url\""; GitSSHURL string "json:\"git_ssh_url\""; VisibilityLevel int "json:\"visibility_level\"" }{
+    Name:            "test",
+    URL:             "git@g.haodai.net:wenzhenglin/test.git",
+    Description:     "test",
+    Homepage:        "http://g.haodai.net/wenzhenglin/test",
+    GitHTTPURL:      "http://g.haodai.net/wenzhenglin/test.git",
+    GitSSHURL:       "git@g.haodai.net:wenzhenglin/test.git",
+    VisibilityLevel: 20,
+  },
+}2019/05/13 17:10:48 ignore 0 commits event
+2019/05/13 17:10:48 zero commits
+2019/05/13 17:10:48 readbody ok
+"data"&main.TagPushEvent{
+  ObjectKind:   "tag_push",
+  EventName:    "tag_push",
+  Before:       "0000000000000000000000000000000000000000",
+  After:        "c12d9814671fb378fa220ed2ca00712556e4c46a",
+  Ref:          "refs/tags/v1.0.2",
+  CheckoutSha:  "1151ff0d392edec7ba8091a0bd3456f8c4110095",
+  Message:      "v1.0.2 msg here",
+  UserID:       75,
+  UserName:     "wenzhenglin",
+  UserUsername: "wenzhenglin",
+  UserEmail:    "wenzhenglin@haodai.net",
+  UserAvatar:   "http://g.haodai.net/uploads/-/system/user/avatar/75/avatar.png",
+  ProjectID:    290,
+  Project:      struct { ID int "json:\"id\""; Name string "json:\"name\""; Description string "json:\"description\""; WebURL string "json:\"web_url\""; AvatarURL string "json:\"avatar_url\""; GitSSHURL string "json:\"git_ssh_url\""; GitHTTPURL string "json:\"git_http_url\""; Namespace string "json:\"namespace\""; VisibilityLevel int "json:\"visibility_level\""; PathWithNamespace string "json:\"path_with_namespace\""; DefaultBranch string "json:\"default_branch\""; CiConfigPath string "json:\"ci_config_path\""; Homepage string "json:\"homepage\""; URL string "json:\"url\""; SSHURL string "json:\"ssh_url\""; HTTPURL string "json:\"http_url\"" }{
+    ID:                290,
+    Name:              "test",
+    Description:       "test",
+    WebURL:            "http://g.haodai.net/wenzhenglin/test",
+    AvatarURL:         "",
+    GitSSHURL:         "git@g.haodai.net:wenzhenglin/test.git",
+    GitHTTPURL:        "http://g.haodai.net/wenzhenglin/test.git",
+    Namespace:         "wenzhenglin",
+    VisibilityLevel:   20,
+    PathWithNamespace: "wenzhenglin/test",
+    DefaultBranch:     "master",
+    CiConfigPath:      "",
+    Homepage:          "http://g.haodai.net/wenzhenglin/test",
+    URL:               "git@g.haodai.net:wenzhenglin/test.git",
+    SSHURL:            "git@g.haodai.net:wenzhenglin/test.git",
+    HTTPURL:           "http://g.haodai.net/wenzhenglin/test.git",
+  },
+  Commits: []struct { ID string "json:\"id\""; Message string "json:\"message\""; Timestamp time.Time "json:\"timestamp\""; URL string "json:\"url\""; Author struct { Name string "json:\"name\""; Email string "json:\"email\"" } "json:\"author\""; Added []string "json:\"added\""; Modified []string "json:\"modified\""; Removed []string "json:\"removed\"" }{
+    struct { ID string "json:\"id\""; Message string "json:\"message\""; Timestamp time.Time "json:\"timestamp\""; URL string "json:\"url\""; Author struct { Name string "json:\"name\""; Email string "json:\"email\"" } "json:\"author\""; Added []string "json:\"added\""; Modified []string "json:\"modified\""; Removed []string "json:\"removed\"" }{
+      ID:        "1151ff0d392edec7ba8091a0bd3456f8c4110095",
+      Message:   "Update helo-test1",
+      Timestamp: 2019-05-13 14:28:14 Local,
+      URL:       "http://g.haodai.net/wenzhenglin/test/commit/1151ff0d392edec7ba8091a0bd3456f8c4110095",
+      Author:    struct { Name string "json:\"name\""; Email string "json:\"email\"" }{
+        Name:  "wenzhenglin",
+        Email: "wenzhenglin@haodai.net",
+      },
+      Added:    []string{},
+      Modified: []string{
+        "helo-test1",
+      },
+      Removed: []string{},
+    },
+  },
+  TotalCommitsCount: 1,
+  Repository:        struct { Name string "json:\"name\""; URL string "json:\"url\""; Description string "json:\"description\""; Homepage string "json:\"homepage\""; GitHTTPURL string "json:\"git_http_url\""; GitSSHURL string "json:\"git_ssh_url\""; VisibilityLevel int "json:\"visibility_level\"" }{
+    Name:            "test",
+    URL:             "git@g.haodai.net:wenzhenglin/test.git",
+    Description:     "test",
+    Homepage:        "http://g.haodai.net/wenzhenglin/test",
+    GitHTTPURL:      "http://g.haodai.net/wenzhenglin/test.git",
+    GitSSHURL:       "git@g.haodai.net:wenzhenglin/test.git",
+    VisibilityLevel: 20,
+  },
+}got tag push event
+"modified"[]string{
+  "helo-test1"
+
+
+
+  
