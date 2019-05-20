@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	git "gopkg.in/src-d/go-git.v4"
 )
 
 func (r *Repo) AddAndPush(filename, contents, commitText string, options ...func(*option)) (err error) {
@@ -29,7 +31,7 @@ func (r *Repo) AddFileAndPush(filename, commitText string) (err error) {
 		return
 	}
 
-	err = r.AddFile(filename)
+	err = r.GitAdd(filename)
 	if err != nil {
 		return
 	}
@@ -51,4 +53,8 @@ func (r *Repo) IsExist(filename string) bool {
 		return true
 	}
 	return false
+}
+
+func (r *Repo) Status() (git.Status, error) {
+	return r.wrk.Status()
 }

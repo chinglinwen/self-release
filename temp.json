@@ -1,0 +1,30 @@
+{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+    "annotations": {
+      "cattle.io/status": "{\"Conditions\":[{\"Type\":\"ResourceQuotaInit\",\"Status\":\"True\",\"Message\":\"\",\"LastUpdateTime\":\"2019-01-08T11:11:14Z\"},{\"Type\":\"InitialRolesPopulated\",\"Status\":\"True\",\"Message\":\"\",\"LastUpdateTime\":\"2019-01-08T11:11:14Z\"}]}",
+      "field.cattle.io/projectId": "c-tpmb5:p-d8ntc",
+      "lifecycle.cattle.io/create.namespace-auth": "true"
+    },
+    "creationTimestamp": "2019-01-08T10:01:08Z",
+    "deletionGracePeriodSeconds": 0,
+    "deletionTimestamp": "2019-05-15T02:07:54Z",
+    "finalizers": [
+      "controller.cattle.io/namespace-auth"
+    ],
+    "labels": {
+      "field.cattle.io/projectId": "p-d8ntc"
+    },
+    "name": "wayne1",
+    "resourceVersion": "81577293",
+    "selfLink": "/api/v1/namespaces/wayne1",
+    "uid": "51ca9531-132c-11e9-bcce-1e5e900bfc2b"
+  },
+  "spec": {
+    "finalizers": []
+  },
+  "status": {
+    "phase": "Terminating"
+  }
+}

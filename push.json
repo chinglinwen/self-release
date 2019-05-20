@@ -1,0 +1,141 @@
+
+
+{
+  "changes": [
+    {
+      "after": "cb381a534cfcb6a90e421159ac2ea383f2de7f25",
+      "before": "2adb55715b6e8b2e1fae1feb64f93d7fd572b672",
+      "ref": "refs/heads/develop"
+    }
+  ],
+  "event_name": "repository_update",
+  "project": {
+    "avatar_url": null,
+    "ci_config_path": null,
+    "default_branch": "master",
+    "description": "main-new as project example for test",
+    "git_http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+    "git_ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "homepage": "http://g.haodai.net/wenzhenglin/project-example",
+    "http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+    "id": 308,
+    "name": "project-example",
+    "namespace": "wenzhenglin",
+    "path_with_namespace": "wenzhenglin/project-example",
+    "ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "visibility_level": 0,
+    "web_url": "http://g.haodai.net/wenzhenglin/project-example"
+  },
+  "project_id": 308,
+  "refs": [
+    "refs/heads/develop"
+  ],
+  "user_avatar": "/uploads/-/system/user/avatar/75/avatar.png",
+  "user_email": "wenzhenglin@haodai.net",
+  "user_id": 75,
+  "user_name": "wenzhenglin"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{
+  "after": "2adb55715b6e8b2e1fae1feb64f93d7fd572b672",
+  "before": "0000000000000000000000000000000000000000",
+  "checkout_sha": "2adb55715b6e8b2e1fae1feb64f93d7fd572b672",
+  "commits": [],
+  "event_name": "push",
+  "message": null,
+  "object_kind": "push",
+  "project": {
+    "avatar_url": null,
+    "ci_config_path": null,
+    "default_branch": "master",
+    "description": "main-new as project example for test",
+    "git_http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+    "git_ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "homepage": "http://g.haodai.net/wenzhenglin/project-example",
+    "http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+    "id": 308,
+    "name": "project-example",
+    "namespace": "wenzhenglin",
+    "path_with_namespace": "wenzhenglin/project-example",
+    "ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "visibility_level": 0,
+    "web_url": "http://g.haodai.net/wenzhenglin/project-example"
+  },
+  "project_id": 308,
+  "ref": "refs/heads/develop",
+  "repository": {
+    "description": "main-new as project example for test",
+    "git_http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+    "git_ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "homepage": "http://g.haodai.net/wenzhenglin/project-example",
+    "name": "project-example",
+    "url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "visibility_level": 0
+  },
+  "total_commits_count": 0,
+  "user_avatar": "http://g.haodai.net/uploads/-/system/user/avatar/75/avatar.png",
+  "user_email": "wenzhenglin@haodai.net",
+  "user_id": 75,
+  "user_name": "wenzhenglin",
+  "user_username": "wenzhenglin"
+}
+
+
+{
+  "changes": [
+    {
+      "after": "2adb55715b6e8b2e1fae1feb64f93d7fd572b672",
+      "before": "0000000000000000000000000000000000000000",
+      "ref": "refs/heads/develop"
+    }
+  ],
+  "event_name": "repository_update",
+  "project": {
+    "avatar_url": null,
+    "ci_config_path": null,
+    "default_branch": "master",
+    "description": "main-new as project example for test",
+    "git_http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+    "git_ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "homepage": "http://g.haodai.net/wenzhenglin/project-example",
+    "http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+    "id": 308,
+    "name": "project-example",
+    "namespace": "wenzhenglin",
+    "path_with_namespace": "wenzhenglin/project-example",
+    "ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "url": "git@g.haodai.net:wenzhenglin/project-example.git",
+    "visibility_level": 0,
+    "web_url": "http://g.haodai.net/wenzhenglin/project-example"
+  },
+  "project_id": 308,
+  "refs": [
+    "refs/heads/develop"
+  ],
+  "user_avatar": "/uploads/-/system/user/avatar/75/avatar.png",
+  "user_email": "wenzhenglin@haodai.net",
+  "user_id": 75,
+  "user_name": "wenzhenglin"
+}

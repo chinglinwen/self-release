@@ -84,6 +84,8 @@ func main() {
 	log.Println("starting...")
 	log.Debug.Println("debug is on")
 
+	flag.Parse()
+
 	e := echo.New()
 	//e.Use(middleware.Logger())
 	e.Use(middleware.Recover())

@@ -1,27 +1,27 @@
 // template ops relate files
 package template
 
-type K8s struct {
-	Name     string
-	Template string
-	Config   string
-}
+// type K8s struct {
+// 	Name     string
+// 	Template string
+// 	Config   string
+// }
 
-// fetch config-deploy
+// // fetch config-deploy
 
-var (
-	base string
-)
+// var (
+// 	base string
+// )
 
-// template: php.v1/k8s/online.yaml  // the name can be anything
-// template: php.v1/k8s/pre.yaml
-// config: _ops/config/online.yaml
-// config: _ops/config/pre.yaml
-func NewK8s(template, config string) {
-	//read two yaml
-	// merge them
+// // template: php.v1/k8s/online.yaml  // the name can be anything
+// // template: php.v1/k8s/pre.yaml
+// // config: _ops/config/online.yaml
+// // config: _ops/config/pre.yaml
+// func NewK8s(template, config string) {
+// 	//read two yaml
+// 	// merge them
 
-}
+// }
 
 // we can't merge, as it's not a correct yaml, ( can we get full before? )
 //expand all variable?

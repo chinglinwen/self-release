@@ -22,7 +22,7 @@ var (
 	defaultUser      = flag.String("gitlab-user", "", "default gitlab user")
 	defaultPass      = flag.String("gitlab-pass", "", "default gitlab pass(personal token is ok")
 
-	defaultRepoDir = flag.String("repoDir", "/tmp/repos", "default path to store cloned projects")
+	defaultRepoDir = flag.String("repoDir", "/home/wen/t/repos", "default path to store cloned projects")
 )
 
 func Init(user, pass string) {
@@ -46,9 +46,11 @@ type Repo struct {
 	Tag     string // what version, what branch?
 	Branch  string
 
-	R      *git.Repository
-	wrk    *git.Worktree
-	nopull bool
+	R          *git.Repository
+	wrk        *git.Worktree
+	nocheckout bool
+	nopull     bool
+	force      bool // default no force
 
 	refs      string // with  remote refs
 	localrefs string // with local refs
@@ -96,6 +98,16 @@ func SetLocalPath(localpath string) func(*Repo) {
 func SetNoPull() func(*Repo) {
 	return func(r *Repo) {
 		r.nopull = true
+	}
+}
+func SetNoCheckout() func(*Repo) {
+	return func(r *Repo) {
+		r.nocheckout = true
+	}
+}
+func SetForce() func(*Repo) {
+	return func(r *Repo) {
+		r.force = true
 	}
 }
 
@@ -146,46 +158,64 @@ func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
 		return nil, err
 	}
 	repo.wrk = wrk
-	log.Println("get worktree ok, for repo:", repo.Project)
+	log.Println("new repo and get worktree ok, for repo:", repo.Project)
 
-	if repo.nopull {
-		return
-	}
+	return
+}
 
-	// if repo.Branch != "master" {
-	err = repo.CheckoutLocal()
-	// err = wrk.Checkout(&git.CheckoutOptions{
-	// 	Branch: plumbing.ReferenceName("refs/heads/master"),
-	// 	Force:  true,
-	// })
+func NewWithPull(project string, options ...func(*Repo)) (repo *Repo, err error) {
+	repo, err = New(project, options...)
 	if err != nil {
-		err = fmt.Errorf("checkoutlocal before pull error: %v, for repo: %v\n", err, repo.Project)
-		log.Println(err)
-		return
+		return nil, err
 	}
-	log.Println("checkoutlocal before pull ok, for repo:", repo.Project)
-	// }
+	err = repo.Pull()
+	return
+}
 
-	// pull can be done if all commit been pushed ( otherwise result non-fast-forward error )
-	err = wrk.Pull(&git.PullOptions{
-		RemoteName:    "origin",
-		ReferenceName: plumbing.ReferenceName(repo.localrefs),
-		// ReferenceName: plumbing.ReferenceName(repo.refs),  //reference not found
-		SingleBranch: true,
-		Auth: &http.BasicAuth{
-			Username: repo.user,
-			Password: repo.pass,
-		},
-		// Depth: 1,
-		Force: true,
-	})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
-		err = fmt.Errorf("pull error: %v, for repo: %v", err, repo.Project)
-		return
+// pull will checkout local first, local change(and staged change) will be discard
+func (repo *Repo) Pull() (err error) {
+	if !repo.nocheckout {
+		log.Println("will not do checkout local for", repo.Project)
+
+		// err = repo.CheckoutLocal()  // this checkout two times
+		if repo.Branch != "master" {
+			err = repo.wrk.Checkout(&git.CheckoutOptions{
+				Branch: plumbing.ReferenceName("refs/heads/master"),
+				Force:  repo.force,
+			})
+		}
+		if err != nil {
+			err = fmt.Errorf("checkoutlocal before pull error: %v, for repo: %v\n", err, repo.Project)
+			log.Println(err)
+			return
+		}
+		log.Println("checkoutlocal before pull ok, for repo:", repo.Project)
+		// }
 	}
-	log.Println("create new repo ok (pulled), for repo:", repo.Project)
 
-	return repo, nil
+	if !repo.nopull {
+		log.Println("will not do pull for", repo.Project)
+
+		// pull can be done if all commit been pushed ( otherwise result non-fast-forward error )
+		err = repo.wrk.Pull(&git.PullOptions{
+			RemoteName:    "origin",
+			ReferenceName: plumbing.ReferenceName(repo.localrefs),
+			// ReferenceName: plumbing.ReferenceName(repo.refs),  //reference not found
+			SingleBranch: true,
+			Auth: &http.BasicAuth{
+				Username: repo.user,
+				Password: repo.pass,
+			},
+			// Depth: 1,
+			Force: repo.force, // default no force
+		})
+		if err != nil && err != git.NoErrAlreadyUpToDate {
+			err = fmt.Errorf("pull error: %v, for repo: %v", err, repo.Project)
+			return
+		}
+		log.Println("pull ok, for repo:", repo.Project)
+	}
+	return
 }
 
 func (repo *Repo) GetWorkDir() string {
@@ -202,6 +232,7 @@ func (repo *Repo) CLone() error {
 				Username: repo.user,
 				Password: repo.pass,
 			},
+			NoCheckout: repo.force,
 			// Depth:         1,  // depth 1 will cause object not found
 			// enable ReferenceName will cause non-fast-forward update error
 			// ReferenceName: plumbing.ReferenceName(repo.refs), // default all branches

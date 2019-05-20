@@ -61,7 +61,7 @@ func (r *Repo) CheckoutLocalWith(refs string) (err error) {
 	}
 	err = r.wrk.Checkout(&git.CheckoutOptions{
 		Branch: plumbing.ReferenceName(refs),
-		// Force:  true,
+		Force:  r.force,
 	})
 	if err != nil && err != git.ErrBranchExists {
 		err = fmt.Errorf("git checkout refs: %v err %v", refs, err)
@@ -72,7 +72,7 @@ func (r *Repo) CheckoutLocalWith(refs string) (err error) {
 	ok := r.LocalBranchExist()
 	err = r.wrk.Checkout(&git.CheckoutOptions{
 		Branch: plumbing.ReferenceName(r.localrefs),
-		Force:  true,
+		Force:  r.force, // need force by default? let up layer to decide
 		Create: !ok,
 	})
 	if err != nil && err != git.ErrBranchExists {
@@ -94,21 +94,40 @@ func SetPerm(perm os.FileMode) func(*option) {
 }
 
 func (r *Repo) Add(filename, contents string, options ...func(*option)) (err error) {
+	err = r.Create(filename, contents, options...)
+	if err != nil {
+		return
+	}
+	return r.GitAdd(filename)
+}
+
+// create file and add to git
+func (r *Repo) Create(filename, contents string, options ...func(*option)) (err error) {
 	o := &option{perm: 0755} // default filemode
 	for _, op := range options {
 		op(o)
 	}
 
 	f := filepath.Join(r.Local, filename)
+	dir := filepath.Dir(f)
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		return fmt.Errorf("git create file mkdir err %v", err)
+	}
+	// log.Printf("gitadd, writing file: %v", f)
 	err = ioutil.WriteFile(f, []byte(contents), o.perm)
 	if err != nil {
-		return fmt.Errorf("git add write file err %v", err)
+		return fmt.Errorf("git create file err %v", err)
 	}
-	_, err = r.wrk.Add(filename)
+	if _, err := os.Stat(f); os.IsNotExist(err) {
+		return fmt.Errorf("git create file check err %v", err)
+	}
+	// _, err = r.wrk.Add(filename)
 	return
 }
 
-func (r *Repo) AddFile(filename string) (err error) {
+// file is exist
+func (r *Repo) GitAdd(filename string) (err error) {
 	_, err = r.wrk.Add(filename)
 	return
 }

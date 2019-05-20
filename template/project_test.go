@@ -2,7 +2,6 @@ package template
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -19,17 +18,19 @@ var pyaml = `
 project: wenzhenglin/project-example
 env: master
 files:
-  - name: aa
-    template: aa
-    final: aa1
-  - name: bb
-    template: bb
-    final: bb1
-
+  - name: config.yaml
+    template: php.v1/config.yaml
+    final: _ops/config.yaml
+  - name: dockerfile
+    template: php.v1/Dockerfile
+    final: Dockerfile
+  # - name: config.yaml
+  #   template: php.v1/config.yaml
+  #   final: _ops/config.yaml
+nopull: true
 `
 
 func TestNewProject(t *testing.T) {
-
 	p, err := NewProject(pyaml)
 	if err != nil {
 		t.Error("newproject err", err)
@@ -43,15 +44,35 @@ func TestNewProject(t *testing.T) {
 var exampleproject = `
 project: wenzhenglin/project-example
 env: master
-files:
-  - name: aa
-    template: aa
-    final: aa1
-  - name: bb
-    template: bb
-    final: bb1
-noupdate: true
+#files:
+#  - name: config.yaml
+#    template: php.v1/config.yaml
+#    final: _ops/config.yaml
+#  - name: dockerfile
+#    template: php.v1/Dockerfile
+#    final: Dockerfile
+#    overwrite: true
+#  - name: k8s-online
+#    template: php.v1/k8s/k8s-online.yaml
+#    repoTemplate: _ops/template/k8s-online.yaml
+#    final: _ops/k8s-online.yaml
+#nopull: true
 `
+
+func TestNoPull(t *testing.T) {
+
+	p, err := NewProject(exampleproject)
+	if err != nil {
+		t.Error("newproject err", err)
+		return
+	}
+	spew.Dump(p.Files)
+	// spew.Dump(p)
+	if !p.NoPull {
+		t.Errorf("got nopull %v, want %v", p.NoPull, true)
+		return
+	}
+}
 
 func TestProjectInit(t *testing.T) {
 
@@ -60,13 +81,12 @@ func TestProjectInit(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	// spew.Dump(p)
-	files, err := ioutil.ReadDir(p.repo.GetWorkDir())
-	if err != nil {
-		t.Error("readdir err", err)
-		return
+	for _, v := range p.Files {
+		fmt.Printf("file: %#v\n", v)
 	}
-	for _, v := range files {
-		fmt.Println(v.Name(), v.Mode(), v.Size())
+	err = p.Init(SetInitForce())
+	if err != nil {
+		t.Error("newproject init err", err)
+		return
 	}
 }

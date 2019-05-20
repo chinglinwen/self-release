@@ -10,13 +10,13 @@ func TestNew(t *testing.T) {
 	var repo *Repo
 	var err error
 
-	testfile := "/tmp/repos/wenzhenglin/test/testfile"
+	testfile := "/home/wen/t/repos/wenzhenglin/test/testfile"
 	err = ioutil.WriteFile(testfile, []byte("hello"), 0644)
 	if err != nil {
 		t.Error("writefile err", err)
 		return
 	}
-	files, err := ioutil.ReadDir("/tmp/repos/wenzhenglin/test")
+	files, err := ioutil.ReadDir("/home/wen/t/repos/wenzhenglin/test")
 	if err != nil {
 		t.Error("readdir err", err)
 		return
@@ -25,13 +25,65 @@ func TestNew(t *testing.T) {
 	for _, v := range files {
 		fmt.Println(v.Name(), v.Mode(), v.Size())
 	}
-	repo, err = New("wenzhenglin/test", SetNoPull())
+	// repo, err = New("wenzhenglin/test", SetNoPull())
+	repo, err = New("wenzhenglin/test")
 	if err != nil {
 		t.Error("new err", err)
 		return
 	}
 
 	files, err = ioutil.ReadDir(repo.GetWorkDir())
+	if err != nil {
+		t.Error("readdir err", err)
+		return
+	}
+	var exist bool
+	for _, v := range files {
+		if v.Name() == "testfile" {
+			exist = true
+		}
+	}
+	if !exist {
+		t.Errorf("file %v not found after new", testfile)
+		return
+	}
+}
+
+// always discard local changes after new?
+func TestCheckout1(t *testing.T) {
+	var repo *Repo
+	var err error
+
+	testfile := "/home/wen/t/repos/wenzhenglin/test/testfile"
+	// err = ioutil.WriteFile(testfile, []byte("hello"), 0644)
+	// if err != nil {
+	// 	t.Error("writefile err", err)
+	// 	return
+	// }
+	// files, err := ioutil.ReadDir("/home/wen/t/repos/wenzhenglin/test")
+	// if err != nil {
+	// 	t.Error("readdir err", err)
+	// 	return
+	// }
+
+	// for _, v := range files {
+	// 	fmt.Println(v.Name(), v.Mode(), v.Size())
+	// }
+
+	// repo, err = New("wenzhenglin/test", SetNoPull())
+	// repo, err = New("wenzhenglin/test", SetNoCheckout())
+	repo, err = New("wenzhenglin/test")
+	if err != nil {
+		t.Error("new err", err)
+		return
+	}
+
+	// err = repo.GitAdd("testfile")
+	// if err != nil {
+	// 	log.Println("gitadd err", err)
+	// }
+
+	files, err := ioutil.ReadDir(repo.GetWorkDir())
 	if err != nil {
 		t.Error("readdir err", err)
 		return
@@ -100,7 +152,7 @@ func TestFetch(t *testing.T) {
 
 func TestCheckout(t *testing.T) {
 	// r, err := New("wenzhenglin/test", "v1.0.0")
-	r, err := New("wenzhenglin/test", SetBranch("feature2"))
+	r, err := New("wenzhenglin/test", SetBranch("develop"), SetForce())
 	if err != nil {
 		t.Error("new err:", err)
 		return
@@ -117,19 +169,38 @@ func TestCheckout(t *testing.T) {
 	// 	return
 	// }
 }
-
-var (
-	testfilename = "helo-test1"
-)
-
-func TestAdd(t *testing.T) {
+func TestPull(t *testing.T) {
 	// r, err := New("wenzhenglin/test", "v1.0.0")
-	r, err := New("wenzhenglin/test", SetBranch("feature1"))
+	r, err := New("wenzhenglin/test", SetBranch("develop"), SetForce())
 	if err != nil {
 		t.Error("new err:", err)
 		return
 	}
-	err = r.Add(testfilename, "hello from test4")
+	err = r.Pull()
+	if err != nil {
+		t.Error("pull err:", err)
+		return
+	}
+
+	// err = r.Checkout("refs/heads/feature1")
+	// if err != nil {
+	// 	t.Error("checkout err:", err)
+	// 	return
+	// }
+}
+
+var (
+	testfilename = "_ops/helo-test1"
+)
+
+func TestCreate(t *testing.T) {
+	// r, err := New("wenzhenglin/test", "v1.0.0")
+	r, err := New("wenzhenglin/project-example", SetNoPull())
+	if err != nil {
+		t.Error("new err:", err)
+		return
+	}
+	err = r.Create(testfilename, "hello from test4")
 	if err != nil {
 		t.Error("add err:", err)
 		return

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
+	prettyjson "github.com/hokaccha/go-prettyjson"
 	"github.com/k0kubun/pp"
 
 	"github.com/davecgh/go-spew/spew"
@@ -33,26 +35,26 @@ func hookHandler(c echo.Context) (err error) {
 	}
 	log.Println("readbody ok")
 
-	// a := make(map[string]interface{})
-	// err = json.Unmarshal(payload, &a)
-	// if err != nil {
-	// 	err = fmt.Errorf("unmarshal body err: %v", err)
-	// 	log.Println(err)
-	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	// 	return
-	// }
+	a := make(map[string]interface{})
+	err = json.Unmarshal(payload, &a)
+	if err != nil {
+		err = fmt.Errorf("unmarshal body err: %v", err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return
+	}
 
-	// log.Println("unmarshal ok")
+	log.Println("unmarshal ok")
 
-	// out, err := prettyjson.Marshal(a)
-	// if err != nil {
-	// 	err = fmt.Errorf("marshal a err: %v", err)
-	// 	log.Println(err)
-	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	// 	return
-	// }
-	// log.Println("marshal ok")
-	// fmt.Printf("out: %s\n", out)
+	out, err := prettyjson.Marshal(a)
+	if err != nil {
+		err = fmt.Errorf("marshal a err: %v", err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return
+	}
+	log.Println("marshal ok")
+	fmt.Printf("out: %s\n", out)
 
 	// log.Printf("===event_name: %v\n", a["event_name"])
 	// log.Printf("===message: %v\n", a["message"])
@@ -67,7 +69,7 @@ func hookHandler(c echo.Context) (err error) {
 		return
 	}
 	// spew.Dump("event:", data)
-	pp.Print("data", data)
+	// pp.Print("data", data)
 
 	event1, ok := data.(*PushEvent)
 	if ok {
@@ -81,7 +83,20 @@ func hookHandler(c echo.Context) (err error) {
 			pp.Print("modified", v.Modified)
 		}
 		fmt.Printf("commits: %v\n", len(event1.Commits))
-		spew.Dump("details:", event1.Commits)
+		// spew.Dump("details:", event1.Commits)
+
+		// PathWithNamespace is better, name or namespace maybe chinese chars
+		if event1.Project.Name == "test" || event1.Project.Name == "project-example" {
+			err = handlePush(event1)
+			if err != nil {
+				err = fmt.Errorf("handle push event err: %v", err)
+				log.Println(err)
+				c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+				return
+			}
+		} else {
+			log.Println("ignore non-test projects")
+		}
 	}
 
 	// tag push event need to remove messge=empty or commitcount=0(except include force keyword? )
@@ -96,7 +111,20 @@ func hookHandler(c echo.Context) (err error) {
 			pp.Print("modified", v.Modified)
 		}
 		fmt.Printf("commits: %v\n", len(event2.Commits))
-		spew.Dump("details:", event2.Commits)
+		// spew.Dump("details:", event2.Commits)
+
+		if event2.Project.Name == "test" || event2.Project.Name == "project-example" {
+			err = handleRelease(event2)
+			if err != nil {
+				err = fmt.Errorf("handle release event err: %v", err)
+				log.Println(err)
+				c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+				return
+			}
+
+		} else {
+			log.Println("ignore non-test projects")
+		}
 	}
 
 	// var eventType string

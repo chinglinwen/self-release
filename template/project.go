@@ -3,13 +3,11 @@ package template
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"wen/self-release/git"
 
-	"github.com/drone/envsubst"
-	"github.com/joho/godotenv"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -19,46 +17,49 @@ type File struct {
 	Final        string // generated yaml final put into config-deploy?
 	RepoTemplate string
 
-	overwrite bool
-	perm      os.FileMode
+	Overwrite bool
+	Perm      os.FileMode
 }
 
 // this will be the project config for customizing
 type Project struct {
 	Project    string
-	Env        string // branch
+	DevBranch  string
+	Env        string // branch, may derive from event's branch as env
 	ConfigFile string // _ops/config.yaml  //set for every env? what's the difference
 	Files      []File
 	EnvFiles   []string // for setting of template, env.sh ?  no need export
 
+	Force     bool   // force for re-init, file setting, we often setting it by tag msg
+	NoPull    bool   // `yaml:"nopull"`
+	ConfigVer string // specify different version
+
 	repo    *git.Repo
 	workDir string
-
-	Force    bool
-	noUpdate bool
+	envMap  map[string]string
 }
 
-// let template store inside repo( rather than config-deploy? )
-var defaultFiles = []File{
-	{
-		Name:         "config",
-		Template:     "config.yaml",      //make env specific suffix? or inside
-		RepoTemplate: "",                 // it can exist, default no need
-		Final:        "_ops/config.yaml", //Project special, just store inside repo
-	},
-	{
-		Name:         "build-docker.sh",
-		Template:     "php.v1/build-docker.sh",      //make env specific suffix? or inside
-		RepoTemplate: "",                            // it can exist, default no need  // most of the time, it's just template one
-		Final:        "projectPath/build-docker.sh", //Project special, just store inside repo
-	},
-	{
-		Name:         "k8s.yaml",
-		Template:     "php.v1/k8s.yaml",
-		RepoTemplate: "_ops/template/k8s.yaml", // it can exist, default no need
-		Final:        "projectPath/k8s.yaml",   // why not _ops/template/k8s.yaml
-	},
-}
+// // let template store inside repo( rather than config-deploy? )
+// var defaultFiles = []File{
+// 	{
+// 		Name:         "config",
+// 		Template:     "config.yaml",      //make env specific suffix? or inside
+// 		RepoTemplate: "",                 // it can exist, default no need
+// 		Final:        "_ops/config.yaml", //Project special, just store inside repo
+// 	},
+// 	{
+// 		Name:         "build-docker.sh",
+// 		Template:     "php.v1/build-docker.sh",      //make env specific suffix? or inside
+// 		RepoTemplate: "",                            // it can exist, default no need  // most of the time, it's just template one
+// 		Final:        "projectPath/build-docker.sh", //Project special, just store inside repo
+// 	},
+// 	{
+// 		Name:         "k8s.yaml",
+// 		Template:     "php.v1/k8s.yaml",
+// 		RepoTemplate: "_ops/template/k8s.yaml", // it can exist, default no need
+// 		Final:        "projectPath/k8s.yaml",   // why not _ops/template/k8s.yaml
+// 	},
+// }
 
 func configed(files []File, name string) bool {
 	for _, v := range files {
@@ -73,92 +74,161 @@ func (p *Project) Inited() bool {
 	return p.repo.IsExist("config.yaml")
 }
 
+func SetInitForce() func(*Project) {
+	return func(p *Project) {
+		p.Force = true
+	}
+}
+
+func SetInitVersion(ver string) func(*Project) {
+	return func(p *Project) {
+		p.ConfigVer = ver
+	}
+}
+
+// let people replace with block?
+
+// they need manual edit?
+
+// we just generate one final (and may never change, unless overwrite(have a backup though)
+//this way they can customize the final?  using diff?
+
+// template: php.v1/docker/online.yaml  // the name can be anything
+// template: php.v1/docker/pre.yaml
+// config: _ops/config/templatename.config
+// config: _ops/config/config.yaml  //specify which template and which config file?
+func NewProject(project string, options ...func(*Project)) (p *Project, err error) {
+	if configrepo == nil {
+		err = fmt.Errorf("configrepo not inited")
+		return
+	}
+	p = &Project{
+		Project:   "template-before-create",
+		ConfigVer: GetDefaultConfigVer(),
+	}
+	for _, op := range options {
+		op(p)
+	}
+	configVer := p.ConfigVer
+	force := p.Force
+
+	var tp *Project
+	// read for later merge template files setting
+	tp, err = readTemplateConfig(configVer)
+	if err != nil {
+		return
+	}
+	// spew.Dump("template config:", tp.Files)
+
+	if force {
+		// force ignore repo config
+		p = tp
+	} else {
+		// normal repo config take first
+		p, err = readRepoConfig(project)
+		if err != nil {
+			p = tp
+		}
+	}
+	// // repo config exist, merge config, is this needed?
+	// if we all come from init, it's likely that files is appending
+	// for _, v := range tp.Files {
+	// 	if configed(p.Files, v.Name) {
+	// 		continue
+	// 	}
+	// 	p.Files = append(p.Files, v)
+	// }
+
+	// clone project repo
+	if p.NoPull {
+		p.repo, err = git.New(p.Project, git.SetNoPull())
+	} else {
+		p.repo, err = git.New(p.Project)
+	}
+	if err != nil {
+		err = fmt.Errorf("git clone err: %v", err)
+		return
+	}
+
+	p.workDir = p.repo.GetWorkDir()
+	return
+}
+
+type initErr map[string]error
+
+func (errs *initErr) Error() (s string) {
+	for k, v := range *errs {
+		s = fmt.Sprintf("%v\nname: %v, init err: %v", s, k, v)
+	}
+	return
+}
+
+// init can reading from repo's config, or assume have project name only(using default config version)
+//
 // init template file
-func (p *Project) Init() (err error) {
+func (p *Project) Init(options ...func(*Project)) (err error) {
+
+	for _, op := range options {
+		op(p)
+	}
+
 	if p.Inited() && !p.Force {
 
 		// it should be by tag? text to force
 		return fmt.Errorf("project %v already inited, you can try force init by setting force in the config.yaml", p.Project)
 	}
 
+	errs := make(initErr)
+
 	// copy from template to project repo, later to customize it? generate final by setting
 	for _, v := range p.Files {
-		if p.repo.IsExist(v.Final) && !v.overwrite {
+
+		// check file setting format is valid? say v.template is empty
+		if p.repo.IsExist(v.Final) && !v.Overwrite && !p.Force {
 			err = fmt.Errorf("final file: %v exist", v.Final)
+			errs[v.Name] = err
 			continue
 		}
-		tfile, e := configrepo.GetFile(v.Template)
+		if v.Template == "" {
+			err = fmt.Errorf("template file not specified for %v", v.Name)
+			errs[v.Name] = err
+			continue
+		}
+		f := filepath.Join("template", v.Template) // prefix template for template
+		tfile, e := configrepo.GetFile(f)
 		if e != nil {
-			err = fmt.Errorf("get template file: %v err: %v", v.Template, e)
+			err = fmt.Errorf("get template file: %v err: %v", f, e)
+			errs[v.Name] = err
 			continue
 		}
+
+		// if no variable to replace or no custom setting, no need to init repotemplate?
 		if v.RepoTemplate == "" {
 			// no need init empty template, repo template is for customize
 			// nontheless, put one there? put _ops/template/
+			log.Println("RepoTemplate is empty, skip init for file:", v.Name)
 			continue
 		}
-		if v.perm == 0 {
-			err = p.repo.AddAndPush(v.RepoTemplate, string(tfile), "init "+v.RepoTemplate)
+		log.Println("creating init file:", v.Name)
+		if v.Perm == 0 {
+			err = p.repo.Add(v.RepoTemplate, string(tfile))
 		} else {
-			err = p.repo.AddAndPush(v.RepoTemplate, string(tfile), "init "+v.RepoTemplate, git.SetPerm(v.perm))
+			err = p.repo.Add(v.RepoTemplate, string(tfile), git.SetPerm(v.Perm))
 		}
+
+		// if v.perm == 0 {
+		// 	err = p.repo.AddAndPush(v.RepoTemplate, string(tfile), "init "+v.RepoTemplate)
+		// } else {
+		// 	err = p.repo.AddAndPush(v.RepoTemplate, string(tfile), "init "+v.RepoTemplate, git.SetPerm(v.perm))
+		// }
+
+		// // how to init final?, we don't init final, we generate final in later steps
 	}
+	if len(errs) != 0 {
+		return &errs
+	}
+
 	return
-}
-
-// an api call to test?
-// using curl? or webpage
-
-// a webpage to trigger the release, manual release
-
-// a webpage to trigger the test
-
-// generate by env setting
-func (p *Project) Generate() (err error) {
-	// read env
-	err = readEnvs(p.EnvFiles)
-	if err != nil {
-		err = fmt.Errorf("readenvs err: %v", err)
-		return
-	}
-
-	for _, v := range p.Files {
-
-		template := v.Template
-		if v.RepoTemplate != "" {
-			template = v.RepoTemplate
-		}
-		_ = template
-		// how to get from template to final
-
-		// https://github.com/drone/envsubst
-		// can generate block?
-		// use env to overwrite
-		finalbody, e := generate(v.Final)
-		if err != nil {
-			err = fmt.Errorf("generate %v err: %v", v.Final, e)
-			// continue
-			return
-		}
-		// write final
-		_ = finalbody
-	}
-	return
-
-}
-
-func generate(file string) (finalbody string, err error) {
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		err = fmt.Errorf("read file: %v,err: %v", file, err)
-		return
-	}
-	return envsubst.EvalEnv(string(b))
-}
-
-// https://github.com/joho/godotenv
-func readEnvs(files []string) (err error) {
-	return godotenv.Load(files...)
 }
 
 // // init template
@@ -169,7 +239,11 @@ func readEnvs(files []string) (err error) {
 // fetch config-deploy, no need fetch, let it a pkg call
 
 var (
-	configbase = "yunwei/config-deploy"
+	configBase = "yunwei/config-deploy"
+
+	configName = "config.yaml" // later will prefix with default or customize version
+	// opsDir         = "_ops"
+	repoConfigPath = "_ops"
 )
 
 // func SetOverwrite(overwrite bool) func(*Project) {
@@ -178,50 +252,49 @@ var (
 // 	}
 // }
 
-// template: php.v1/docker/online.yaml  // the name can be anything
-// template: php.v1/docker/pre.yaml
-// config: _ops/config/templatename.config
-// config: _ops/config/config.yaml  //specify which template and which config file?
-func NewProject(configyaml string) (p *Project, err error) {
-	// final := filepath.Join(project, "Project."+env) // should put into project repo? let them build?
-	// p = &Project{
-	// 	Project: project,
-	// 	Env:     env,
-	// 	// Template: template,
-	// 	// Config:   config,
-	// 	// Final:    final,
-	// }
-
-	// we don't want fixed project config template here?
-	// let it be template too?
+func readTemplateConfig(configVer string) (p *Project, err error) {
 	p = &Project{
-		Project: "demo",
+		Project: "template-config",
+		// ConfigVer: configVer,
 	}
 
-	err = yaml.Unmarshal([]byte(configyaml), p)
+	f := filepath.Join("template", configVer, configName)
+	tyaml, err := configrepo.GetFile(f)
 	if err != nil {
-		err = fmt.Errorf("unmarshal project %v, from %v, err: %v", p.Project, configyaml, err)
+		err = fmt.Errorf("read configrepo for project: %v, templateconfig: %v, err: %v", p.Project, f, err)
+		return
+	}
+	// unmarshal template config
+	err = yaml.Unmarshal(tyaml, p)
+	if err != nil {
+		err = fmt.Errorf("unmarshal config for project %v, from %v, err: %v", p.Project, string(tyaml), err)
+		return
+	}
+	return
+}
+
+func readRepoConfig(project string) (p *Project, err error) {
+	p = &Project{
+		Project: project,
+	}
+	p.repo, err = git.New(p.Project, git.SetNoPull()) // TODO: nopull?
+	if err != nil {
+		err = fmt.Errorf("clone git repo for: %v, err: %v", p.Project, err)
 		return
 	}
 
-	for _, v := range defaultFiles {
-		if configed(p.Files, v.Name) {
-			continue
-		}
-		p.Files = append(p.Files, v)
-	}
-
-	// clone project repo
-	if p.noUpdate {
-		p.repo, err = git.New(p.Project, git.SetNoPull())
-	} else {
-		p.repo, err = git.New(p.Project)
-	}
+	f := filepath.Join(repoConfigPath, configName)
+	cyaml, err := configrepo.GetFile(f)
 	if err != nil {
-		log.Println("new err:", err)
+		err = fmt.Errorf("read config for project: %v, config: %v, err: %v", p.Project, f, err)
 		return
 	}
-	p.workDir = p.repo.GetWorkDir()
+	// unmarshal template config
+	err = yaml.Unmarshal(cyaml, p)
+	if err != nil {
+		err = fmt.Errorf("unmarshal config for project %v, from %v, err: %v", p.Project, string(cyaml), err)
+		return
+	}
 	return
 }
 
