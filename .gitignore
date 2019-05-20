@@ -1,1 +1,6 @@
 cre_test.go
+self-release
+*.bak
+*.txt
+*.json
+*.log
