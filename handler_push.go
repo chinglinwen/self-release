@@ -45,7 +45,7 @@ func handlePush(event *PushEvent) (err error) {
 	autoenv["USERNAME"] = event.UserName
 	autoenv["USEREMAIL"] = event.UserEmail
 	autoenv["MSG"] = event.Commits[0].Message
-	fmt.Println("autoenv:", autoenv)
+	log.Println("autoenv:", autoenv)
 
 	// only build for develop branch, need confirm?
 	// we shoult not limit the branch, let them easy to change? change in config.yaml, based on tag?

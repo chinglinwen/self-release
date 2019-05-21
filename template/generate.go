@@ -23,12 +23,12 @@ import (
 
 // a webpage to trigger the test
 type genOption struct {
-	generateName string
+	singleName string
 }
 
 func SetGenerateName(name string) func(*genOption) {
 	return func(o *genOption) {
-		o.generateName = name
+		o.singleName = name
 	}
 }
 
@@ -44,70 +44,48 @@ func (p *Project) GenerateAndPush(options ...func(*genOption)) (err error) {
 	if err != nil {
 		return
 	}
-	return p.Push()
+	return p.CommitAndPush(fmt.Sprintf("generate for %v", p.Project))
 }
 
-// generate config only? generate build files? generate repotemplate
+// generate config only? generate build files? not generate repotemplate
 //
 // generate by env setting
-// generate to develop branch, not master
+// generate to config-repo only
 // let's generate to local first, later if needed ( upload to remote ), say trigger by init?
 func (p *Project) Generate(options ...func(*genOption)) (err error) {
+	if !p.Inited() {
+		err = fmt.Errorf("project %v have not init", p.Project)
+		return
+	}
 	c := &genOption{}
 	for _, op := range options {
 		op(c)
 	}
 
-	// checkout to branch first, how do they release?
-
-	// clone specific branch?
-
-	// for the filter
-	envFiles := []string{}
-
-	// read env
-	if len(p.EnvFiles) == 0 {
-		log.Printf("no env specified, setting default to %v/config.env", repoConfigPath)
-		envFiles = append(envFiles, fmt.Sprintf("%v/config.env", repoConfigPath))
-	}
-
-	for _, v := range p.EnvFiles {
-		// log.Println("got env file setting:", v)
-		f := filepath.Join(p.repo.GetWorkDir(), v)
-		if isExist(f) {
-			envFiles = append(envFiles, f)
-		} else {
-			log.Printf("env file: %v, setted but not exist\n", f)
-		}
-	}
-
-	envMap, err := godotenv.Read(envFiles...)
-	if err != nil {
-		err = fmt.Errorf("readenvfiles err: %v", err)
-	}
-
-	// append build envs
-	for k, v := range p.autoenv {
-		envMap[k] = v // support overwrite?
-	}
-
 	// set envs
-	// err = readEnvs(envFiles)
-	// if err != nil {
-	// 	err = fmt.Errorf("readenvs err: %v", err)
-	// }
+	envMap, err := p.readEnvs()
+	if err != nil {
+		err = fmt.Errorf("readenvs err: %v", err)
+	}
 
-	errs := make(initErr)
+	var (
+		errs              = make(initErr)
+		found             = false
+		updateprojectrepo bool
+		updateconfigrepo  bool
+	)
 
-	found := false
+	// we do ignore template for static files?
 	for _, v := range p.Files {
-		if c.generateName != "" {
-			if c.generateName != v.Name {
+		if c.singleName != "" {
+			if c.singleName != v.Name {
 				// mostly specify file to generate, so continue
 				continue
 			}
 		}
 		found = true
+
+		// repotemplate is generate by init for one time
 
 		// check file setting format is valid? say v.template is empty
 		if v.Template == "" && v.RepoTemplate == "" {
@@ -116,13 +94,18 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 			continue
 		}
 
-		// === generate repo template parts( if not ovewwrite, custom setting will be keeped)
-		err = p.genRepoTemplate(v)
-		if err != nil {
-			err = fmt.Errorf("genRepoTemplate project: %v file: %v err: %v", p.Project, v.RepoTemplate, err)
-			errs[v.Name] = err
+		// skip inited final files
+		if v.RepoTemplate == "" {
 			continue
 		}
+
+		// // === generate repo template parts( if not ovewwrite, custom setting will be keeped)
+		// err = p.genRepoTemplate(v)
+		// if err != nil {
+		// 	err = fmt.Errorf("genRepoTemplate project: %v file: %v err: %v", p.Project, v.RepoTemplate, err)
+		// 	errs[v.Name] = err
+		// 	continue
+		// }
 
 		// === generate final parts
 		var templateBody []byte
@@ -171,9 +154,11 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 		finals := strings.Split(v.Final, ":")
 		if len(finals) == 1 {
 			repo = p.repo
+			updateprojectrepo = true
 			file = finals[0]
 		} else if len(finals) == 2 {
 			repo = configrepo
+			updateconfigrepo = true
 			file = filepath.Join(projectName, finals[1])
 		} else {
 			err = fmt.Errorf("final value incorrect, should be \"path\" or \"config:path\" for %v", v.Name)
@@ -211,45 +196,32 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 		}
 		log.Printf("generated final file%v: %v/%v\n", new, p.repo.GetWorkDir(), file)
 	}
-	if c.generateName != "" && !found {
-		err = fmt.Errorf("generate finalbody for: %v, err: not found item in config", c.generateName)
+	if c.singleName != "" && !found {
+		err = fmt.Errorf("generate finalbody for: %v, err: not found item in config", c.singleName)
+		return
 	}
+	if updateconfigrepo {
+		err = configrepo.CommitAndPush(fmt.Sprintf("generate final files for %v", p.Project))
+		if err != nil {
+			err = fmt.Errorf("configrepo push err: %v, project: %v", err, p.Project)
+			return
+		}
+		log.Println("configrepo commit and pushed")
+	}
+	if updateprojectrepo {
+		err = p.CommitAndPush(fmt.Sprintf("generate final files for %v", p.Project))
+		if err != nil {
+			err = fmt.Errorf("repo push err: %v, project: %v", err, p.Project)
+			return
+		}
+		log.Println("projectrepo commit and pushed")
+	}
+	// log.Println("done generate final files for", p.Project)
 	return
 }
 
-// if no variable to replace or no custom setting, no need to init repotemplate?
-// gen or add to git?  // why not generate once
-func (p *Project) genRepoTemplate(v File) (err error) {
-	if v.RepoTemplate == "" {
-		return // nothing to do
-	}
-
-	if p.repo.IsExist(v.RepoTemplate) && !v.Overwrite && !p.Force {
-		err = fmt.Errorf("repotemplate file: %v exist and force or overwrite not set, skip", v.Final)
-		return
-	}
-
-	// get config template
-	f := filepath.Join("template", v.Template) // prefix template for template
-	tfile, e := configrepo.GetFile(f)
-	if e != nil {
-		err = fmt.Errorf("get configtemplate file: %v err: %v", f, e)
-		return
-	}
-
-	if v.Perm == 0 {
-		err = p.repo.Add(v.RepoTemplate, string(tfile))
-	} else {
-		err = p.repo.Add(v.RepoTemplate, string(tfile), git.SetPerm(v.Perm))
-	}
-
-	log.Printf("created repotemplate file: %v, project: %v\n", v.Name, p.Project)
-
-	return
-}
-
-func (p *Project) Push() (err error) {
-	return p.repo.Push()
+func (p *Project) CommitAndPush(commitText string) (err error) {
+	return p.repo.CommitAndPush(commitText)
 }
 
 func getHashByFile(file string) (sum string, err error) {
@@ -286,10 +258,44 @@ func generateByEnv(templateBody string) (string, error) {
 }
 
 // https://github.com/joho/godotenv
-func readEnvs(files []string) (err error) {
-	// default to .env
-	log.Println("reading envfiles ", files)
-	return godotenv.Overload(files...)
+// func readEnvs(files []string) (err error) {
+// 	// default to .env
+// 	log.Println("reading envfiles ", files)
+// 	return godotenv.Overload(files...)
+// }
+
+func (p *Project) readEnvs() (envMap map[string]string, err error) {
+	// for the filter
+	envFiles := []string{}
+
+	// read env
+	if len(p.EnvFiles) == 0 {
+		log.Printf("no env specified, setting default to %v/config.env", repoConfigPath)
+		envFiles = append(envFiles, fmt.Sprintf("%v/config.env", repoConfigPath))
+	}
+
+	for _, v := range p.EnvFiles {
+		// log.Println("got env file setting:", v)
+		f := filepath.Join(p.repo.GetWorkDir(), v)
+		if isExist(f) {
+			envFiles = append(envFiles, f)
+		} else {
+			log.Printf("env file: %v, setted but not exist, usually for the firsttime init\n", f)
+		}
+	}
+
+	envMap, err = godotenv.Read(envFiles...) // it seems we just read env first be fore init
+	if err != nil {
+		err = fmt.Errorf("readenvfiles err: %v", err)
+		return // TODO: need ignore?
+	}
+
+	// append build envs
+	for k, v := range p.autoenv {
+		envMap[k] = v // support overwrite?
+	}
+
+	return
 }
 
 func isExist(file string) bool {

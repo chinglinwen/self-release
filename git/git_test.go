@@ -6,6 +6,14 @@ import (
 	"testing"
 )
 
+func TestNew1(t *testing.T) {
+	repo, err := New("wenzhenglin/config-deploy", SetBranch("templateconfig"))
+	if err != nil {
+		t.Error("new err", err)
+		return
+	}
+	_ = repo
+}
 func TestNew(t *testing.T) {
 	var repo *Repo
 	var err error
@@ -262,19 +270,24 @@ func TestCreate(t *testing.T) {
 
 func TestCommit(t *testing.T) {
 	// r, err := New("wenzhenglin/test", "v1.0.0")
-	r, err := New("wenzhenglin/test", SetBranch("feature2"))
+	r, err := NewWithPull("wenzhenglin/test", SetBranch("develop"))
 	if err != nil {
 		t.Error("new err:", err)
 		return
 	}
 
-	err = r.CheckoutLocal()
+	// err = r.CheckoutLocal()
+	// if err != nil {
+	// 	t.Error("checkout err:", err)
+	// 	return
+	// }
+	err = r.Add(testfilename+"1", "hello from test9")
 	if err != nil {
-		t.Error("checkout err:", err)
+		t.Error("add err:", err)
 		return
 	}
 
-	err = r.Add(testfilename, "hello from test6")
+	err = r.Add(testfilename+"2", "hello from test9")
 	if err != nil {
 		t.Error("add err:", err)
 		return

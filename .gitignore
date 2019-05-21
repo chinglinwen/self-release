@@ -4,3 +4,4 @@ self-release
 *.txt
 *.json
 *.log
+*.gz

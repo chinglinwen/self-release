@@ -128,8 +128,17 @@ func (r *Repo) Create(filename, contents string, options ...func(*option)) (err 
 
 // file is exist
 func (r *Repo) GitAdd(filename string) (err error) {
+	log.Printf("gitadd file: %v\n", filename)
 	_, err = r.wrk.Add(filename)
 	return
+}
+
+func (r *Repo) CommitAndPush(commitText string) (err error) {
+	err = r.Commit(commitText)
+	if err != nil {
+		return
+	}
+	return r.Push()
 }
 
 func (r *Repo) Commit(commitText string) (err error) {
@@ -163,6 +172,14 @@ func (r *Repo) Commit(commitText string) (err error) {
 }
 
 func (r *Repo) Push() (err error) {
+	// status, err := r.Status()
+	// if err != nil {
+	// 	return fmt.Errorf("git status err: %v", err)
+	// }
+	// after commit, it's clean
+	// if status.IsClean() {
+	// 	return fmt.Errorf("it's clean, no need push")
+	// }
 
 	err = r.R.Push(&git.PushOptions{
 		RemoteName: "origin",
@@ -179,9 +196,13 @@ func (r *Repo) Push() (err error) {
 
 		// RefSpecs: []config.RefSpec{config.RefSpec("+refs/heads/feature1:refs/remotes/origin/feature1")},
 	})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
+
+	if err == git.NoErrAlreadyUpToDate {
+		err = nil
+	}
+	if err != nil {
 		return fmt.Errorf("push commit err: %v", err)
 	}
-
+	log.Println("done pushed for ", r.Project)
 	return
 }

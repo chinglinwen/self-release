@@ -26,8 +26,9 @@ func (p *Project) Build(project, branch string) (out string, err error) {
 	// 	return
 	// }
 
-	// cosider this? https://github.com/go-cmd/cmd
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v", branch))
+	// consider this? https://github.com/go-cmd/cmd
+	image := fmt.Sprintf("%v:%v", p.Project, branch)
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v", image))
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {

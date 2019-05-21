@@ -19,7 +19,7 @@ func Init() {
 		log.Println("start init config-deploy repo")
 		var err error
 		// configrepo, err = git.New(*defaultConfigRepo, git.SetNoPull())
-		configrepo, err = git.New(*defaultConfigRepo, git.SetBranch("templateconfig"), git.SetNoPull())
+		configrepo, err = git.NewWithPull(*defaultConfigRepo, git.SetBranch("templateconfig")) //, git.SetNoPull())
 		if err != nil {
 			log.Println("new err:", err)
 			return

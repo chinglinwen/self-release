@@ -8,6 +8,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"wen/self-release/git"
+	"wen/self-release/template"
 
 	"github.com/chinglinwen/log"
 	"github.com/docker/docker/daemon/config"
@@ -79,6 +82,13 @@ var (
 
 // define a global variable
 // add new check, update it, and store the config as file(update config)
+
+func init() {
+	fmt.Println("start test init setting")
+	git.Init("wenzhenglin", "cKGa3eVAF7tZMvCukdsP")
+
+	template.Init()
+}
 
 func main() {
 	log.Println("starting...")

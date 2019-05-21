@@ -33,7 +33,8 @@ type Project struct {
 	Files      []File
 	EnvFiles   []string // for setting of template, env.sh ?  no need export
 
-	Force     bool   // force for re-init, file setting, we often setting it by tag msg
+	// GitForce  bool   // git pull force  default is force
+	InitForce bool   // init project config force, force for re-init, file setting, we often setting it by tag msg
 	NoPull    bool   // `yaml:"nopull"`
 	ConfigVer string // specify different version
 
@@ -78,18 +79,35 @@ func configed(files []File, name string) bool {
 }
 
 func (p *Project) Inited() bool {
-	return p.repo.IsExist("config.yaml")
+	return p.repo.IsExist("_ops/config.yaml")
 }
 
+func (p *Project) GetRepo() *git.Repo {
+	return p.repo
+}
+
+// func SetGitForce() func(*Project) {
+// 	return func(p *Project) {
+// 		p.GitForce = true
+// 	}
+// }
+
+// force is used to re-init config.yaml
 func SetInitForce() func(*Project) {
 	return func(p *Project) {
-		p.Force = true
+		p.InitForce = true
 	}
 }
 
 func SetBranch(branch string) func(*Project) {
 	return func(p *Project) {
 		p.Branch = branch
+	}
+}
+
+func SetNoPull() func(*Project) {
+	return func(p *Project) {
+		p.NoPull = true
 	}
 }
 
@@ -136,9 +154,7 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	branch := p.Branch
 	env := p.Env
 	configVer := p.ConfigVer
-	force := p.Force
-
-	log.Printf("try read templateconfig for repo: %q ok\n", p.Project)
+	force := p.InitForce
 
 	var tp *Project
 	// read for later merge template files setting?
@@ -149,16 +165,14 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	}
 	// spew.Dump("template config:", tp.Files)
 
-	log.Printf("after read templateconfig for repo: %q ok\n", p.Project)
+	log.Printf("try read templateconfig for repo: %q ok\n", p.Project)
 
 	if force {
 		// force ignore repo config
 		p = tp
 	} else {
-		log.Printf("try read repoconfig for repo: %q ok\n", p.Project)
-
 		// normal repo config take first
-		p, err = readRepoConfig(project, p.Branch)
+		p, err = readRepoConfig(project, p.Branch, p.NoPull)
 		if err != nil {
 			p = tp // if not inited, using default project setting from default template
 
@@ -170,6 +184,8 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 			p.Branch = branch
 			p.Env = env
 			log.Printf("set to default config for project %q\n", project)
+		} else {
+			log.Printf("try read repoconfig for repo: %q ok\n", p.Project)
 		}
 	}
 	// // repo config exist, merge config, is this needed?
@@ -184,9 +200,9 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 
 	// clone project repo
 	if p.NoPull {
-		p.repo, err = git.New(p.Project, git.SetBranch(p.Branch), git.SetForce(), git.SetNoPull())
-	} else {
 		p.repo, err = git.New(p.Project, git.SetBranch(p.Branch), git.SetForce())
+	} else {
+		p.repo, err = git.NewWithPull(p.Project, git.SetBranch(p.Branch), git.SetForce())
 	}
 	if err != nil {
 		err = fmt.Errorf("git clone err: %v for project: %v", err, p.Project)
@@ -215,57 +231,86 @@ func (p *Project) Init(options ...func(*Project)) (err error) {
 		op(p)
 	}
 
-	if p.Inited() && !p.Force {
-
+	if p.Inited() && !p.InitForce {
 		// it should be by tag? text to force
 		return fmt.Errorf("project %v already inited, you can try force init by setting force in the config.yaml", p.Project)
 	}
 
+	// can we fix first init issue? need two times of init?
+	// let's read env config first, it seems we read config first, no need two time of read?
+	// only if there have no config before init
+
+	// set envs
+	// init file using template cause re-init much problem? changes maybe lost?
+	// say build-docker should not using env, as init(static config.env) have no projects info?
+	envMap, err := p.readEnvs() // only re-init is working, otherwise it's just not exist
+	if err != nil {
+		err = fmt.Errorf("readenvs err: %v", err)
+	}
+
 	errs := make(initErr)
+	found := false
 
 	// copy from template to project repo, later to customize it? generate final by setting
 	for _, v := range p.Files {
 
-		// init should only concern with config.yaml?
-		if v.Name != "config.yaml" {
+		// // init should only concern with config.yaml? init need includes repotemplate
+		// if v.Name != "config.yaml" {
+		// 	continue
+		// }
+
+		if v.RepoTemplate == "" && v.Final == "" {
+			err = fmt.Errorf("repotemplate and final file not specified for %v", v.Name)
+			errs[v.Name] = err
 			continue
 		}
+		found = true
 
-		if p.repo.IsExist(v.Final) && !v.Overwrite && !p.Force {
-			err = fmt.Errorf("final file: %v exist and force or overwrite not set, skip", v.Final)
+		// init only init final or repotemplate, not both
+
+		// === generate repo template parts( if not ovewwrite, custom setting will be keeped)
+		err = p.initRepoTemplateOrFinal(v, envMap)
+		if err != nil {
+			err = fmt.Errorf("initRepoTemplateOrFinal project: %v file: %v err: %v", p.Project, v.RepoTemplate, err)
 			errs[v.Name] = err
 			continue
 		}
 
-		// check file setting format is valid? say v.template is empty
-		if v.Template == "" {
-			err = fmt.Errorf("template file not specified for %v", v.Name)
-			errs[v.Name] = err
-			continue
-		}
+		// if p.repo.IsExist(v.Final) && !v.Overwrite && !p.Force {
+		// 	err = fmt.Errorf("final file: %v exist and force or overwrite not set, skip", v.Final)
+		// 	errs[v.Name] = err
+		// 	continue
+		// }
 
-		f := filepath.Join("template", v.Template) // prefix template for template
-		tfile, e := configrepo.GetFile(f)
-		if e != nil {
-			err = fmt.Errorf("get template file: %v err: %v", f, e)
-			errs[v.Name] = err
-			continue
-		}
+		// // check file setting format is valid? say v.template is empty
+		// if v.Template == "" {
+		// 	err = fmt.Errorf("template file not specified for %v", v.Name)
+		// 	errs[v.Name] = err
+		// 	continue
+		// }
 
-		// if no variable to replace or no custom setting, no need to init repotemplate?
-		if v.RepoTemplate == "" {
-			// no need init empty template, repo template is for customize
-			// nontheless, put one there? put _ops/template/
-			log.Println("RepoTemplate is empty, skip init for file:", v.Name)
-			continue
-		}
+		// f := filepath.Join("template", v.Template) // prefix template for template
+		// tfile, e := configrepo.GetFile(f)
+		// if e != nil {
+		// 	err = fmt.Errorf("get template file: %v err: %v", f, e)
+		// 	errs[v.Name] = err
+		// 	continue
+		// }
 
-		log.Println("creating init file:", v.Name)
-		if v.Perm == 0 {
-			err = p.repo.Add(v.RepoTemplate, string(tfile))
-		} else {
-			err = p.repo.Add(v.RepoTemplate, string(tfile), git.SetPerm(v.Perm))
-		}
+		// // if no variable to replace or no custom setting, no need to init repotemplate?
+		// if v.RepoTemplate == "" {
+		// 	// no need init empty template, repo template is for customize
+		// 	// nontheless, put one there? put _ops/template/
+		// 	log.Println("RepoTemplate is empty, skip init for file:", v.Name)
+		// 	continue
+		// }
+
+		// log.Println("creating init file:", v.Name)
+		// if v.Perm == 0 {
+		// 	err = p.repo.Add(v.RepoTemplate, string(tfile))
+		// } else {
+		// 	err = p.repo.Add(v.RepoTemplate, string(tfile), git.SetPerm(v.Perm))
+		// }
 
 		// if v.perm == 0 {
 		// 	err = p.repo.AddAndPush(v.RepoTemplate, string(tfile), "init "+v.RepoTemplate)
@@ -275,15 +320,78 @@ func (p *Project) Init(options ...func(*Project)) (err error) {
 
 		// // how to init final?, we don't init final, we generate final in later steps
 	}
+	if !found {
+		err = fmt.Errorf("init for %v, err: not found item for the init in config", p.Project)
+		return
+	}
 	if len(errs) != 0 {
 		return &errs
+	}
+	err = p.CommitAndPush("init config.yaml")
+	if err != nil {
+		err = fmt.Errorf("init push err: %v, project: %v", err, p.Project)
+		return
 	}
 
 	return
 }
 
-// // init template
-// func Init() {
+// if no variable to replace or no custom setting, no need to init repotemplate?
+// gen or add to git?  // why not generate once
+func (p *Project) initRepoTemplateOrFinal(v File, envMap map[string]string) (err error) {
+	var initfile string
+	var evaltemplate bool
+	var exist bool
+	if v.RepoTemplate != "" {
+		initfile = v.RepoTemplate // init repotemplate, later generate final
+	} else {
+		initfile = v.Final
+		evaltemplate = true
+	}
+	exist = p.repo.IsExist(initfile)
+
+	// force should only for config.yaml
+	if exist && v.Name == "config.yaml" && !p.InitForce {
+		log.Printf("init file: %v exist and force have not set, skip", v.Final)
+		return
+	}
+	if exist && !v.Overwrite {
+		log.Printf("init file: %v exist and overwrite have not set, skip", v.Final)
+		return
+	}
+
+	// get config template
+	f := filepath.Join("template", v.Template) // prefix template for template
+	tfile, e := configrepo.GetFile(f)
+	if e != nil {
+		err = fmt.Errorf("get configtemplate file: %v err: %v", f, e)
+		return
+	}
+	var tbody string
+	var note string
+	if evaltemplate {
+		tbody, err = generateByMap(string(tfile), envMap)
+		if err != nil {
+			err = fmt.Errorf("get configtemplate file: %v err: %v", f, err)
+			return
+		}
+		note = "(generated)"
+	} else {
+		tbody = string(tfile)
+	}
+
+	if v.Perm == 0 {
+		err = p.repo.Add(initfile, string(tbody))
+	} else {
+		err = p.repo.Add(initfile, string(tbody), git.SetPerm(v.Perm))
+	}
+
+	log.Printf("inited file: %v%v, project: %v\n", initfile, note, p.Project)
+
+	return
+}
+
+// func (p *Project) initFinal(v File) (err error) {
 
 // }
 
@@ -324,13 +432,17 @@ func readTemplateConfig(configVer string) (p *Project, err error) {
 	return
 }
 
-func readRepoConfig(project, branch string) (p *Project, err error) {
+func readRepoConfig(project, branch string, nopull bool) (p *Project, err error) {
 	p = &Project{
 		Project: project,
 	}
-	log.Printf("try gitnew for repo: %q ok\n", p.Project)
+	// log.Printf("try gitnew for repo: %q ok\n", p.Project)
 
-	p.repo, err = git.New(p.Project, git.SetBranch(branch), git.SetNoPull()) // TODO: nopull?
+	if nopull {
+		p.repo, err = git.New(p.Project, git.SetBranch(branch))
+	} else {
+		p.repo, err = git.NewWithPull(p.Project, git.SetBranch(branch))
+	}
 	if err != nil {
 		err = fmt.Errorf("clone git repo for: %v, err: %v", p.Project, err)
 		return

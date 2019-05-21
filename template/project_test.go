@@ -1,7 +1,6 @@
 package template
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -84,9 +83,10 @@ func TestProjectInit(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	for _, v := range p.Files {
-		fmt.Printf("file: %#v\n", v)
-	}
+	// for _, v := range p.Files {
+	// 	fmt.Printf("file: %#v\n", v)
+	// }
+	// err = p.Init()
 	err = p.Init(SetInitForce())
 	if err != nil {
 		t.Error("newproject init err", err)

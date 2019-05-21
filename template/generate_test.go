@@ -1,17 +1,20 @@
 package template
 
 import (
-	"fmt"
-	"os"
 	"testing"
 )
 
 func TestGenerateAll(t *testing.T) {
-	p, err := NewProject(exampleproject)
+	p, err := NewProject(exampleproject, SetBranch("develop"))
 	if err != nil {
 		t.Error("newproject err", err)
 		return
 	}
+	if !p.GetRepo().IsExist("_ops/config.yaml") {
+		t.Error("not inited")
+		return
+	}
+
 	err = p.Generate()
 	if err != nil {
 		t.Error("generate err", err)
@@ -71,15 +74,15 @@ func TestGenerateConfigEnv(t *testing.T) {
 	}
 }
 
-func TestReadEnv(t *testing.T) {
-	fmt.Println("what=", os.Getenv("WHAT"))
-	err := readEnvs([]string{"/home/wen/t/repos/wenzhenglin/project-example/_ops/config.env"})
-	if err != nil {
-		t.Errorf("readenvs err: %v", err)
-		return
-	}
-	fmt.Println("after read envwhat=", os.Getenv("EXTRA"))
-}
+// func TestReadEnv(t *testing.T) {
+// 	fmt.Println("what=", os.Getenv("WHAT"))
+// 	err := readEnvs([]string{"/home/wen/t/repos/wenzhenglin/project-example/_ops/config.env"})
+// 	if err != nil {
+// 		t.Errorf("readenvs err: %v", err)
+// 		return
+// 	}
+// 	fmt.Println("after read envwhat=", os.Getenv("EXTRA"))
+// }
 
 func TestGenerateDocker(t *testing.T) {
 	p, err := NewProject(exampleproject)
@@ -108,7 +111,7 @@ func TestGenerateBuildDocker(t *testing.T) {
 }
 
 func TestGenerateK8sOnline(t *testing.T) {
-	p, err := NewProject(exampleproject)
+	p, err := NewProject(exampleproject, SetBranch("develop"))
 	if err != nil {
 		t.Error("newproject err", err)
 		return
