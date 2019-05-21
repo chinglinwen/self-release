@@ -5,7 +5,6 @@ import (
 	"log"
 	"strings"
 
-	"wen/self-release/projects/build"
 	"wen/self-release/template"
 )
 
@@ -54,19 +53,23 @@ func handlePush(event *PushEvent) (err error) {
 
 	// what to do with master branch as dev?  init by commit text?
 
-	p, err := template.NewProject(project)
+	// if not inited, just using default setting?
+	p, err := template.NewProject(project, template.SetBranch(branch), template.SetAutoEnv(autoenv))
 	if err != nil {
 		err = fmt.Errorf("project: %v, new err: %v", project, err)
 		return
 	}
-	if p.DevBranch == "" {
-		p.DevBranch = "develop"
-	}
+
+	// it should be config from repo or template now
+	// if p.DevBranch == "" {
+	// 	p.DevBranch = "develop"
+	// }
+
 	// this should be check later, by see config first
 	// if I were them, I just do release, let the system figure out when to init?
 	// release to test? it's better to init by tag msg?
 	if branch != p.DevBranch { // tag should be release, not build?
-		log.Printf("ignore build of branch: %v (not %v) from project: %v", branch, p.DevBranch, project)
+		log.Printf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.DevBranch, project)
 		return
 	}
 
@@ -91,7 +94,7 @@ func handlePush(event *PushEvent) (err error) {
 	// almost generate everytime, except config
 	err = p.Generate()
 	if err != nil {
-		err = fmt.Errorf("project: %v, generate err: %v", project, err)
+		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
 		return
 	}
 	log.Printf("done generate for project: %v", project)
@@ -102,7 +105,7 @@ func handlePush(event *PushEvent) (err error) {
 	//envsubst.Eval()
 
 	log.Printf("start building for project: %v, branch: %v\n", project, branch)
-	out, err := build.Build(project, branch)
+	out, err := p.Build(project, branch)
 	if err != nil {
 		err = fmt.Errorf("build err: %v", err)
 		return

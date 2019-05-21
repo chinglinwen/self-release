@@ -23,9 +23,12 @@ type File struct {
 
 // this will be the project config for customizing
 type Project struct {
-	Project    string
-	DevBranch  string
-	Env        string // branch, may derive from event's branch as env
+	Project string
+	Branch  string // build branch
+	Env     string // branch, may derive from event's branch as env
+	// not able to get branch? we can, but if it's a tag? init for develop branch only no tags
+	DevBranch string // default dev branch name
+
 	ConfigFile string // _ops/config.yaml  //set for every env? what's the difference
 	Files      []File
 	EnvFiles   []string // for setting of template, env.sh ?  no need export
@@ -34,9 +37,13 @@ type Project struct {
 	NoPull    bool   // `yaml:"nopull"`
 	ConfigVer string // specify different version
 
+	// image ?
+	// size of replicas?
+
 	repo    *git.Repo
 	workDir string
 	envMap  map[string]string
+	autoenv map[string]string // env from hook
 }
 
 // // let template store inside repo( rather than config-deploy? )
@@ -80,6 +87,18 @@ func SetInitForce() func(*Project) {
 	}
 }
 
+func SetBranch(branch string) func(*Project) {
+	return func(p *Project) {
+		p.Branch = branch
+	}
+}
+
+func SetAutoEnv(autoenv map[string]string) func(*Project) {
+	return func(p *Project) {
+		p.autoenv = autoenv
+	}
+}
+
 func SetInitVersion(ver string) func(*Project) {
 	return func(p *Project) {
 		p.ConfigVer = ver
@@ -103,31 +122,54 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 		return
 	}
 	p = &Project{
-		Project:   "template-before-create",
+		Project:   project,  // "template-before-create",
+		Branch:    "master", // TODO: default to master?
 		ConfigVer: GetDefaultConfigVer(),
+		DevBranch: "develop", // default dev branch
 	}
+	// log.Printf("before options apply for repo: %q ok\n", p.Project)
 	for _, op := range options {
 		op(p)
 	}
+	// log.Printf("after options apply for repo: %q ok\n", p.Project)
+
+	branch := p.Branch
+	env := p.Env
 	configVer := p.ConfigVer
 	force := p.Force
 
+	log.Printf("try read templateconfig for repo: %q ok\n", p.Project)
+
 	var tp *Project
-	// read for later merge template files setting
+	// read for later merge template files setting?
 	tp, err = readTemplateConfig(configVer)
 	if err != nil {
+		err = fmt.Errorf("readTemplateConfig err: %v, configver: %v", err, configVer)
 		return
 	}
 	// spew.Dump("template config:", tp.Files)
+
+	log.Printf("after read templateconfig for repo: %q ok\n", p.Project)
 
 	if force {
 		// force ignore repo config
 		p = tp
 	} else {
+		log.Printf("try read repoconfig for repo: %q ok\n", p.Project)
+
 		// normal repo config take first
-		p, err = readRepoConfig(project)
+		p, err = readRepoConfig(project, p.Branch)
 		if err != nil {
-			p = tp
+			p = tp // if not inited, using default project setting from default template
+
+			// only except we don't write files to git?
+
+			// it can't be, project name have issues too?
+			// what others setting will be overwrite by template?
+			p.Project = project
+			p.Branch = branch
+			p.Env = env
+			log.Printf("set to default config for project %q\n", project)
 		}
 	}
 	// // repo config exist, merge config, is this needed?
@@ -138,15 +180,16 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	// 	}
 	// 	p.Files = append(p.Files, v)
 	// }
+	log.Printf("create repo: %q ok\n", p.Project)
 
 	// clone project repo
 	if p.NoPull {
-		p.repo, err = git.New(p.Project, git.SetNoPull())
+		p.repo, err = git.New(p.Project, git.SetBranch(p.Branch), git.SetForce(), git.SetNoPull())
 	} else {
-		p.repo, err = git.New(p.Project)
+		p.repo, err = git.New(p.Project, git.SetBranch(p.Branch), git.SetForce())
 	}
 	if err != nil {
-		err = fmt.Errorf("git clone err: %v", err)
+		err = fmt.Errorf("git clone err: %v for project: %v", err, p.Project)
 		return
 	}
 
@@ -165,7 +208,7 @@ func (errs *initErr) Error() (s string) {
 
 // init can reading from repo's config, or assume have project name only(using default config version)
 //
-// init template file
+// init template file, config.yaml and repotemplate files
 func (p *Project) Init(options ...func(*Project)) (err error) {
 
 	for _, op := range options {
@@ -183,17 +226,24 @@ func (p *Project) Init(options ...func(*Project)) (err error) {
 	// copy from template to project repo, later to customize it? generate final by setting
 	for _, v := range p.Files {
 
-		// check file setting format is valid? say v.template is empty
+		// init should only concern with config.yaml?
+		if v.Name != "config.yaml" {
+			continue
+		}
+
 		if p.repo.IsExist(v.Final) && !v.Overwrite && !p.Force {
-			err = fmt.Errorf("final file: %v exist", v.Final)
+			err = fmt.Errorf("final file: %v exist and force or overwrite not set, skip", v.Final)
 			errs[v.Name] = err
 			continue
 		}
+
+		// check file setting format is valid? say v.template is empty
 		if v.Template == "" {
 			err = fmt.Errorf("template file not specified for %v", v.Name)
 			errs[v.Name] = err
 			continue
 		}
+
 		f := filepath.Join("template", v.Template) // prefix template for template
 		tfile, e := configrepo.GetFile(f)
 		if e != nil {
@@ -209,6 +259,7 @@ func (p *Project) Init(options ...func(*Project)) (err error) {
 			log.Println("RepoTemplate is empty, skip init for file:", v.Name)
 			continue
 		}
+
 		log.Println("creating init file:", v.Name)
 		if v.Perm == 0 {
 			err = p.repo.Add(v.RepoTemplate, string(tfile))
@@ -273,11 +324,13 @@ func readTemplateConfig(configVer string) (p *Project, err error) {
 	return
 }
 
-func readRepoConfig(project string) (p *Project, err error) {
+func readRepoConfig(project, branch string) (p *Project, err error) {
 	p = &Project{
 		Project: project,
 	}
-	p.repo, err = git.New(p.Project, git.SetNoPull()) // TODO: nopull?
+	log.Printf("try gitnew for repo: %q ok\n", p.Project)
+
+	p.repo, err = git.New(p.Project, git.SetBranch(branch), git.SetNoPull()) // TODO: nopull?
 	if err != nil {
 		err = fmt.Errorf("clone git repo for: %v, err: %v", p.Project, err)
 		return

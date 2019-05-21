@@ -20,7 +20,7 @@ func TestGenerateAll(t *testing.T) {
 }
 
 func TestGenerateConfig(t *testing.T) {
-	p, err := NewProject(exampleproject)
+	p, err := NewProject(exampleproject) //, SetInitForce())
 	if err != nil {
 		t.Error("newproject err", err)
 		return

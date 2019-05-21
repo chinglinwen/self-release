@@ -9,6 +9,59 @@ import (
 func TestNew(t *testing.T) {
 	var repo *Repo
 	var err error
+	// repo, err = New("wenzhenglin/test", SetNoPull())
+	repo, err = New("wenzhenglin/test", SetBranch("develop"))
+	if err != nil {
+		t.Error("new err", err)
+		return
+	}
+
+	if !repo.IsExist("dev") {
+		t.Error("new err dev not exist for develop branch")
+		return
+	}
+
+	repo, err = New("wenzhenglin/test", SetBranch("feature1"))
+	if err != nil {
+		t.Error("new err", err)
+		return
+	}
+
+	if !repo.IsExist("branch1") {
+		t.Error("new err dev not exist for develop feature1")
+		return
+	}
+}
+
+func TestNewWithPull(t *testing.T) {
+	var repo *Repo
+	var err error
+	// repo, err = New("wenzhenglin/test", SetNoPull())
+	repo, err = NewWithPull("wenzhenglin/test", SetBranch("develop"))
+	if err != nil {
+		t.Error("new err", err)
+		return
+	}
+
+	if !repo.IsExist("dev") {
+		t.Error("new err dev not exist for develop branch")
+		return
+	}
+
+	repo, err = NewWithPull("wenzhenglin/test", SetBranch("feature1"))
+	if err != nil {
+		t.Error("new err", err)
+		return
+	}
+
+	if !repo.IsExist("branch1") {
+		t.Error("new err dev not exist for develop feature1")
+		return
+	}
+}
+func TestNewWithLocalChange(t *testing.T) {
+	var repo *Repo
+	var err error
 
 	testfile := "/home/wen/t/repos/wenzhenglin/test/testfile"
 	err = ioutil.WriteFile(testfile, []byte("hello"), 0644)
@@ -26,7 +79,7 @@ func TestNew(t *testing.T) {
 		fmt.Println(v.Name(), v.Mode(), v.Size())
 	}
 	// repo, err = New("wenzhenglin/test", SetNoPull())
-	repo, err = New("wenzhenglin/test")
+	repo, err = New("wenzhenglin/test", SetBranch("develop"))
 	if err != nil {
 		t.Error("new err", err)
 		return

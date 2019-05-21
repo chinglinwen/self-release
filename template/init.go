@@ -1,9 +1,14 @@
 package template
 
 import (
+	"flag"
 	"log"
 	"sync"
 	"wen/self-release/git"
+)
+
+var (
+	defaultConfigRepo = flag.String("config-repo", "wenzhenglin/config-deploy", "default config-repo")
 )
 
 var configrepo *git.Repo
@@ -13,7 +18,8 @@ func Init() {
 	onceBody := func() {
 		log.Println("start init config-deploy repo")
 		var err error
-		configrepo, err = git.New("yunwei/config-deploy", git.SetNoPull())
+		// configrepo, err = git.New(*defaultConfigRepo, git.SetNoPull())
+		configrepo, err = git.New(*defaultConfigRepo, git.SetBranch("templateconfig"), git.SetNoPull())
 		if err != nil {
 			log.Println("new err:", err)
 			return

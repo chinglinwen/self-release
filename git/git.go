@@ -105,6 +105,8 @@ func SetNoCheckout() func(*Repo) {
 		r.nocheckout = true
 	}
 }
+
+// setforce does not fix non-fast-forward update(which often cause by human edit?)
 func SetForce() func(*Repo) {
 	return func(r *Repo) {
 		r.force = true
@@ -142,6 +144,10 @@ func newrepo(project string, options ...func(*Repo)) (*Repo, error) {
 }
 
 func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
+	if project == "" {
+		err = fmt.Errorf("project name is empty")
+		return
+	}
 	repo, err = newrepo(project, options...)
 	if err != nil {
 		return nil, err
@@ -149,17 +155,25 @@ func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
 
 	err = repo.CLone()
 	if err != nil {
-		return
+
 	}
 	wrk, err := repo.R.Worktree()
 	if err != nil {
-		err = fmt.Errorf("get worktree error: %v, for repo: %v\n", err, repo.Project)
+		err = fmt.Errorf("get worktree error: %v, for repo: %q, branch: %q\n", err, repo.Project, repo.Branch)
 		log.Println(err)
 		return nil, err
 	}
 	repo.wrk = wrk
-	log.Println("new repo and get worktree ok, for repo:", repo.Project)
+	log.Printf("new repo and get worktree ok, for repo: %q, branch: %q\n", repo.Project, repo.Branch)
 
+	// this will make local changes lost
+	// checkout is needed after new, so we can work on correct branch
+	err = repo.CheckoutLocal()
+	if err != nil {
+		err = fmt.Errorf("checkout to local error: %v, for repo: %q, branch: %q\n", err, repo.Project, repo.Branch)
+		log.Println(err)
+		return nil, err
+	}
 	return
 }
 
@@ -174,27 +188,27 @@ func NewWithPull(project string, options ...func(*Repo)) (repo *Repo, err error)
 
 // pull will checkout local first, local change(and staged change) will be discard
 func (repo *Repo) Pull() (err error) {
-	if !repo.nocheckout {
-		log.Println("will not do checkout local for", repo.Project)
+	// if !repo.nocheckout {
 
-		// err = repo.CheckoutLocal()  // this checkout two times
-		if repo.Branch != "master" {
-			err = repo.wrk.Checkout(&git.CheckoutOptions{
-				Branch: plumbing.ReferenceName("refs/heads/master"),
-				Force:  repo.force,
-			})
-		}
-		if err != nil {
-			err = fmt.Errorf("checkoutlocal before pull error: %v, for repo: %v\n", err, repo.Project)
-			log.Println(err)
-			return
-		}
-		log.Println("checkoutlocal before pull ok, for repo:", repo.Project)
-		// }
-	}
+	// 	// err = repo.CheckoutLocal()  // this checkout two times
+	// 	if repo.Branch != "master" {
+	// 		err = repo.wrk.Checkout(&git.CheckoutOptions{
+	// 			Branch: plumbing.ReferenceName("refs/heads/master"),
+	// 			Force:  repo.force,
+	// 		})
+	// 	}
+	// 	if err != nil {
+	// 		err = fmt.Errorf("checkoutlocal to master before pull error: %v, for repo: %v\n", err, repo.Project)
+	// 		log.Println(err)
+	// 		return
+	// 	}
+	// 	log.Println("checkoutlocal to master before pull ok, for repo:", repo.Project)
+	// 	// }
+	// } else {
+	// 	log.Printf("will not do checkout local for: %v, branch: %v\n", repo.Project, repo.Branch)
+	// }
 
 	if !repo.nopull {
-		log.Println("will not do pull for", repo.Project)
 
 		// pull can be done if all commit been pushed ( otherwise result non-fast-forward error )
 		err = repo.wrk.Pull(&git.PullOptions{
@@ -207,15 +221,21 @@ func (repo *Repo) Pull() (err error) {
 				Password: repo.pass,
 			},
 			// Depth: 1,
-			Force: repo.force, // default no force
+			Force: repo.force, // TODO: default no force?
 		})
+		// spew.Dump("pull err", err, err == git.NoErrAlreadyUpToDate)
+		if err == git.NoErrAlreadyUpToDate {
+			err = nil
+		}
 		if err != nil && err != git.NoErrAlreadyUpToDate {
 			err = fmt.Errorf("pull error: %v, for repo: %v", err, repo.Project)
 			return
 		}
-		log.Println("pull ok, for repo:", repo.Project)
+		log.Printf("pull ok, for repo: %q\n", repo.Project)
+	} else {
+		log.Println("will not do pull for", repo.Project)
 	}
-	return
+	return repo.CheckoutLocal()
 }
 
 func (repo *Repo) GetWorkDir() string {
@@ -239,7 +259,7 @@ func (repo *Repo) CLone() error {
 		})
 		log.Println("cloned new repo :", repo.Project)
 	} else {
-		log.Println("got existing repo ok, for repo:", repo.Project)
+		log.Printf("got existing repo ok, for repo: %q\n", repo.Project)
 	}
 	repo.R = r
 	return err
