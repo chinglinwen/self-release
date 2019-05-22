@@ -17,8 +17,9 @@ type File struct {
 	Final        string // generated yaml final put into config-deploy?
 	RepoTemplate string
 
-	Overwrite bool
-	Perm      os.FileMode
+	Overwrite         bool
+	Perm              os.FileMode // set final file perm
+	ValidateFinalYaml bool
 }
 
 // this will be the project config for customizing
@@ -43,8 +44,8 @@ type Project struct {
 
 	repo    *git.Repo
 	workDir string
-	envMap  map[string]string
-	autoenv map[string]string // env from hook
+	// envMap  map[string]string
+	// autoenv map[string]string // env from hook
 }
 
 // // let template store inside repo( rather than config-deploy? )
@@ -111,11 +112,15 @@ func SetNoPull() func(*Project) {
 	}
 }
 
-func SetAutoEnv(autoenv map[string]string) func(*Project) {
-	return func(p *Project) {
-		p.autoenv = autoenv
-	}
-}
+// type initOption struct {
+// 	autoenv map[string]string
+// }
+
+// func SetAutoEnv(autoenv map[string]string) func(*Project) {
+// 	return func(o *Project) {
+// 		o.autoenv = autoenv
+// 	}
+// }
 
 func SetInitVersion(ver string) func(*Project) {
 	return func(p *Project) {
@@ -149,6 +154,10 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	for _, op := range options {
 		op(p)
 	}
+
+	// // p variable will change multiple times, save the variable here
+	// autoenv := p.autoenv
+
 	// log.Printf("after options apply for repo: %q ok\n", p.Project)
 
 	branch := p.Branch
@@ -167,6 +176,7 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 
 	log.Printf("try read templateconfig for repo: %q ok\n", p.Project)
 
+	// this will overwrite option setting?
 	if force {
 		// force ignore repo config
 		p = tp
@@ -174,7 +184,19 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 		// normal repo config take first
 		p, err = readRepoConfig(project, p.Branch, p.NoPull)
 		if err != nil {
-			p = tp // if not inited, using default project setting from default template
+			// if not inited, using default project setting from default template
+			// p = tp
+			// b, _ := json.MarshalIndent(p, "", "  ")
+			// fmt.Println("before cp p", string(b))
+
+			// b2, _ := json.MarshalIndent(tp, "", "  ")
+			// fmt.Println("before cp tp", string(b2))
+
+			// deepcopy.Copy(tp, p)
+			p = tp
+
+			// b1, _ := json.MarshalIndent(p, "", "  ")
+			// fmt.Println("after cp", string(b1))
 
 			// only except we don't write files to git?
 
@@ -226,7 +248,7 @@ func (errs *initErr) Error() (s string) {
 //
 // init template file, config.yaml and repotemplate files
 func (p *Project) Init(options ...func(*Project)) (err error) {
-
+	// c := &genOption{} //  autoenv can't passing by p, so we use genoption
 	for _, op := range options {
 		op(p)
 	}
@@ -243,7 +265,9 @@ func (p *Project) Init(options ...func(*Project)) (err error) {
 	// set envs
 	// init file using template cause re-init much problem? changes maybe lost?
 	// say build-docker should not using env, as init(static config.env) have no projects info?
-	envMap, err := p.readEnvs() // only re-init is working, otherwise it's just not exist
+
+	// we currently ignore autoenv, only config env is working for init
+	envMap, err := p.readEnvs(nil) // only re-init is working, otherwise it's just not exist
 	if err != nil {
 		err = fmt.Errorf("readenvs err: %v", err)
 	}

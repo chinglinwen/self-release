@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"wen/self-release/template"
 
 	prettyjson "github.com/hokaccha/go-prettyjson"
 	"github.com/k0kubun/pp"
@@ -21,6 +22,120 @@ import (
 func homeHandler(c echo.Context) error {
 	//may do redirect later?
 	return c.String(http.StatusOK, "home page")
+}
+func initPageHandler(c echo.Context) error {
+	//may do redirect later?
+	page := `
+	<!DOCTYPE html>
+	<html>
+	
+	<body>
+	
+		<h2>Init Project</h2>
+	
+		<form action="/api/init">
+			First name:<br>
+			<input type="text" name="project" placeholder="gitlab-namespace/repo-name">
+			<br> Last name:<br>
+			<input type="text" name="branch" placeholder="branch or tag">
+			<br><br>
+			<input type="checkbox" name="force" value="true"> force init<br><br>
+			<input type="submit" value="Submit">
+		</form>
+	
+	</body>
+	
+	</html>
+
+	`
+	return c.String(http.StatusOK, page)
+}
+func genPageHandler(c echo.Context) error {
+	page := `
+<!DOCTYPE html>
+<html>
+
+<body>
+
+    <h2>Generate Project</h2>
+
+    <form action="/api/gen">
+        First name:<br>
+        <input type="text" name="project" placeholder="gitlab-namespace/repo-name">
+        <br> Last name:<br>
+        <input type="text" name="branch" placeholder="branch or tag">
+        <br><br>
+        <input type="submit" value="Submit">
+    </form>
+
+</body>
+
+</html>
+`
+	return c.String(http.StatusOK, page)
+}
+
+func initAPIHandler(c echo.Context) error {
+
+	project := c.FormValue("project")
+	branch := c.FormValue("branch")
+	if branch == "" {
+		branch = "develop"
+	}
+	force := c.FormValue("force")
+
+	p, err := template.NewProject(project, template.SetBranch(branch))
+
+	if err != nil {
+		err = fmt.Errorf("new project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+	}
+	if force == "true" {
+
+		err = p.Init(template.SetInitForce())
+	} else {
+		err = p.Init()
+	}
+	if err != nil {
+		err = fmt.Errorf("project: %v,init err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+	}
+
+	return c.String(http.StatusOK, "init ok")
+}
+
+func genAPIHandler(c echo.Context) error {
+	project := c.FormValue("project")
+	branch := c.FormValue("branch")
+
+	username := c.FormValue("username")
+	useremail := c.FormValue("useremail")
+	msg := c.FormValue("msg")
+
+	autoenv := make(map[string]string)
+	autoenv["PROJECTPATH"] = project
+	autoenv["BRANCH"] = branch
+	autoenv["USERNAME"] = username
+	autoenv["USEREMAIL"] = useremail
+	autoenv["MSG"] = msg
+	log.Println("autoenv:", autoenv)
+
+	p, err := template.NewProject(project, template.SetBranch(branch))
+	if err != nil {
+		err = fmt.Errorf("new project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+	}
+	err = p.Generate(template.SetGenAutoEnv(autoenv))
+	if err != nil {
+		err = fmt.Errorf("project: %v,init err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+	}
+
+	return c.String(http.StatusOK, "generate ok")
 }
 
 func hookHandler(c echo.Context) (err error) {

@@ -54,7 +54,7 @@ func handlePush(event *PushEvent) (err error) {
 	// what to do with master branch as dev?  init by commit text?
 
 	// if not inited, just using default setting?
-	p, err := template.NewProject(project, template.SetBranch(branch), template.SetAutoEnv(autoenv))
+	p, err := template.NewProject(project, template.SetBranch(branch))
 	if err != nil {
 		err = fmt.Errorf("project: %v, new err: %v", project, err)
 		return
@@ -92,7 +92,7 @@ func handlePush(event *PushEvent) (err error) {
 	}
 
 	// almost generate everytime, except config
-	err = p.Generate()
+	err = p.Generate(template.SetGenAutoEnv(autoenv))
 	if err != nil {
 		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
 		return

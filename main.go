@@ -109,12 +109,18 @@ func main() {
 		AllowOrigins: []string{"*"},
 	}))
 
-	e.Static("/", "statuspage")
-	e.Static("/data", "data")
+	g := e.Group("/api")
+	g.GET("init", initAPIHandler)
+	g.GET("gen", initAPIHandler)
+
+	// e.Static("/", "statuspage")
+	// e.Static("/data", "data")
+
+	e.File("/init", "init.html")
+	e.File("/gen", "gen.html")
 
 	e.GET("/", homeHandler)
 	e.POST("/hook", hookHandler)
-	// e.POST("/notify", notifyHandler)
 
 	err := e.Start(":" + *port)
 	log.Println("fatal", err)

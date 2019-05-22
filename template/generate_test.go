@@ -111,12 +111,19 @@ func TestGenerateBuildDocker(t *testing.T) {
 }
 
 func TestGenerateK8sOnline(t *testing.T) {
+	autoenv := make(map[string]string)
+	autoenv["PROJECTPATH"] = "PROJECTPATHaa"
+	autoenv["BRANCH"] = "BRANCHaa"
+	// autoenv["USERNAME"] = event.UserName
+	// autoenv["USEREMAIL"] = event.UserEmail
+	autoenv["MSG"] = "msg11"
+
 	p, err := NewProject(exampleproject, SetBranch("develop"))
 	if err != nil {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("k8s-online"))
+	err = p.Generate(SetGenerateName("k8s-online"), SetGenAutoEnv(autoenv))
 	if err != nil {
 		t.Error("generate err", err)
 		return

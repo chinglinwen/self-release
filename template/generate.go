@@ -24,6 +24,7 @@ import (
 // a webpage to trigger the test
 type genOption struct {
 	singleName string
+	autoenv    map[string]string
 }
 
 func SetGenerateName(name string) func(*genOption) {
@@ -32,11 +33,11 @@ func SetGenerateName(name string) func(*genOption) {
 	}
 }
 
-// func SetAutoEnv(autoenv map[string]string) func(*genOption) {
-// 	return func(o *genOption) {
-// 		o.autoenv = autoenv
-// 	}
-// }
+func SetGenAutoEnv(autoenv map[string]string) func(*genOption) {
+	return func(o *genOption) {
+		o.autoenv = autoenv
+	}
+}
 
 // for init
 func (p *Project) GenerateAndPush(options ...func(*genOption)) (err error) {
@@ -62,8 +63,8 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 		op(c)
 	}
 
-	// set envs
-	envMap, err := p.readEnvs()
+	// set envs with autoenv together
+	envMap, err := p.readEnvs(c.autoenv)
 	if err != nil {
 		err = fmt.Errorf("readenvs err: %v", err)
 	}
@@ -108,21 +109,35 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 		// }
 
 		// === generate final parts
-		var templateBody []byte
+
+		// get repotemplate first, if it exist
+		var templateBody string
 		if v.RepoTemplate != "" {
 			// read from repo if specified, which need init first (later human can customize it)
-			templateBody, err = p.repo.GetFile(v.RepoTemplate)
+			tbody, err := p.repo.GetFile(v.RepoTemplate)
 			if err != nil {
-				err = fmt.Errorf("get repo template file: %v err: %v", v.RepoTemplate, err)
+				log.Printf("get repo template file: %v err: %v, will ignore", v.RepoTemplate, err)
+				// err = fmt.Errorf("get repo template file: %v err: %v", v.RepoTemplate, err)
+				// errs[v.Name] = err
+				// continue // we should hanlde things gracefully at here
+			} else {
+				templateBody = string(tbody)
+			}
+		}
+
+		// if empty, or not exist, using default template
+		if templateBody == "" {
+			// read from config repo by default
+			f := filepath.Join("template", v.Template) // prefix template for template
+			tobdy, e := configrepo.GetFile(f)
+			if e != nil {
+				err = fmt.Errorf("get configrepo template file: %v err: %v", f, e)
 				errs[v.Name] = err
 				continue
 			}
-		} else {
-			// read from config repo by default
-			f := filepath.Join("template", v.Template) // prefix template for template
-			templateBody, err = configrepo.GetFile(f)
-			if err != nil {
-				err = fmt.Errorf("get configrepo template file: %v err: %v", f, err)
+			templateBody = string(tobdy)
+			if templateBody == "" {
+				err = fmt.Errorf("get template file: %v err: it's empty", f)
 				errs[v.Name] = err
 				continue
 			}
@@ -135,14 +150,17 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 		// use env to overwrite
 		var finalbody string
 		// finalbody, err = generateByEnv(string(templateBody))
-		finalbody, err = generateByMap(string(templateBody), envMap)
+		finalbody, err = generateByMap(templateBody, envMap)
 		if err != nil {
 			err = fmt.Errorf("generate finalbody for: %v, err: %v", v.Name, err)
 			errs[v.Name] = err
 			continue
 			// return
 		}
+		// log.Println(string(templateBody[:30]), finalbody[:30], envMap)
+
 		// write finalbody to project? validate first
+		// final body often auto generate, though for k8s, we may still validate first
 
 		// fmt.Println("finalbody:", finalbody)
 
@@ -194,7 +212,18 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 		} else {
 			err = repo.Add(file, finalbody, git.SetPerm(v.Perm))
 		}
-		log.Printf("generated final file%v: %v/%v\n", new, p.repo.GetWorkDir(), file)
+		log.Printf("generated final file%v: %v/%v\n", new, repo.GetWorkDir(), file)
+
+		// validate before write final? no where to lookout what's wrong?
+		if v.ValidateFinalYaml {
+			_, e := ValidateByKubectl(finalbody, file)
+			if err != nil {
+				log.Println("validate finalbody for: %v, err: %v", file, e)
+				// err = fmt.Errorf("validate finalbody for: %v, err: %v", file, e)
+				// continue or just logs
+			}
+			log.Printf("validate finalbody for: %v ok", file)
+		}
 	}
 	if c.singleName != "" && !found {
 		err = fmt.Errorf("generate finalbody for: %v, err: not found item in config", c.singleName)
@@ -264,7 +293,8 @@ func generateByEnv(templateBody string) (string, error) {
 // 	return godotenv.Overload(files...)
 // }
 
-func (p *Project) readEnvs() (envMap map[string]string, err error) {
+// autoenv can be nil, if no env settings
+func (p *Project) readEnvs(autoenv map[string]string) (envMap map[string]string, err error) {
 	// for the filter
 	envFiles := []string{}
 
@@ -290,8 +320,12 @@ func (p *Project) readEnvs() (envMap map[string]string, err error) {
 		return // TODO: need ignore?
 	}
 
+	if autoenv == nil {
+		return
+	}
+
 	// append build envs
-	for k, v := range p.autoenv {
+	for k, v := range autoenv {
 		envMap[k] = v // support overwrite?
 	}
 
