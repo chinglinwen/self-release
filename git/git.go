@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"regexp"
 
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -73,12 +74,23 @@ e48ff73f447c62fc1fc704ab598aa02ce6ac71ae refs/remotes/origin/feature1
 
 // using branch
 // if it empty, later it will set to master
+// prefix with v will set as tag
 func SetBranch(branch string) func(*Repo) {
+	if BranchIsTag(branch) {
+		return SetTag(branch)
+	}
 	return func(r *Repo) {
 		r.Branch = branch
 		r.refs = fmt.Sprintf("refs/remotes/origin/%v", branch)
 		r.localrefs = fmt.Sprintf("refs/heads/%v", branch)
 	}
+}
+
+// prefix with v is a tag
+func BranchIsTag(branch string) bool {
+	// re := regexp.MustCompile(`[^v][[:alpha:]]+`)  // not branch is a tag
+	re := regexp.MustCompile(`^v.+`) // prefix with v is a tag
+	return re.Match([]byte(branch))
 }
 
 func SetTag(tag string) func(*Repo) {

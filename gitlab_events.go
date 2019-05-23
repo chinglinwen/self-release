@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"wen/self-release/template"
 )
 
 func ParseEvent(eventName string, payload []byte) (data interface{}, err error) {
@@ -20,6 +21,104 @@ func ParseEvent(eventName string, payload []byte) (data interface{}, err error) 
 	}
 
 	err = json.Unmarshal(payload, &data)
+	return
+}
+
+type EventInfo struct {
+	Project   string // event.Project.PathWithNamespace
+	Branch    string // parseBranch(event.Ref)
+	Env       string
+	UserName  string
+	UserEmail string
+	Message   string
+	Time      string
+}
+
+const TimeLayout = "2006-1-2 15:04:05"
+
+func (event *PushEvent) GetInfo() (e EventInfo, err error) {
+	e.Project = event.Project.PathWithNamespace
+	e.Branch = parseBranch(event.Ref)
+
+	if e.Branch == errParseRefs {
+		err = fmt.Errorf("project: %v, parse branch err for refs: %v", e.Project, event.Ref)
+		return
+	}
+	e.Env = template.GetEnvFromBranch(e.Branch)
+	e.UserName = event.UserName
+	e.UserEmail = event.UserEmail
+	if len(event.Commits) == 0 {
+		err = fmt.Errorf("commit message is empty from event")
+		return
+	}
+	e.Message = event.Commits[0].Message
+	e.Time = time.Now().Format(TimeLayout)
+
+	return
+}
+
+func (event *TagPushEvent) GetInfo() (e EventInfo, err error) {
+	e.Project = event.Project.PathWithNamespace
+	e.Branch = parseBranch(event.Ref)
+
+	if e.Branch == errParseRefs {
+		err = fmt.Errorf("project: %v, parse branch err for refs: %v", e.Project, event.Ref)
+		return
+	}
+	// e.Env = template.GetEnvFromBranch(branch) ?
+	e.UserName = event.UserName
+	e.UserEmail = event.UserEmail
+	// if len(event.commits) == 0 {
+	// 	err = fmt.Errorf("commit message is empty from event")
+	// 	return
+	// }
+	// e.Message = event.Commits[0].Message
+	e.Message = event.Message // release message
+	e.Time = time.Now().Format(TimeLayout)
+
+	return
+}
+
+type Eventer interface {
+	GetInfo() (e EventInfo, err error)
+}
+
+func GetEventInfo(event Eventer) (e EventInfo, err error) {
+	return event.GetInfo()
+}
+
+func GetEventInfoToMap(event Eventer) (autoenv map[string]string, err error) {
+	e, err := event.GetInfo()
+	if err != nil {
+		return
+	}
+	return EventInfoToMap(e)
+}
+
+func EventInfoToMap(e EventInfo) (autoenv map[string]string, err error) {
+
+	namespace, projectName, err := template.GetProjectName(e.Project)
+	if err != nil {
+		err = fmt.Errorf("parse project name for %q, err: %v", e.Project, err)
+		return
+	}
+
+	autoenv = make(map[string]string)
+	autoenv["CI_PROJECT_PATH"] = e.Project
+	autoenv["CI_BRANCH"] = e.Branch
+	autoenv["CI_ENV"] = e.Env
+	autoenv["CI_NAMESPACE"] = namespace
+	autoenv["CI_PROJECT_NAME"] = projectName
+	autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + e.Env
+	autoenv["REPLICAS"] = "1" // can we parse it? make it from config.yaml? or config.env
+
+	autoenv["CI_IMAGE"] = "image?" // or using project_path
+
+	autoenv["CI_USER_NAME"] = e.UserName
+	autoenv["CI_USER_EMAIL"] = e.UserEmail
+	autoenv["CI_MSG"] = e.Message
+	autoenv["CI_TIME"] = e.Time
+
 	return
 }
 

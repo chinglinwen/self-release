@@ -110,6 +110,7 @@ func initAPIHandler(c echo.Context) error {
 func genAPIHandler(c echo.Context) error {
 	project := c.FormValue("project")
 	branch := c.FormValue("branch")
+	file := c.FormValue("file")
 	if branch == "" {
 		branch = "develop"
 	}
@@ -132,7 +133,12 @@ func genAPIHandler(c echo.Context) error {
 		log.Println(err)
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 	}
-	err = p.Generate(template.SetGenAutoEnv(autoenv))
+	if file != "" {
+		err = p.Generate(template.SetGenAutoEnv(autoenv), template.SetGenerateName(file))
+	} else {
+		err = p.Generate(template.SetGenAutoEnv(autoenv))
+	}
+
 	if err != nil {
 		err = fmt.Errorf("gen api err: %v", err)
 		log.Println(err)

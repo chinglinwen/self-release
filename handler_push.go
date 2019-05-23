@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"wen/self-release/template"
 )
@@ -36,37 +35,57 @@ $
 func handlePush(event *PushEvent) (err error) {
 	log.Printf("got project %v to build for test env\n", event.Project.PathWithNamespace)
 
-	project := event.Project.PathWithNamespace // we don't use event.Project.Name, since it may be chinese
-	namespace, projectName, err := template.GetProjectName(project)
+	// project := event.Project.PathWithNamespace // we don't use event.Project.Name, since it may be chinese
+	// namespace, projectName, err := template.GetProjectName(project)
+	// if err != nil {
+	// 	err = fmt.Errorf("parse project name for %q, err: %v", project, err)
+	// 	return
+	// }
+
+	// branch := parseBranch(event.Ref)
+	// if branch == errParseRefs {
+	// 	err = fmt.Errorf("project: %v, parse branch err for refs: %v", project, event.Ref)
+	// 	return
+	// }
+	// env := template.GetEnvFromBranch(branch)
+
+	// autoenv := make(map[string]string)
+	// autoenv["CI_PROJECT_PATH"] = project
+	// autoenv["CI_BRANCH"] = branch
+	// autoenv["CI_ENV"] = env
+	// autoenv["CI_NAMESPACE"] = namespace
+	// autoenv["CI_PROJECT_NAME"] = projectName
+	// autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + env
+	// autoenv["CI_REPLICAS"] = "2"
+
+	// autoenv["CI_REGISTRY_IMAGE"] = "image?" // or using project_path
+
+	// autoenv["CI_USER_NAME"] = event.UserName
+	// autoenv["CI_USER_EMAIL"] = event.UserEmail
+	// autoenv["CI_MSG"] = event.Commits[0].Message
+	// autoenv["CI_TIME"] = time.Now().Format("2006-1-2 15:04:05")
+
+	e, err := event.GetInfo()
 	if err != nil {
-		err = fmt.Errorf("parse project name for %q, err: %v", project, err)
+		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
 		return
 	}
 
-	branch := parseBranch(event.Ref)
-	if branch == errParseRefs {
-		err = fmt.Errorf("project: %v, parse branch err for refs: %v", project, event.Ref)
+	project := e.Project
+	branch := e.Branch
+	env := e.Branch
+
+	log.Printf("got project %v, branch: %v, env: %v\n", project, branch, env)
+
+	autoenv, err := EventInfoToMap(e)
+	if err != nil {
+		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
 		return
 	}
-	env := template.GetEnvFromBranch(branch)
 
-	autoenv := make(map[string]string)
-	autoenv["CI_PROJECT_PATH"] = project
-	autoenv["CI_BRANCH"] = branch
-	autoenv["CI_ENV"] = env
-	autoenv["CI_NAMESPACE"] = namespace
-	autoenv["CI_PROJECT_NAME"] = projectName
-	autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + env
-	autoenv["CI_REPLICAS"] = "2"
-
-	autoenv["CI_REGISTRY_IMAGE"] = "image?" // or using project_path
-
-	autoenv["CI_USER_NAME"] = event.UserName
-	autoenv["CI_USER_EMAIL"] = event.UserEmail
-	autoenv["CI_MSG"] = event.Commits[0].Message
-	autoenv["CI_TIME"] = time.Now().Format("2006-1-2 15:04:05")
-
-	log.Printf("autoenv: %#v\n", autoenv)
+	for k, v := range autoenv {
+		log.Printf("autoenv: %v=%v", k, v)
+	}
 
 	// only build for develop branch, need confirm?
 	// we shoult not limit the branch, let them easy to change? change in config.yaml, based on tag?
@@ -169,6 +188,9 @@ func parseBranch(refs string) string {
 	return errParseRefs
 }
 
+// do we really need to handle this, since we will merge to such branch
+// say pre branch, then it will trigger build? ( only is only for dev now )
+//
 // receive tag release, do the build for pre,  or filter based on commit text?
 // it should be the same image as test, so no need to build image again? image name is been fixed by build
 //
@@ -176,14 +198,68 @@ func parseBranch(refs string) string {
 func handleRelease(event *TagPushEvent) (err error) {
 	log.Printf("got project %v to build for pre or online env\n", event.Project.PathWithNamespace)
 
-	autoenv := make(map[string]string)
-	autoenv["PROJECTPATH"] = event.Project.PathWithNamespace
-	autoenv["BRANCH"] = event.Ref
-	autoenv["USERNAME"] = event.UserName
-	autoenv["USEREMAIL"] = event.UserEmail
-	autoenv["MSG"] = event.Message
+	// autoenv := make(map[string]string)
+	// autoenv["PROJECTPATH"] = event.Project.PathWithNamespace
+	// autoenv["BRANCH"] = event.Ref
+	// autoenv["USERNAME"] = event.UserName
+	// autoenv["USEREMAIL"] = event.UserEmail
+	// autoenv["MSG"] = event.Message
 
-	fmt.Println("autoenv:", autoenv)
+	// fmt.Println("autoenv:", autoenv)
+
+	e, err := event.GetInfo()
+	if err != nil {
+		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
+		return
+	}
+
+	project := e.Project
+	branch := e.Branch
+	env := e.Branch
+
+	if !template.BranchIsTag(branch) {
+		err = fmt.Errorf("project %v release tag format incorrect, should prefix with v, got %v", project, branch)
+		return
+	}
+	log.Printf("got project %v, branch: %v, env: %v\n", project, branch, env)
+
+	autoenv, err := EventInfoToMap(e)
+	if err != nil {
+		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
+		return
+	}
+
+	for k, v := range autoenv {
+		log.Printf("autoenv: %v=%v", k, v)
+	}
+
+	// set branch or set tag?
+	p, err := template.NewProject(project, template.SetBranch(branch))
+	if err != nil {
+		err = fmt.Errorf("project: %v, new err: %v", project, err)
+		return
+	}
+
+	// almost generate everytime, except config
+	err = p.Generate(template.SetGenAutoEnv(autoenv))
+	if err != nil {
+		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
+		return
+	}
+	log.Printf("done generate for project: %v", project)
+
+	// everytime build, need generate first
+
+	// write to a auto.env? or
+	//envsubst.Eval()
+
+	log.Printf("start building for project: %v, branch: %v\n", project, branch)
+	out, err := p.Build(project, branch)
+	if err != nil {
+		err = fmt.Errorf("build err: %v", err)
+		return
+	}
+	fmt.Println("output:", out)
 
 	return
 }

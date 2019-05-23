@@ -6,6 +6,34 @@ import (
 	"testing"
 )
 
+func TestBranchIsTag(t *testing.T) {
+	if BranchIsTag("develop") {
+		t.Error("develop should not be a tag")
+		return
+	}
+	if !BranchIsTag("v1.0.0") {
+		t.Error("v1.0.0 should be a tag")
+		return
+	}
+	if !BranchIsTag("v1.0.0-beta") {
+		t.Error("v1.0.0-beta should be a tag")
+		return
+	}
+	if !BranchIsTag("v1.0.0-alpha") {
+		t.Error("v1.0.0-alpha should be a tag")
+		return
+	}
+	// if !BranchIsTag("1.0.0") {
+	// 	t.Error("1.0.0 should be a tag")
+	// 	return
+	// }
+	// if BranchIsTag("x1.0.0") {
+	// 	t.Error("x1.0.0 should be a tag")
+	// 	return
+	// }
+	return
+}
+
 func TestNew1(t *testing.T) {
 	repo, err := New("wenzhenglin/config-deploy", SetBranch("templateconfig"))
 	if err != nil {

@@ -1,10 +1,10 @@
 package template
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 func TestMain(m *testing.M) {
@@ -29,18 +29,30 @@ files:
 nopull: true
 `
 
+// use this as project model http://g.haodai.net/wenzhenglin/project-example
+
+var exampleproject = "wenzhenglin/project-example"
+
 func TestNewProject(t *testing.T) {
-	p, err := NewProject("wenzhenglin/project-example", SetBranch("develop"))
+	// p, err := NewProject(exampleproject, SetBranch("develop"))
+	// if err != nil {
+	// 	t.Error("newproject err", err)
+	// 	return
+	// }
+	// pretty(p)
+
+	p, err := NewProject("wenzhenglin/test", SetBranch("develop"))
 	if err != nil {
 		t.Error("newproject err", err)
 		return
 	}
-	spew.Dump(p)
+	pretty(p)
 }
 
-// use this as project model http://g.haodai.net/wenzhenglin/project-example
-
-var exampleproject = "wenzhenglin/project-example"
+func pretty(a interface{}) {
+	b, _ := json.MarshalIndent(a, "", "  ")
+	fmt.Println("pretty", string(b))
+}
 
 // `
 // project: wenzhenglin/project-example
@@ -60,6 +72,105 @@ var exampleproject = "wenzhenglin/project-example"
 // #nopull: true
 // `
 
+/*
+example project json
+
+{
+  "Project": "wenzhenglin/project-example",
+  "Branch": "develop",
+  "DevBranch": "develop",
+  "ConfigFile": "",
+  "Files": [
+    {
+      "Name": "config.yaml",
+      "Template": "php.v1/config.yaml",
+      "Final": "_ops/config.yaml",
+      "RepoTemplate": "",
+      "Overwrite": false,
+      "Perm": 0,
+      "ValidateFinalYaml": false
+    },
+    {
+      "Name": "config.env",
+      "Template": "php.v1/config.env",
+      "Final": "_ops/config.env",
+      "RepoTemplate": "",
+      "Overwrite": false,
+      "Perm": 0,
+      "ValidateFinalYaml": false
+    },
+    {
+      "Name": "php.ini",
+      "Template": "php.v1/php.ini",
+      "Final": "_ops/php.ini",
+      "RepoTemplate": "",
+      "Overwrite": false,
+      "Perm": 0,
+      "ValidateFinalYaml": false
+    },
+    {
+      "Name": "nginx.conf",
+      "Template": "php.v1/nginx.conf",
+      "Final": "_ops/nginx.conf",
+      "RepoTemplate": "",
+      "Overwrite": false,
+      "Perm": 0,
+      "ValidateFinalYaml": false
+    },
+    {
+      "Name": "dockerfile",
+      "Template": "php.v1/Dockerfile",
+      "Final": "Dockerfile",
+      "RepoTemplate": "",
+      "Overwrite": false,
+      "Perm": 0,
+      "ValidateFinalYaml": false
+    },
+    {
+      "Name": "build-docker.sh",
+      "Template": "php.v1/build-docker.sh",
+      "Final": "build-docker.sh",
+      "RepoTemplate": "",
+      "Overwrite": true,
+      "Perm": 0,
+      "ValidateFinalYaml": false
+    },
+    {
+      "Name": "k8s-online",
+      "Template": "php.v1/k8s/k8s-online.yaml",
+      "Final": "config:k8s-online.yaml",
+      "RepoTemplate": "_ops/template/k8s-online.yaml",
+      "Overwrite": false,
+      "Perm": 0,
+      "ValidateFinalYaml": true
+    },
+    {
+      "Name": "k8s-pre",
+      "Template": "php.v1/k8s/k8s-pre.yaml",
+      "Final": "config:k8s-pre.yaml",
+      "RepoTemplate": "_ops/template/k8s-pre.yaml",
+      "Overwrite": false,
+      "Perm": 0,
+      "ValidateFinalYaml": true
+    },
+    {
+      "Name": "k8s-test",
+      "Template": "php.v1/k8s/k8s-test.yaml",
+      "Final": "config:k8s-test.yaml",
+      "RepoTemplate": "_ops/template/k8s-test.yaml",
+      "Overwrite": false,
+      "Perm": 0,
+      "ValidateFinalYaml": true
+    }
+  ],
+  "EnvFiles": [
+    "_ops/config.env"
+  ],
+  "InitForce": false,
+  "NoPull": false,
+  "ConfigVer": ""
+}
+*/
 func TestNoPull(t *testing.T) {
 
 	p, err := NewProject(exampleproject) //

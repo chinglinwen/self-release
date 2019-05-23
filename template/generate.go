@@ -117,7 +117,7 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 	// we do ignore template for static files?
 	for _, v := range p.Files {
 		if c.singleName != "" {
-			if c.singleName != v.Name {
+			if c.singleName != v.Name { // try support filename match?
 				// mostly specify file to generate, so continue
 				continue
 			}
@@ -331,8 +331,13 @@ func convertToSubst(templateBody string) string {
 
 func generateByMap(templateBody string, envMap map[string]string) (string, error) {
 	return envsubst.Eval(templateBody, func(k string) string {
-		log.Println("get key", k, "value", envMap[k])
-		return envMap[k]
+		if v, ok := envMap[k]; !ok {
+			log.Printf("got unknown env config name: %v\n", k)
+			return fmt.Sprintf("UNKNOWN-%v", k)
+		} else {
+			return v
+		}
+		return ""
 	})
 }
 
@@ -354,8 +359,9 @@ func (p *Project) readEnvs(autoenv map[string]string) (envMap map[string]string,
 
 	// read env
 	if len(p.EnvFiles) == 0 {
-		log.Printf("no env specified, setting default to %v/config.env", repoConfigPath)
-		envFiles = append(envFiles, fmt.Sprintf("%v/config.env", repoConfigPath))
+		defaultEnv := fmt.Sprintf("%v/config.env", defaultRepoConfigPath)
+		log.Printf("no env specified, setting default to %v\n", defaultEnv)
+		envFiles = append(envFiles, defaultEnv)
 	}
 
 	for _, v := range p.EnvFiles {
