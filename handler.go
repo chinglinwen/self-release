@@ -133,9 +133,9 @@ func genAPIHandler(c echo.Context) error {
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 	}
 	if file != "" {
-		err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
+		_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
 	} else {
-		err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+		_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
 	}
 
 	if err != nil {

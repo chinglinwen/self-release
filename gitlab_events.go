@@ -34,7 +34,7 @@ type EventInfo struct {
 	Time      string
 }
 
-const TimeLayout = "2006-1-2 15:04:05"
+const TimeLayout = "2006-1-2_15:04:05"
 
 func (event *PushEvent) GetInfo() (e EventInfo, err error) {
 	e.Project = event.Project.PathWithNamespace
@@ -112,7 +112,7 @@ func EventInfoToMap(e EventInfo) (autoenv map[string]string, err error) {
 	autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + e.Env
 	autoenv["REPLICAS"] = "1" // can we parse it? make it from config.yaml? or config.env
 
-	autoenv["CI_IMAGE"] = "image?" // or using project_path
+	autoenv["CI_IMAGE"] = projectpkg.GetImage(e.Project, e.Branch) // or using project_path
 
 	autoenv["CI_USER_NAME"] = e.UserName
 	autoenv["CI_USER_EMAIL"] = e.UserEmail

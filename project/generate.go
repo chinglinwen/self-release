@@ -50,7 +50,7 @@ func SetGenAutoEnv(autoenv map[string]string) func(*genOption) {
 
 // for init
 func (p *Project) GenerateAndPush(options ...func(*genOption)) (err error) {
-	err = p.Generate(options...)
+	_, err = p.Generate(options...)
 	if err != nil {
 		return
 	}
@@ -87,7 +87,7 @@ func GetProjectName(project string) (namespace, name string, err error) {
 // generate by env setting
 // generate to config-repo only
 // let's generate to local first, later if needed ( upload to remote ), say trigger by init?
-func (p *Project) Generate(options ...func(*genOption)) (err error) {
+func (p *Project) Generate(options ...func(*genOption)) (target string, err error) {
 	if !p.Inited() {
 		err = fmt.Errorf("project %v have not init", p.Project)
 		return
@@ -268,6 +268,10 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 			}
 			log.Printf("validate finalbody for: %v ok", file)
 		}
+
+		// only one target? for now it is
+		target = filepath.Join(repo.GetWorkDir(), file)
+
 	}
 	if c.singleName != "" && !found {
 		err = fmt.Errorf("generate finalbody for: %v, err: not found item in config", c.singleName)

@@ -65,6 +65,10 @@ func handlePush(event *PushEvent) (err error) {
 	// autoenv["CI_MSG"] = event.Commits[0].Message
 	// autoenv["CI_TIME"] = time.Now().Format("2006-1-2 15:04:05")
 
+	return startBuild(event)
+}
+
+func startBuild(event Eventer) (err error) {
 	e, err := event.GetInfo()
 	if err != nil {
 		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
@@ -110,46 +114,50 @@ func handlePush(event *PushEvent) (err error) {
 	// this should be check later, by see config first?
 	// if I were them, I just do release, let the system figure out when to init?
 	// release to test? it's better to init by tag msg?
-	if branch != p.DevBranch { // tag should be release, not build?
-		log.Printf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.DevBranch, project)
-		return
-	}
 
-	var init, reinit bool
-	if strings.Contains(event.Commits[0].Message, "/init") {
-		init = true
-	}
-	if strings.Contains(event.Commits[0].Message, "/reinit") {
-		reinit = true
-	}
-	// check if force is enabled
-
-	// check if inited, do init by manual trigger?
-
-	// if not inited before, or force is specified, do init now?
-	// this will trigger auto build for everyproject? just don't do it?
-
-	// how people trigger init at first place? release text or commit text?
-
-	if !p.Inited() && init {
-		err = p.Init()
-		if err != nil {
-			err = fmt.Errorf("project: %v, init err: %v", project, err)
+	if !projectpkg.BranchIsTag(branch) {
+		if branch != p.DevBranch { // tag should be release, not build?
+			log.Printf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.DevBranch, project)
 			return
 		}
-		log.Printf("inited for project: %v", project)
-	}
-	if reinit {
-		err = p.Init(projectpkg.SetInitForce())
-		if err != nil {
-			err = fmt.Errorf("project: %v, reinit err: %v", project, err)
-			return
+
+		var init, reinit bool
+		if strings.Contains(e.Message, "/init") {
+			init = true
 		}
-		log.Printf("reinited for project: %v", project)
+		if strings.Contains(e.Message, "/reinit") {
+			reinit = true
+		}
+
+		// check if force is enabled
+
+		// check if inited, do init by manual trigger?
+
+		// if not inited before, or force is specified, do init now?
+		// this will trigger auto build for everyproject? just don't do it?
+
+		// how people trigger init at first place? release text or commit text?
+
+		if !p.Inited() && init {
+			err = p.Init()
+			if err != nil {
+				err = fmt.Errorf("project: %v, init err: %v", project, err)
+				return
+			}
+			log.Printf("inited for project: %v", project)
+		}
+		if reinit {
+			err = p.Init(projectpkg.SetInitForce())
+			if err != nil {
+				err = fmt.Errorf("project: %v, reinit err: %v", project, err)
+				return
+			}
+			log.Printf("reinited for project: %v", project)
+		}
 	}
 
 	// almost generate everytime, except config
-	err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+	finalyaml, err := p.Generate(projectpkg.SetGenAutoEnv(autoenv))
 	if err != nil {
 		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
 		return
@@ -175,7 +183,30 @@ func handlePush(event *PushEvent) (err error) {
 	// have a apply script to do that? passing same tag to it, for the image part?
 	// is it need re-generate? provided env is change everytime though
 
+	ns := autoenv["CI_NAMESPACE"]
+	out, err = apply(ns, finalyaml)
+	if err != nil {
+		err = fmt.Errorf("apply for project: %v, err: %v", project, err)
+		return
+	}
+	log.Printf("apply for %v ok\noutput: %v\n", project, out)
 	return
+}
+
+func apply(ns, target string) (out string, err error) {
+	// check ns or create ns first?
+	if ns != "" {
+		_, err = projectpkg.CheckOrCreateNamespace(ns)
+		if err != nil {
+			log.Printf("create namespace %v err: %v\n", ns, err)
+		}
+		log.Printf("check or create namespace ok\n")
+	} else {
+		log.Printf("got empty namespace, will not check or create ns before apply\n")
+	}
+
+	// auto apply by default?
+	return projectpkg.ApplyByKubectl(target, target)
 }
 
 const errParseRefs = "parseRefsError"
@@ -207,59 +238,66 @@ func handleRelease(event *TagPushEvent) (err error) {
 
 	// fmt.Println("autoenv:", autoenv)
 
-	e, err := event.GetInfo()
-	if err != nil {
-		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
-		return
-	}
+	// e, err := event.GetInfo()
+	// if err != nil {
+	// 	err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
+	// 	return
+	// }
 
-	project := e.Project
-	branch := e.Branch
-	env := e.Branch
+	// project := e.Project
+	// branch := e.Branch
+	// env := e.Branch
 
-	if !projectpkg.BranchIsTag(branch) {
-		err = fmt.Errorf("project %v release tag format incorrect, should prefix with v, got %v", project, branch)
-		return
-	}
-	log.Printf("got project %v, branch: %v, env: %v\n", project, branch, env)
+	// if !projectpkg.BranchIsTag(branch) {
+	// 	err = fmt.Errorf("project %v release tag format incorrect, should prefix with v, got %v", project, branch)
+	// 	return
+	// }
+	// log.Printf("got project %v, branch: %v, env: %v\n", project, branch, env)
 
-	autoenv, err := EventInfoToMap(e)
-	if err != nil {
-		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
-		return
-	}
+	// autoenv, err := EventInfoToMap(e)
+	// if err != nil {
+	// 	err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
+	// 	return
+	// }
 
-	for k, v := range autoenv {
-		log.Printf("autoenv: %v=%v", k, v)
-	}
+	// for k, v := range autoenv {
+	// 	log.Printf("autoenv: %v=%v", k, v)
+	// }
 
-	// set branch or set tag?
-	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-	if err != nil {
-		err = fmt.Errorf("project: %v, new err: %v", project, err)
-		return
-	}
+	// // set branch or set tag?
+	// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+	// if err != nil {
+	// 	err = fmt.Errorf("project: %v, new err: %v", project, err)
+	// 	return
+	// }
 
-	// almost generate everytime, except config
-	err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
-	if err != nil {
-		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
-		return
-	}
-	log.Printf("done generate for project: %v", project)
+	// // almost generate everytime, except config
+	// err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+	// if err != nil {
+	// 	err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
+	// 	return
+	// }
+	// log.Printf("done generate for project: %v", project)
 
-	// everytime build, need generate first
+	// // everytime build, need generate first
 
-	// write to a auto.env? or
-	//envsubst.Eval()
+	// // write to a auto.env? or
+	// //envsubst.Eval()
 
-	log.Printf("start building for project: %v, branch: %v\n", project, branch)
-	out, err := p.Build(project, branch)
-	if err != nil {
-		err = fmt.Errorf("build err: %v", err)
-		return
-	}
-	fmt.Println("output:", out)
+	// log.Printf("start building for project: %v, branch: %v\n", project, branch)
+	// out, err := p.Build(project, branch)
+	// if err != nil {
+	// 	err = fmt.Errorf("build err: %v", err)
+	// 	return
+	// }
+	// fmt.Println("output:", out)
 
-	return
+	// ns := autoenv["CI_NAMESPACE"]
+	// err = apply(ns, finalyaml)
+	// if err != nil {
+	// 	err = fmt.Errorf("apply for project: %v, err: %v", project, err)
+	// 	return
+	// }
+	// log.Printf("apply for %v ok\n", project)
+	return startBuild(event)
 }
