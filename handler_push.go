@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"wen/self-release/template"
+	projectpkg "wen/self-release/project"
 )
 
 // get autoenv from events
@@ -36,7 +36,7 @@ func handlePush(event *PushEvent) (err error) {
 	log.Printf("got project %v to build for test env\n", event.Project.PathWithNamespace)
 
 	// project := event.Project.PathWithNamespace // we don't use event.Project.Name, since it may be chinese
-	// namespace, projectName, err := template.GetProjectName(project)
+	// namespace, projectName, err := projectpkg.GetProjectName(project)
 	// if err != nil {
 	// 	err = fmt.Errorf("parse project name for %q, err: %v", project, err)
 	// 	return
@@ -47,7 +47,7 @@ func handlePush(event *PushEvent) (err error) {
 	// 	err = fmt.Errorf("project: %v, parse branch err for refs: %v", project, event.Ref)
 	// 	return
 	// }
-	// env := template.GetEnvFromBranch(branch)
+	// env := projectpkg.GetEnvFromBranch(branch)
 
 	// autoenv := make(map[string]string)
 	// autoenv["CI_PROJECT_PATH"] = project
@@ -94,7 +94,7 @@ func handlePush(event *PushEvent) (err error) {
 	// what to do with master branch as dev?  init by commit text?
 
 	// if not inited, just using default setting?
-	p, err := template.NewProject(project, template.SetBranch(branch))
+	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 	if err != nil {
 		err = fmt.Errorf("project: %v, new err: %v", project, err)
 		return
@@ -140,7 +140,7 @@ func handlePush(event *PushEvent) (err error) {
 		log.Printf("inited for project: %v", project)
 	}
 	if reinit {
-		err = p.Init(template.SetInitForce())
+		err = p.Init(projectpkg.SetInitForce())
 		if err != nil {
 			err = fmt.Errorf("project: %v, reinit err: %v", project, err)
 			return
@@ -149,7 +149,7 @@ func handlePush(event *PushEvent) (err error) {
 	}
 
 	// almost generate everytime, except config
-	err = p.Generate(template.SetGenAutoEnv(autoenv))
+	err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
 	if err != nil {
 		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
 		return
@@ -217,7 +217,7 @@ func handleRelease(event *TagPushEvent) (err error) {
 	branch := e.Branch
 	env := e.Branch
 
-	if !template.BranchIsTag(branch) {
+	if !projectpkg.BranchIsTag(branch) {
 		err = fmt.Errorf("project %v release tag format incorrect, should prefix with v, got %v", project, branch)
 		return
 	}
@@ -234,14 +234,14 @@ func handleRelease(event *TagPushEvent) (err error) {
 	}
 
 	// set branch or set tag?
-	p, err := template.NewProject(project, template.SetBranch(branch))
+	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 	if err != nil {
 		err = fmt.Errorf("project: %v, new err: %v", project, err)
 		return
 	}
 
 	// almost generate everytime, except config
-	err = p.Generate(template.SetGenAutoEnv(autoenv))
+	err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
 	if err != nil {
 		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
 		return

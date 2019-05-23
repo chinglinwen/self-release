@@ -10,7 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"wen/self-release/git"
-	"wen/self-release/template"
+	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
 	"github.com/docker/docker/daemon/config"
@@ -87,7 +87,7 @@ func init() {
 	fmt.Println("start test init setting")
 	git.Init("wenzhenglin", "cKGa3eVAF7tZMvCukdsP")
 
-	template.Init()
+	projectpkg.Init()
 }
 
 func main() {

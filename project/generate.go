@@ -1,4 +1,4 @@
-package template
+package project
 
 import (
 	"crypto/sha256"

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"wen/self-release/template"
+	projectpkg "wen/self-release/project"
 
 	prettyjson "github.com/hokaccha/go-prettyjson"
 	"github.com/k0kubun/pp"
@@ -85,7 +85,7 @@ func initAPIHandler(c echo.Context) error {
 	}
 	force := c.FormValue("force")
 
-	p, err := template.NewProject(project, template.SetBranch(branch))
+	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 
 	if err != nil {
 		err = fmt.Errorf("new project: %v, err: %v", project, err)
@@ -93,8 +93,7 @@ func initAPIHandler(c echo.Context) error {
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 	}
 	if force == "true" {
-
-		err = p.Init(template.SetInitForce())
+		err = p.Init(projectpkg.SetInitForce())
 	} else {
 		err = p.Init()
 	}
@@ -127,16 +126,16 @@ func genAPIHandler(c echo.Context) error {
 	autoenv["MSG"] = msg
 	log.Println("autoenv:", autoenv)
 
-	p, err := template.NewProject(project, template.SetBranch(branch))
+	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 	if err != nil {
 		err = fmt.Errorf("new project: %v, err: %v", project, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 	}
 	if file != "" {
-		err = p.Generate(template.SetGenAutoEnv(autoenv), template.SetGenerateName(file))
+		err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
 	} else {
-		err = p.Generate(template.SetGenAutoEnv(autoenv))
+		err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
 	}
 
 	if err != nil {
@@ -180,7 +179,7 @@ func hookHandler(c echo.Context) (err error) {
 	}
 	// log.Println("marshal ok")
 
-	project := gjson.GetBytes(payload, "project.path_with_namespace").String()
+	project := gjson.GetBytes(payload, "projectpkg.path_with_namespace").String()
 	if project != "wenzhenglin/project-example" {
 		log.Println("ignore non-test projects")
 		c.JSONPretty(http.StatusOK, E(0, "ignore non-test projects", "ok"), " ")

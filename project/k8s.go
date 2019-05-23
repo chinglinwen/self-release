@@ -1,5 +1,5 @@
 // template ops relate files
-package template
+package project
 
 // type K8s struct {
 // 	Name     string

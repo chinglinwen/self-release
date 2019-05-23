@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-	"wen/self-release/template"
+	projectpkg "wen/self-release/project"
 )
 
 func ParseEvent(eventName string, payload []byte) (data interface{}, err error) {
@@ -44,7 +44,7 @@ func (event *PushEvent) GetInfo() (e EventInfo, err error) {
 		err = fmt.Errorf("project: %v, parse branch err for refs: %v", e.Project, event.Ref)
 		return
 	}
-	e.Env = template.GetEnvFromBranch(e.Branch)
+	e.Env = projectpkg.GetEnvFromBranch(e.Branch)
 	e.UserName = event.UserName
 	e.UserEmail = event.UserEmail
 	if len(event.Commits) == 0 {
@@ -65,7 +65,7 @@ func (event *TagPushEvent) GetInfo() (e EventInfo, err error) {
 		err = fmt.Errorf("project: %v, parse branch err for refs: %v", e.Project, event.Ref)
 		return
 	}
-	// e.Env = template.GetEnvFromBranch(branch) ?
+	// e.Env = projectpkg.GetEnvFromBranch(branch) ?
 	e.UserName = event.UserName
 	e.UserEmail = event.UserEmail
 	// if len(event.commits) == 0 {
@@ -97,7 +97,7 @@ func GetEventInfoToMap(event Eventer) (autoenv map[string]string, err error) {
 
 func EventInfoToMap(e EventInfo) (autoenv map[string]string, err error) {
 
-	namespace, projectName, err := template.GetProjectName(e.Project)
+	namespace, projectName, err := projectpkg.GetProjectName(e.Project)
 	if err != nil {
 		err = fmt.Errorf("parse project name for %q, err: %v", e.Project, err)
 		return
