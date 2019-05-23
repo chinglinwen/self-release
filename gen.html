@@ -3,13 +3,12 @@
 
 <body>
 
-    <h2>Generate Project</h2>
+    <h2>Generate k8s yaml from gitlab Project</h2>
 
     <form action="/api/gen">
-        First name:<br>
-        <input type="text" name="project" placeholder="gitlab-namespace/repo-name">
-        <br> Last name:<br>
-        <input type="text" name="branch" placeholder="branch or tag">
+        Project:
+        <input type="text" name="project" placeholder="namespace/repo-name" size="30"> Branch:
+        <input type="text" name="branch" placeholder="branch or tag(default to develop)" size="30">
         <br><br>
         <input type="submit" value="Submit">
     </form>

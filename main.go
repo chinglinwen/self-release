@@ -110,8 +110,8 @@ func main() {
 	}))
 
 	g := e.Group("/api")
-	g.GET("init", initAPIHandler)
-	g.GET("gen", initAPIHandler)
+	g.GET("/init", initAPIHandler)
+	g.GET("/gen", genAPIHandler)
 
 	// e.Static("/", "statuspage")
 	// e.Static("/data", "data")

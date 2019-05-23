@@ -3,13 +3,12 @@
 
 <body>
 
-    <h2>Init Project</h2>
+    <h2>Init Gitlab Project</h2>
 
     <form action="/api/init">
-        First name:<br>
-        <input type="text" name="project" placeholder="gitlab-namespace/repo-name">
-        <br> Last name:<br>
-        <input type="text" name="branch" placeholder="branch or tag">
+        Project:
+        <input type="text" name="project" placeholder="namespace/repo-name" size="30"> Branch:
+        <input type="text" name="branch" placeholder="branch or tag(default to develop)" size="30" value="develop">
         <br><br>
         <input type="checkbox" name="force" value="true"> force init<br><br>
         <input type="submit" value="Submit">

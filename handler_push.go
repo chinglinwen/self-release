@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"wen/self-release/template"
 )
@@ -15,7 +16,7 @@ const DevBranch = "develop"
 /*
 existing env
 
-[wen@234 k8snew ~]$ awk '{ print $2 }' FS='{{'  a| tr -d '}' | grep -v -e '^$' | sort -n | uniq
+$ awk '{ print $2 }' FS='{{'  a| tr -d '}' | grep -v -e '^$' | sort -n | uniq
  $CI_ENV
  $CI_IMAGE
  $CI_NAMESPACE
@@ -26,26 +27,46 @@ existing env
  $CI_TIME
  $CI_USER_NAME
  $NODE_PORT  # ????
-[wen@234 k8snew ~]$
+$
 */
 
+// should we build for every branch
+//
 // receive push, do the build for test,  or filter out based on commit text? Force keyword?
 func handlePush(event *PushEvent) (err error) {
 	log.Printf("got project %v to build for test env\n", event.Project.PathWithNamespace)
 
-	project := event.Project.PathWithNamespace
+	project := event.Project.PathWithNamespace // we don't use event.Project.Name, since it may be chinese
+	namespace, projectName, err := template.GetProjectName(project)
+	if err != nil {
+		err = fmt.Errorf("parse project name for %q, err: %v", project, err)
+		return
+	}
+
 	branch := parseBranch(event.Ref)
 	if branch == errParseRefs {
 		err = fmt.Errorf("project: %v, parse branch err for refs: %v", project, event.Ref)
 		return
 	}
+	env := template.GetEnvFromBranch(branch)
+
 	autoenv := make(map[string]string)
-	autoenv["PROJECTPATH"] = project
-	autoenv["BRANCH"] = branch
-	autoenv["USERNAME"] = event.UserName
-	autoenv["USEREMAIL"] = event.UserEmail
-	autoenv["MSG"] = event.Commits[0].Message
-	log.Println("autoenv:", autoenv)
+	autoenv["CI_PROJECT_PATH"] = project
+	autoenv["CI_BRANCH"] = branch
+	autoenv["CI_ENV"] = env
+	autoenv["CI_NAMESPACE"] = namespace
+	autoenv["CI_PROJECT_NAME"] = projectName
+	autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + env
+	autoenv["CI_REPLICAS"] = "2"
+
+	autoenv["CI_REGISTRY_IMAGE"] = "image?" // or using project_path
+
+	autoenv["CI_USER_NAME"] = event.UserName
+	autoenv["CI_USER_EMAIL"] = event.UserEmail
+	autoenv["CI_MSG"] = event.Commits[0].Message
+	autoenv["CI_TIME"] = time.Now().Format("2006-1-2 15:04:05")
+
+	log.Printf("autoenv: %#v\n", autoenv)
 
 	// only build for develop branch, need confirm?
 	// we shoult not limit the branch, let them easy to change? change in config.yaml, based on tag?
@@ -65,7 +86,9 @@ func handlePush(event *PushEvent) (err error) {
 	// 	p.DevBranch = "develop"
 	// }
 
-	// this should be check later, by see config first
+	// check this only for init?
+	//
+	// this should be check later, by see config first?
 	// if I were them, I just do release, let the system figure out when to init?
 	// release to test? it's better to init by tag msg?
 	if branch != p.DevBranch { // tag should be release, not build?
@@ -73,22 +96,37 @@ func handlePush(event *PushEvent) (err error) {
 		return
 	}
 
-	var force bool
-	if strings.Contains(event.Commits[0].Message, "/force") {
-		force = true
+	var init, reinit bool
+	if strings.Contains(event.Commits[0].Message, "/init") {
+		init = true
+	}
+	if strings.Contains(event.Commits[0].Message, "/reinit") {
+		reinit = true
 	}
 	// check if force is enabled
 
-	// check if inited
+	// check if inited, do init by manual trigger?
 
-	if !p.Inited() || force {
-		err = p.Init(template.SetInitForce())
+	// if not inited before, or force is specified, do init now?
+	// this will trigger auto build for everyproject? just don't do it?
+
+	// how people trigger init at first place? release text or commit text?
+
+	if !p.Inited() && init {
+		err = p.Init()
 		if err != nil {
 			err = fmt.Errorf("project: %v, init err: %v", project, err)
 			return
 		}
-	} else {
-		log.Printf("will not init for project: %v", project)
+		log.Printf("inited for project: %v", project)
+	}
+	if reinit {
+		err = p.Init(template.SetInitForce())
+		if err != nil {
+			err = fmt.Errorf("project: %v, reinit err: %v", project, err)
+			return
+		}
+		log.Printf("reinited for project: %v", project)
 	}
 
 	// almost generate everytime, except config

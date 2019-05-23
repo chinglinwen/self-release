@@ -1,6 +1,7 @@
 package template
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -20,6 +21,34 @@ func TestGenerateAll(t *testing.T) {
 		t.Error("generate err", err)
 		return
 	}
+}
+func TestConvertToSubst(t *testing.T) {
+	m := map[string]string{
+		"CI_PROJECT_NAME_WITH_ENV": "envaa",
+		"CI_NAMESPACE":             "ns",
+	}
+	a := `
+apiVersion: apps/v1
+kind: Deployment
+test: ${CI_PROJECT_NAME_WITH_ENV}
+metadata:
+  name: {{ $CI_PROJECT_NAME_WITH_ENV }}
+  namespace: {{ $CI_NAMESPACE }}
+spec:
+  annotations:
+    namespace : {{ $CI_NAMESPACE }}
+    project: {{ $CI_PROJECT_NAME }}
+    publish_user: {{ $CI_USER_NAME }}
+	publish_at: {{ $CI_TIME }}`
+	s := convertToSubst(a)
+	fmt.Printf("before:\n%v\nafter:\n%v\n", a, s)
+
+	f, err := generateByMap(s, m)
+	if err != nil {
+		t.Error("generateByMap err", err)
+		return
+	}
+	fmt.Printf("final: %v\n", f)
 }
 
 func TestGenerateConfig(t *testing.T) {

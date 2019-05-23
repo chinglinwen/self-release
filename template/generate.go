@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"wen/self-release/git"
 
@@ -14,6 +15,14 @@ import (
 
 	"github.com/drone/envsubst"
 	"github.com/joho/godotenv"
+)
+
+// to match specific k8s yaml
+const (
+	DEV    = "develop"
+	TEST   = "test"
+	PRE    = "pre"
+	ONLINE = "online"
 )
 
 // an api call to test?
@@ -48,6 +57,31 @@ func (p *Project) GenerateAndPush(options ...func(*genOption)) (err error) {
 	return p.CommitAndPush(fmt.Sprintf("generate for %v", p.Project))
 }
 
+func GetEnvFromBranch(branch string) string {
+	env := TEST
+	switch branch {
+	case PRE:
+		env = PRE
+	case ONLINE:
+		env = ONLINE
+	default:
+	}
+	return env
+}
+
+func GetProjectName(project string) (namespace, name string, err error) {
+	if project == "" {
+		err = fmt.Errorf("parse project empty err")
+		return
+	}
+	s := strings.Split(project, "/")
+	if len(s) != 2 {
+		err = fmt.Errorf("parse project err, invalid project: %v(expect namespace/repo-name)", project)
+		return
+	}
+	return s[0], s[1], nil
+}
+
 // generate config only? generate build files? not generate repotemplate
 //
 // generate by env setting
@@ -62,6 +96,10 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 	for _, op := range options {
 		op(c)
 	}
+
+	// default to test?
+	env := GetEnvFromBranch(p.Branch)
+	log.Printf("got project %v, env: %v to generate", p.Project, env)
 
 	// set envs with autoenv together
 	envMap, err := p.readEnvs(c.autoenv)
@@ -97,6 +135,12 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 
 		// skip inited final files
 		if v.RepoTemplate == "" {
+			continue
+		}
+
+		// match k8s yaml to env only
+		if !strings.Contains(v.Name, env) {
+			log.Printf("skip non-env generate for name: %v, env: %v\n", v.Name, env)
 			continue
 		}
 
@@ -150,7 +194,7 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 		// use env to overwrite
 		var finalbody string
 		// finalbody, err = generateByEnv(string(templateBody))
-		finalbody, err = generateByMap(templateBody, envMap)
+		finalbody, err = generateByMap(convertToSubst(templateBody), envMap)
 		if err != nil {
 			err = fmt.Errorf("generate finalbody for: %v, err: %v", v.Name, err)
 			errs[v.Name] = err
@@ -218,7 +262,7 @@ func (p *Project) Generate(options ...func(*genOption)) (err error) {
 		if v.ValidateFinalYaml {
 			_, e := ValidateByKubectl(finalbody, file)
 			if err != nil {
-				log.Println("validate finalbody for: %v, err: %v", file, e)
+				log.Printf("validate finalbody for: %v, err: %v", file, e)
 				// err = fmt.Errorf("validate finalbody for: %v, err: %v", file, e)
 				// continue or just logs
 			}
@@ -276,8 +320,18 @@ func getHash(filebody string) (sum string, err error) {
 	return
 }
 
+func convertToSubst(templateBody string) string {
+	// s := strings.ReplaceAll(templateBody, "{{", "")
+	// s = strings.ReplaceAll(s, "}}", "")
+
+	ciEnvPattern := regexp.MustCompile(`({{\s+\$(\w+)\s+}})`)
+	s := ciEnvPattern.ReplaceAll([]byte(templateBody), []byte("${${2}}"))
+	return string(s)
+}
+
 func generateByMap(templateBody string, envMap map[string]string) (string, error) {
 	return envsubst.Eval(templateBody, func(k string) string {
+		log.Println("get key", k, "value", envMap[k])
 		return envMap[k]
 	})
 }

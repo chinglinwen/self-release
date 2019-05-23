@@ -19,14 +19,14 @@ type File struct {
 
 	Overwrite         bool
 	Perm              os.FileMode // set final file perm
-	ValidateFinalYaml bool
+	ValidateFinalYaml bool        // `yaml:'validateFinalYaml'`
 }
 
 // this will be the project config for customizing
 type Project struct {
 	Project string
 	Branch  string // build branch
-	Env     string // branch, may derive from event's branch as env
+	// Env     string // branch, may derive from event's branch as env
 	// not able to get branch? we can, but if it's a tag? init for develop branch only no tags
 	DevBranch string // default dev branch name
 
@@ -161,7 +161,6 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	// log.Printf("after options apply for repo: %q ok\n", p.Project)
 
 	branch := p.Branch
-	env := p.Env
 	configVer := p.ConfigVer
 	force := p.InitForce
 
@@ -204,7 +203,6 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 			// what others setting will be overwrite by template?
 			p.Project = project
 			p.Branch = branch
-			p.Env = env
 			log.Printf("set to default config for project %q\n", project)
 		} else {
 			log.Printf("try read repoconfig for repo: %q ok\n", p.Project)
@@ -374,13 +372,13 @@ func (p *Project) initRepoTemplateOrFinal(v File, envMap map[string]string) (err
 	}
 	exist = p.repo.IsExist(initfile)
 
-	// force should only for config.yaml
-	if exist && v.Name == "config.yaml" && !p.InitForce {
-		log.Printf("init file: %v exist and force have not set, skip", v.Final)
-		return
-	}
-	if exist && !v.Overwrite {
-		log.Printf("init file: %v exist and overwrite have not set, skip", v.Final)
+	// force should only for config.yaml and repo, force for redo of  init
+	// if exist && v.Name == "config.yaml" && !p.InitForce {
+	// 	log.Printf("init file: %v exist and force have not set, skip", v.Final)
+	// 	return
+	// }
+	if exist && !v.Overwrite && !p.InitForce {
+		log.Printf("init file: %v exist and force or overwrite have not set, skip", v.Final)
 		return
 	}
 

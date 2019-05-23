@@ -23,57 +23,58 @@ func homeHandler(c echo.Context) error {
 	//may do redirect later?
 	return c.String(http.StatusOK, "home page")
 }
-func initPageHandler(c echo.Context) error {
-	//may do redirect later?
-	page := `
-	<!DOCTYPE html>
-	<html>
-	
-	<body>
-	
-		<h2>Init Project</h2>
-	
-		<form action="/api/init">
-			First name:<br>
-			<input type="text" name="project" placeholder="gitlab-namespace/repo-name">
-			<br> Last name:<br>
-			<input type="text" name="branch" placeholder="branch or tag">
-			<br><br>
-			<input type="checkbox" name="force" value="true"> force init<br><br>
-			<input type="submit" value="Submit">
-		</form>
-	
-	</body>
-	
-	</html>
 
-	`
-	return c.String(http.StatusOK, page)
-}
-func genPageHandler(c echo.Context) error {
-	page := `
-<!DOCTYPE html>
-<html>
+// func initPageHandler(c echo.Context) error {
+// 	//may do redirect later?
+// 	page := `
+// 	<!DOCTYPE html>
+// 	<html>
 
-<body>
+// 	<body>
 
-    <h2>Generate Project</h2>
+// 		<h2>Init Project</h2>
 
-    <form action="/api/gen">
-        First name:<br>
-        <input type="text" name="project" placeholder="gitlab-namespace/repo-name">
-        <br> Last name:<br>
-        <input type="text" name="branch" placeholder="branch or tag">
-        <br><br>
-        <input type="submit" value="Submit">
-    </form>
+// 		<form action="/api/init">
+// 			First name:<br>
+// 			<input type="text" name="project" placeholder="gitlab-namespace/repo-name">
+// 			<br> Last name:<br>
+// 			<input type="text" name="branch" placeholder="branch or tag">
+// 			<br><br>
+// 			<input type="checkbox" name="force" value="true"> force init<br><br>
+// 			<input type="submit" value="Submit">
+// 		</form>
 
-</body>
+// 	</body>
 
-</html>
-`
-	return c.String(http.StatusOK, page)
-}
+// 	</html>
+
+// 	`
+// 	return c.String(http.StatusOK, page)
+// }
+// func genPageHandler(c echo.Context) error {
+// 	page := `
+// <!DOCTYPE html>
+// <html>
+
+// <body>
+
+//     <h2>Generate Project</h2>
+
+//     <form action="/api/gen">
+//         First name:<br>
+//         <input type="text" name="project" placeholder="gitlab-namespace/repo-name">
+//         <br> Last name:<br>
+//         <input type="text" name="branch" placeholder="branch or tag">
+//         <br><br>
+//         <input type="submit" value="Submit">
+//     </form>
+
+// </body>
+
+// </html>
+// `
+// 	return c.String(http.StatusOK, page)
+// }
 
 func initAPIHandler(c echo.Context) error {
 
@@ -98,9 +99,9 @@ func initAPIHandler(c echo.Context) error {
 		err = p.Init()
 	}
 	if err != nil {
-		err = fmt.Errorf("project: %v,init err: %v", project, err)
+		err = fmt.Errorf("init api err: %v", err)
 		log.Println(err)
-		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 	}
 
 	return c.String(http.StatusOK, "init ok")
@@ -109,6 +110,9 @@ func initAPIHandler(c echo.Context) error {
 func genAPIHandler(c echo.Context) error {
 	project := c.FormValue("project")
 	branch := c.FormValue("branch")
+	if branch == "" {
+		branch = "develop"
+	}
 
 	username := c.FormValue("username")
 	useremail := c.FormValue("useremail")
@@ -130,9 +134,9 @@ func genAPIHandler(c echo.Context) error {
 	}
 	err = p.Generate(template.SetGenAutoEnv(autoenv))
 	if err != nil {
-		err = fmt.Errorf("project: %v,init err: %v", project, err)
+		err = fmt.Errorf("gen api err: %v", err)
 		log.Println(err)
-		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 	}
 
 	return c.String(http.StatusOK, "generate ok")
@@ -148,7 +152,7 @@ func hookHandler(c echo.Context) (err error) {
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 		return
 	}
-	log.Println("readbody ok")
+	// log.Println("readbody ok")
 
 	a := make(map[string]interface{})
 	err = json.Unmarshal(payload, &a)
@@ -159,7 +163,7 @@ func hookHandler(c echo.Context) (err error) {
 		return
 	}
 
-	log.Println("unmarshal ok")
+	// log.Println("unmarshal ok")
 
 	out, err := prettyjson.Marshal(a)
 	if err != nil {
@@ -168,7 +172,14 @@ func hookHandler(c echo.Context) (err error) {
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 		return
 	}
-	log.Println("marshal ok")
+	// log.Println("marshal ok")
+
+	project := gjson.GetBytes(payload, "project.path_with_namespace").String()
+	if project != "wenzhenglin/project-example" {
+		log.Println("ignore non-test projects")
+		c.JSONPretty(http.StatusOK, E(0, "ignore non-test projects", "ok"), " ")
+		return
+	}
 	fmt.Printf("out: %s\n", out)
 
 	// log.Printf("===event_name: %v\n", a["event_name"])
