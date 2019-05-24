@@ -11,6 +11,7 @@ import (
 	"regexp"
 
 	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
@@ -254,8 +255,9 @@ func (repo *Repo) GetWorkDir() string {
 	return repo.Local
 }
 
-func (repo *Repo) CLone() error {
-	r, err := git.PlainOpen(repo.Local)
+func (repo *Repo) CLone() (err error) {
+	var r *git.Repository
+	r, err = git.PlainOpen(repo.Local)
 	if err != nil {
 		// Clones the repository into the given dir, just as a normal git clone does
 		r, err = git.PlainClone(repo.Local, false, &git.CloneOptions{
@@ -264,17 +266,22 @@ func (repo *Repo) CLone() error {
 				Username: repo.user,
 				Password: repo.pass,
 			},
-			NoCheckout: repo.force,
+			// NoCheckout: repo.force,
 			// Depth:         1,  // depth 1 will cause object not found
 			// enable ReferenceName will cause non-fast-forward update error
 			// ReferenceName: plumbing.ReferenceName(repo.refs), // default all branches
+			Tags: git.AllTags,
 		})
 		log.Println("cloned new repo :", repo.Project)
 	} else {
 		log.Printf("got existing repo ok, for repo: %q\n", repo.Project)
 	}
 	repo.R = r
-	return err
+
+	// if repo.Tag != "" {
+	return repo.Fetch()
+	// }
+	// return
 }
 
 func (r *Repo) GitProjectName() string {
@@ -285,50 +292,22 @@ func (r *Repo) GitProjectName() string {
 	return r.Project
 }
 
-// func (repo *Repo) Fetch() error {
-
-// 	// Tempdir to clone the repository
-// 	// dir, err := ioutil.TempDir(".", "clone-example")
-// 	// if err != nil {
-// 	// 	log.Fatal(err)
-// 	// }
-
-// 	// defer os.RemoveAll(dir) // clean up
-
-// 	// // Clones the repository into the given dir, just as a normal git clone does
-// 	// _, err = git.PlainClone(dir, false, &git.CloneOptions{
-// 	// 	URL: "http://g.haodai.net/wenzhenglin/test.git",
-// 	// 	Auth: &http.BasicAuth{
-// 	// 		Username: "wenzhenglin", // anything except an empty string
-// 	// 		Password: "cKGa3eVAF7tZMvCukdsP",
-// 	// 	},
-// 	// })
-
-// 	// specify to tag?
-
-// 	// open existing one
-// 	// how to handle url change?
-
-// 	// storer := filesystem.NewStorage(fs, cache.NewObjectLRUDefault())
-// 	// r, err := git.Clone(storer, fs, &git.CloneOptions{
-// 	// 	URL: repo.URL,
-// 	// 	Auth: &http.TokenAuth{
-// 	// 		Token: "MvPVs7Z56gU2k2ADyR6J", //TODO change this
-// 	// 	},
-// 	// 	Depth: 1,
-// 	// })
-
-// 	// check if _ops exist, if not exist just return
-
-// 	// ref, err := r.Head()
-// 	// checkerr(err)
-
-// 	// fmt.Println("got ref", ref)
-
-// 	repo.R = r
-// 	repo.wrk = wrk
-
-// 	// err = repo.Push("clone-example/hello", "hello from git robot")
-// 	// checkerr(err)
-// 	return nil
-// }
+func (repo *Repo) Fetch() (err error) {
+	err = repo.R.Fetch(&git.FetchOptions{
+		RefSpecs: []config.RefSpec{
+			// config.RefSpec(repo.refs),
+			// config.RefSpec("+" + repo.refs + ":" + repo.refs),
+			config.RefSpec("+refs/tags/*:refs/tags/*"),
+		},
+		Auth: &http.BasicAuth{
+			Username: repo.user,
+			Password: repo.pass,
+		},
+		Tags:  git.AllTags,
+		Force: true,
+	})
+	if err != nil {
+		err = fmt.Errorf("fetch err: %v", err)
+	}
+	return
+}

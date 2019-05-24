@@ -34,8 +34,8 @@ func TestBranchIsTag(t *testing.T) {
 	return
 }
 
-func TestNew1(t *testing.T) {
-	repo, err := New("wenzhenglin/config-deploy", SetBranch("templateconfig"))
+func TestFetch(t *testing.T) {
+	repo, err := New("wenzhenglin/test", SetBranch("v1.0.5"))
 	if err != nil {
 		t.Error("new err", err)
 		return
@@ -215,28 +215,6 @@ func TestClone(t *testing.T) {
 	if _, err := ioutil.ReadDir("yunwei/config-deploy"); err != nil {
 		t.Error("clone config-deploy err", err)
 	}
-}
-
-func TestFetch(t *testing.T) {
-	var err error
-	// _, err = New("wenzhenglin/test", SetBranch("feature2"))
-	// if err != nil {
-	// 	t.Error("new err:", err)
-	// 	return
-	// }
-	// return
-	// _, err = New("wenzhenglin/test")
-	// if err != nil {
-	// 	t.Error("new err:", err)
-	// 	return
-	// }
-
-	_, err = New("yunwei/config-deploy")
-	if err != nil {
-		t.Error("new err:", err)
-		return
-	}
-	//spew.Dump("r", r)
 }
 
 func TestCheckout(t *testing.T) {
