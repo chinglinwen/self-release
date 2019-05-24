@@ -36,7 +36,7 @@ func Build(dir, project, tag string) (out string, err error) {
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Println("build execute build err:", err)
+		log.Printf("build execute build err: %v\noutput: %v\n", err, string(output))
 		return
 	}
 	out = string(output)

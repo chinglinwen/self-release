@@ -114,7 +114,7 @@ func main() {
 	g.GET("/gen", genAPIHandler)
 
 	// e.Static("/", "statuspage")
-	// e.Static("/data", "data")
+	e.Static("/logs", "projectlogs")
 
 	e.File("/init", "init.html")
 	e.File("/gen", "gen.html")
@@ -122,9 +122,9 @@ func main() {
 	e.GET("/", homeHandler)
 	e.POST("/hook", hookHandler)
 
-	err := e.Start(":" + *port)
-	log.Println("fatal", err)
-	//e.Logger.Fatal()
+	e.Logger.Fatal(e.Start(":" + *port))
+	// err := e.Start(":" + *port)
+	// log.Println("fatal", err)
 
 	log.Println("exit")
 }

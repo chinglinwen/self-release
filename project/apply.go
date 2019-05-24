@@ -3,7 +3,6 @@ package project
 import (
 	"fmt"
 	"os/exec"
-	"strings"
 )
 
 /*
@@ -15,8 +14,9 @@ this error does not helpful?
 //
 // how to apply
 func ApplyByKubectl(filebody, fileName string) (out string, err error) {
-	cmd := exec.Command("sh", "-c", "kubectl apply -f -")
-	cmd.Stdin = strings.NewReader(filebody)
+	s := fmt.Sprintf("kubectl apply -f %v", fileName)
+	cmd := exec.Command("sh", "-c", s)
+	// cmd.Stdin = strings.NewReader(filebody)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("apply file: %v err: %v, \noutput: %v", fileName, err, string(output))

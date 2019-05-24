@@ -15,6 +15,9 @@ import (
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
+// save log to file, for later access?
+// https://github.com/google/logger
+
 func hookHandler(c echo.Context) (err error) {
 	// spew.Dump("c.header", c.Request().Header)
 	// header: X-Gitlab-Event: "System Hook"
