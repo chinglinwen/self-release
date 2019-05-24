@@ -128,7 +128,7 @@ func (r *Repo) Create(filename, contents string, options ...func(*option)) (err 
 
 // file is exist
 func (r *Repo) GitAdd(filename string) (err error) {
-	log.Printf("gitadd file: %v\n", filename)
+	// log.Printf("gitadd file: %v\n", filename)
 	_, err = r.wrk.Add(filename)
 	return
 }

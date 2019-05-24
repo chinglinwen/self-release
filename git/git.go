@@ -177,7 +177,8 @@ func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
 		return nil, err
 	}
 	repo.wrk = wrk
-	log.Printf("new repo and get worktree ok, for repo: %q, branch: %q\n", repo.Project, repo.Branch)
+
+	log.Printf("new repo and get worktree ok, for repo: %q, branch: %q, tag: %q\n", repo.Project, repo.Branch, repo.Tag)
 
 	// this will make local changes lost
 	// checkout is needed after new, so we can work on correct branch
@@ -202,8 +203,7 @@ func NewWithPull(project string, options ...func(*Repo)) (repo *Repo, err error)
 // pull will checkout local first, local change(and staged change) will be discard
 func (repo *Repo) Pull() (err error) {
 	// if !repo.nocheckout {
-
-	// 	// err = repo.CheckoutLocal()  // this checkout two times
+	// 	// 	// err = repo.CheckoutLocal()  // this checkout two times
 	// 	if repo.Branch != "master" {
 	// 		err = repo.wrk.Checkout(&git.CheckoutOptions{
 	// 			Branch: plumbing.ReferenceName("refs/heads/master"),
@@ -221,33 +221,34 @@ func (repo *Repo) Pull() (err error) {
 	// 	log.Printf("will not do checkout local for: %v, branch: %v\n", repo.Project, repo.Branch)
 	// }
 
-	if !repo.nopull {
-
-		// pull can be done if all commit been pushed ( otherwise result non-fast-forward error )
-		err = repo.wrk.Pull(&git.PullOptions{
-			RemoteName:    "origin",
-			ReferenceName: plumbing.ReferenceName(repo.localrefs),
-			// ReferenceName: plumbing.ReferenceName(repo.refs),  //reference not found
-			SingleBranch: true,
-			Auth: &http.BasicAuth{
-				Username: repo.user,
-				Password: repo.pass,
-			},
-			// Depth: 1,
-			Force: repo.force, // TODO: default no force?
-		})
-		// spew.Dump("pull err", err, err == git.NoErrAlreadyUpToDate)
-		if err == git.NoErrAlreadyUpToDate {
-			err = nil
-		}
-		if err != nil && err != git.NoErrAlreadyUpToDate {
-			err = fmt.Errorf("pull error: %v, for repo: %v", err, repo.Project)
-			return
-		}
-		log.Printf("pull ok, for repo: %q\n", repo.Project)
-	} else {
+	// skip pull for tag
+	if repo.nopull || repo.Tag != "" {
 		log.Println("will not do pull for", repo.Project)
+		return
 	}
+	// pull can be done if all commit been pushed ( otherwise result non-fast-forward error )
+	err = repo.wrk.Pull(&git.PullOptions{
+		RemoteName:    "origin",
+		ReferenceName: plumbing.ReferenceName(repo.localrefs), // refs/heads/v1.0.1
+		// ReferenceName: plumbing.ReferenceName(repo.refs), // refs/tags/v1.0.1 //reference not found, object not found for tag
+		// SingleBranch:  true,
+		Auth: &http.BasicAuth{
+			Username: repo.user,
+			Password: repo.pass,
+		},
+		// Depth: 1,
+		Force: repo.force, // TODO: default no force?
+	})
+	// spew.Dump("pull err", err, err == git.NoErrAlreadyUpToDate)
+	if err == git.NoErrAlreadyUpToDate {
+		err = nil
+	}
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		err = fmt.Errorf("pull error: %v, for repo: %v", err, repo.Project)
+		return
+	}
+	log.Printf("pull ok, for repo: %q\n", repo.Project)
+
 	return repo.CheckoutLocal()
 }
 

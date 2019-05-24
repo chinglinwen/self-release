@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+/*
+this error does not helpful?
+
+ output: error: error validating "STDIN": error validating data: invalid object to validate; if you choose to ignore these errors, turn validation off with --validate=false
+*/
 // apply contents by generate? or let generate apply directly?
 //
 // how to apply
@@ -23,7 +28,7 @@ func ApplyByKubectl(filebody, fileName string) (out string, err error) {
 
 // create ns if not exist
 func CheckOrCreateNamespace(ns string) (out string, err error) {
-	s := fmt.Sprintf("kubectl get ns %v || kubectl create ns %v", ns)
+	s := fmt.Sprintf("kubectl get ns %v || kubectl create ns %v", ns, ns)
 	cmd := exec.Command("sh", "-c", s)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

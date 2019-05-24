@@ -166,7 +166,7 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	// normal repo config take first
 	repo, e := getRepo(project, p.Branch, p.NoPull)
 	if e != nil {
-		err = fmt.Errorf("clone or open project: %v, err: %v, configver: %v", project, err, configVer)
+		err = fmt.Errorf("clone or open project: %v, err: %v, configver: %v", project, e, configVer)
 		return
 	}
 	p, e = readRepoConfig(repo)

@@ -198,7 +198,7 @@ func TestProjectInit(t *testing.T) {
 	// 	fmt.Printf("file: %#v\n", v)
 	// }
 	// err = p.Init()
-	err = p.Init(SetInitForce())
+	err = p.Init(SetInitForce(), SetInitName("build-docker.sh"))
 	if err != nil {
 		t.Error("newproject init err", err)
 		return

@@ -10,14 +10,21 @@ import (
 
 // a webpage to trigger the test
 type initOption struct {
-	force     bool
-	configVer string
+	singleName string
+	force      bool
+	configVer  string
 }
 
 // force is used to re-init config.yaml
 func SetInitForce() func(*initOption) {
 	return func(p *initOption) {
 		p.force = true
+	}
+}
+
+func SetInitName(name string) func(*initOption) {
+	return func(o *initOption) {
+		o.singleName = name
 	}
 }
 
@@ -74,6 +81,13 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 		// if v.Name != "config.yaml" {
 		// 	continue
 		// }
+
+		if c.singleName != "" {
+			if c.singleName != v.Name { // try support filename match?
+				// mostly specify file to init single file, so continue
+				continue
+			}
+		}
 
 		if v.RepoTemplate == "" && v.Final == "" {
 			err = fmt.Errorf("repotemplate and final file not specified for %v", v.Name)

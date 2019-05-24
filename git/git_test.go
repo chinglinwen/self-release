@@ -35,12 +35,19 @@ func TestBranchIsTag(t *testing.T) {
 }
 
 func TestFetch(t *testing.T) {
-	repo, err := New("wenzhenglin/test", SetBranch("v1.0.5"))
+	repo, err := NewWithPull("wenzhenglin/test", SetBranch("v1.0.1"))
 	if err != nil {
 		t.Error("new err", err)
 		return
 	}
 	_ = repo
+
+	// repo, err = NewWithPull("wenzhenglin/project-example", SetBranch("v1.0.1"))
+	// if err != nil {
+	// 	t.Error("new err", err)
+	// 	return
+	// }
+	// _ = repo
 }
 func TestNew(t *testing.T) {
 	var repo *Repo

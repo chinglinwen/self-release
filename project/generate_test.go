@@ -16,7 +16,7 @@ func TestGenerateAll(t *testing.T) {
 		return
 	}
 
-	err = p.Generate()
+	_, err = p.Generate()
 	if err != nil {
 		t.Error("generate err", err)
 		return
@@ -57,7 +57,7 @@ func TestGenerateConfig(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("config.yaml"))
+	_, err = p.Generate(SetGenerateName("config.yaml"))
 	if err != nil {
 		t.Error("generate err", err)
 		return
@@ -70,7 +70,7 @@ func TestGenerateNginx(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("nginx.conf"))
+	_, err = p.Generate(SetGenerateName("nginx.conf"))
 	if err != nil {
 		t.Error("generate err", err)
 		return
@@ -83,7 +83,7 @@ func TestGeneratePHP(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("php.ini"))
+	_, err = p.Generate(SetGenerateName("php.ini"))
 	if err != nil {
 		t.Error("generate err", err)
 		return
@@ -96,7 +96,7 @@ func TestGenerateConfigEnv(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("config.env"))
+	_, err = p.Generate(SetGenerateName("config.env"))
 	if err != nil {
 		t.Error("generate err", err)
 		return
@@ -119,7 +119,7 @@ func TestGenerateDocker(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("dockerfile"))
+	_, err = p.Generate(SetGenerateName("dockerfile"))
 	if err != nil {
 		t.Error("generate err", err)
 		return
@@ -132,7 +132,7 @@ func TestGenerateBuildDocker(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("build-docker.sh"))
+	_, err = p.Generate(SetGenerateName("build-docker.sh"))
 	if err != nil {
 		t.Error("generate err", err)
 		return
@@ -152,7 +152,7 @@ func TestGenerateK8sOnline(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("k8s-online"), SetGenAutoEnv(autoenv))
+	_, err = p.Generate(SetGenerateName("k8s-online"), SetGenAutoEnv(autoenv))
 	if err != nil {
 		t.Error("generate err", err)
 		return
@@ -165,7 +165,7 @@ func TestGenerateK8sPre(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("k8s-pre"))
+	_, err = p.Generate(SetGenerateName("k8s-pre"))
 	if err != nil {
 		t.Error("generate err", err)
 		return
@@ -178,7 +178,7 @@ func TestGenerateK8sTest(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	err = p.Generate(SetGenerateName("k8s-test"))
+	_, err = p.Generate(SetGenerateName("k8s-test"))
 	if err != nil {
 		t.Error("generate err", err)
 		return
