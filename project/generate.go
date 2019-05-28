@@ -88,6 +88,11 @@ func GetProjectName(project string) (namespace, name string, err error) {
 // generate to config-repo only
 // let's generate to local first, later if needed ( upload to remote ), say trigger by init?
 func (p *Project) Generate(options ...func(*genOption)) (target string, err error) {
+	configrepo, err := GetConfigRepo()
+	if err != nil {
+		err = fmt.Errorf("get configrepo err: %v", err)
+		return
+	}
 	if !p.Inited() {
 		err = fmt.Errorf("project %v have not init", p.Project)
 		return

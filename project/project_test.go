@@ -3,15 +3,14 @@ package project
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"testing"
 )
 
-func TestMain(m *testing.M) {
-	Init()
-	code := m.Run()
-	os.Exit(code)
-}
+// func TestMain(m *testing.M) {
+// 	Init()
+// 	code := m.Run()
+// 	os.Exit(code)
+// }
 
 var pyaml = `
 project: wenzhenglin/project-example
@@ -198,7 +197,8 @@ func TestProjectInit(t *testing.T) {
 	// 	fmt.Printf("file: %#v\n", v)
 	// }
 	// err = p.Init()
-	err = p.Init(SetInitForce(), SetInitName("build-docker.sh"))
+	// err = p.Init(SetInitForce(), SetInitName("build-docker.sh"))
+	err = p.Init(SetInitForce())
 	if err != nil {
 		t.Error("newproject init err", err)
 		return

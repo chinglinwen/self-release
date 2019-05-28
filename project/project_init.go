@@ -3,6 +3,7 @@ package project
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"wen/self-release/git"
 
 	"github.com/chinglinwen/log"
@@ -43,10 +44,17 @@ func (errs *initErr) Error() (s string) {
 	return
 }
 
-// init can reading from repo's config, or assume have project name only(using default config version)
+// init can reading from repo's config, or assume have project name only(using default config version)?
 //
 // init template file, config.yaml and repotemplate files
+// if repo config.yaml exist, it will affect init process?
 func (p *Project) Init(options ...func(*initOption)) (err error) {
+	configrepo, err := GetConfigRepo()
+	if err != nil {
+		err = fmt.Errorf("get configrepo err: %v", err)
+		return
+	}
+
 	c := &initOption{}
 	for _, op := range options {
 		op(c)
@@ -74,8 +82,19 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 	errs := make(initErr)
 	found := false
 
+	var updateconfigrepo bool
+
+	// not inited, using template config
+	tp, e := readTemplateConfig(configrepo, c.configVer)
+	if e != nil {
+		err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", p.Project, e, c.configVer)
+		return
+	}
+
+	log.Printf("read template main config to init project %q\n", p.Project)
+
 	// copy from template to project repo, later to customize it? generate final by setting
-	for _, v := range p.Files {
+	for _, v := range tp.Files {
 
 		// // init should only concern with config.yaml? init need includes repotemplate
 		// if v.Name != "config.yaml" {
@@ -99,13 +118,16 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 		// init only init final or repotemplate, not both
 
 		// === generate repo template parts( if not ovewwrite, custom setting will be keeped)
-		err = p.initRepoTemplateOrFinal(c.force, v, envMap)
-		if err != nil {
-			err = fmt.Errorf("initRepoTemplateOrFinal project: %v file: %v err: %v", p.Project, v.RepoTemplate, err)
+		updateconfig, e := p.initRepoTemplateOrFinal(configrepo, c.force, v, envMap)
+		if e != nil {
+			err = fmt.Errorf("initRepoTemplateOrFinal project: %v file: %v err: %v", p.Project, v.RepoTemplate, e)
 			errs[v.Name] = err
 			continue
 		}
-
+		if updateconfig {
+			// if one item update exist, commit it
+			updateconfigrepo = true
+		}
 		// if p.repo.IsExist(v.Final) && !v.Overwrite && !p.Force {
 		// 	err = fmt.Errorf("final file: %v exist and force or overwrite not set, skip", v.Final)
 		// 	errs[v.Name] = err
@@ -157,28 +179,70 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 	if len(errs) != 0 {
 		return &errs
 	}
-	err = p.CommitAndPush("init config.yaml")
+	err = p.CommitAndPush("init config.yaml for " + p.Project)
 	if err != nil {
 		err = fmt.Errorf("init push err: %v, project: %v", err, p.Project)
 		return
+	}
+	if updateconfigrepo {
+		configrepo.CommitAndPush("init config.yaml for " + p.Project)
+		if err != nil {
+			err = fmt.Errorf("init push err: %v, project: %v", err, p.Project)
+			return
+		}
 	}
 
 	return
 }
 
 // if no variable to replace or no custom setting, no need to init repotemplate?
+// we generate for init, so it will easier to custom later
 // gen or add to git?  // why not generate once
-func (p *Project) initRepoTemplateOrFinal(force bool, v File, envMap map[string]string) (err error) {
+func (p *Project) initRepoTemplateOrFinal(configrepo *git.Repo, force bool, v File, envMap map[string]string) (updateconfigrepo bool, err error) {
+	if v.RepoTemplate == "" && v.Final == "" {
+		err = fmt.Errorf("nothing toinit for project: %v, file: %v, skip", p.Project, v.Name)
+		return
+	}
+	// store repotemplate to configrepo if prefixed with config:
+	var (
+		repo = p.repo // for repotemplate only?
+		// updateprojectrepo bool  // we always update project repo for init phase
+		// updateconfigrepo bool
+		rtmplfile string
+		// rtmplconfig       bool // repotemplate flag store to config
+	)
+
+	projectName := p.Project
+
+	if v.RepoTemplate != "" {
+		rtmpl := strings.Split(v.RepoTemplate, ":")
+		if len(rtmpl) == 1 {
+			// rrepo = p.repo
+			// updateprojectrepo = true
+			rtmplfile = rtmpl[0] // store to project repo
+		} else if len(rtmpl) == 2 {
+			repo = configrepo
+			updateconfigrepo = true
+			rtmplfile = filepath.Join(projectName, rtmpl[1])
+			log.Printf("will update config for %v\n", v.Name)
+			// rtmplconfig = true // will store to config repo
+		} else {
+			err = fmt.Errorf("repotemplate value incorrect, should be \"path\" or \"config:path\" for %v", v.Name)
+			return
+		}
+	}
+
 	var initfile string
 	var evaltemplate bool
 	var exist bool
 	if v.RepoTemplate != "" {
-		initfile = v.RepoTemplate // init repotemplate, later generate final
+		initfile = rtmplfile // init repotemplate, later generate final
 	} else {
 		initfile = v.Final
 		evaltemplate = true
 	}
-	exist = p.repo.IsExist(initfile)
+
+	exist = repo.IsExist(initfile)
 
 	// force should only for config.yaml and repo, force for redo of  init
 	// if exist && v.Name == "config.yaml" && !p.InitForce {
@@ -209,11 +273,14 @@ func (p *Project) initRepoTemplateOrFinal(force bool, v File, envMap map[string]
 	} else {
 		tbody = string(tfile)
 	}
+	if updateconfigrepo {
+		note += "(init in configrepo)"
+	}
 
 	if v.Perm == 0 {
-		err = p.repo.Add(initfile, string(tbody))
+		err = repo.Add(initfile, string(tbody))
 	} else {
-		err = p.repo.Add(initfile, string(tbody), git.SetPerm(v.Perm))
+		err = repo.Add(initfile, string(tbody), git.SetPerm(v.Perm))
 	}
 
 	log.Printf("inited file: %v%v, project: %v\n", initfile, note, p.Project)

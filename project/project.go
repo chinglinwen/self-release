@@ -139,10 +139,13 @@ func SetNoPull() func(*Project) {
 // config: _ops/config/templatename.config
 // config: _ops/config/config.yaml  //specify which template and which config file?
 func NewProject(project string, options ...func(*Project)) (p *Project, err error) {
-	if configrepo == nil {
-		err = fmt.Errorf("configrepo not inited")
-		return
-	}
+	// not inited repo, just return
+	// configrepo, err := GetConfigRepo()
+	// if err != nil {
+	// 	err = fmt.Errorf("get configrepo err: %v", err)
+	// 	return
+	// }
+
 	p = &Project{
 		Project:   project,  // "template-before-create",
 		Branch:    "master", // TODO: default to master?
@@ -171,24 +174,26 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	}
 	p, e = readRepoConfig(repo)
 	if e != nil {
-		// not inited, using template config
-		tp, e := readTemplateConfig(configVer)
-		if e != nil {
-			err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", project, e, configVer)
-			return
-		}
-		p = tp
+		// // not inited, using template config? or just return error,since it not inited?
+		// tp, e := readTemplateConfig(configVer)
+		// if e != nil {
+		// 	err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", project, e, configVer)
+		// 	return
+		// }
+		// p = tp
 
-		// only except we don't write files to git?
+		// // only except we don't write files to git?
 
-		// it can't be, project name have issues too?
-		// what others setting will be overwrite by template?
-		p.Project = project
-		p.Branch = branch
+		// // it can't be, project name have issues too?
+		// // what others setting will be overwrite by template?
+		// p.Project = project
+		// p.Branch = branch
 
-		log.Printf("set to default config for project %q\n", project)
+		// log.Printf("set to default config for project %q\n", project)
+		err = fmt.Errorf("project %v not inited, for branch: %v", p.Project, branch)
+		return
 	} else {
-		log.Printf("try read repoconfig for repo: %q ok\n", p.Project)
+		log.Printf("try read repoconfig for repo: %v, branch: %v ok\n", p.Project, branch)
 	}
 
 	// var tp *Project
@@ -231,7 +236,10 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	return
 }
 
-func readTemplateConfig(configVer string) (p *Project, err error) {
+func readTemplateConfig(configrepo *git.Repo, configVer string) (p *Project, err error) {
+	if configVer == "" {
+		configVer = GetDefaultConfigVer()
+	}
 	f := filepath.Join("template", configVer, defaultConfigName)
 	tyaml, err := configrepo.GetFile(f)
 	if err != nil {
