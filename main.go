@@ -10,30 +10,30 @@ import (
 	"flag"
 	"fmt"
 	"wen/self-release/git"
-	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
-	"github.com/docker/docker/daemon/config"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
 
 var (
-	conf             *config.Config
-	env              = flag.String("env", "qa", "env includes (qa,pre,pro)")
-	port             = flag.String("p", "8089", "port")
-	checkInterval    = flag.String("i", "10s", "check interval (s second,m minutes)")
-	concurrentChecks = flag.Int("cc", 100, "number of concurrent checks")
-	testproject      = flag.String("test", "", "test project name")
-	checkonetime     = flag.Bool("once", false, "check only once")
-	dockerOnly       = flag.Bool("docker", true, "check docker only")
+	port = flag.String("p", "8089", "port")
 
-	// see wechat-notify, example value: usera|userb  ( the email prefix )
-	defaultReceiver = flag.String("default-receiver", "wenzhenglin", "default receivers, using the email prefix, example: usera|userb")
+// 	conf             *config.Config
+// 	env              = flag.String("env", "qa", "env includes (qa,pre,pro)")
 
-	alertAll = flag.Bool("alertall", true, "alert all changes to default receiver if setted")
+// 	checkInterval    = flag.String("i", "10s", "check interval (s second,m minutes)")
+// 	concurrentChecks = flag.Int("cc", 100, "number of concurrent checks")
+// 	testproject      = flag.String("test", "", "test project name")
+// 	checkonetime     = flag.Bool("once", false, "check only once")
+// 	dockerOnly       = flag.Bool("docker", true, "check docker only")
 
-	upstreamBase = flag.String("upstream", "http://upstream-test.sched.qianbao-inc.com:8010", "upstream base api url")
+// 	// see wechat-notify, example value: usera|userb  ( the email prefix )
+// 	defaultReceiver = flag.String("default-receiver", "wenzhenglin", "default receivers, using the email prefix, example: usera|userb")
+
+// 	alertAll = flag.Bool("alertall", true, "alert all changes to default receiver if setted")
+
+// 	upstreamBase = flag.String("upstream", "http://upstream-test.sched.qianbao-inc.com:8010", "upstream base api url")
 )
 
 // // try have two config
@@ -87,7 +87,7 @@ func init() {
 	fmt.Println("start test init setting")
 	git.Init("wenzhenglin", "cKGa3eVAF7tZMvCukdsP")
 
-	projectpkg.Init()
+	// projectpkg.Init()
 }
 
 func main() {

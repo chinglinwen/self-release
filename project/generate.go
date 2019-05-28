@@ -162,10 +162,22 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 		// get repotemplate first, if it exist
 		var templateBody string
 		if v.RepoTemplate != "" {
-			// read from repo if specified, which need init first (later human can customize it)
-			tbody, err := p.repo.GetFile(v.RepoTemplate)
+			// // read from repo if specified, which need init first (later human can customize it)
+
+			// tbody, err := p.repo.GetFile(v.RepoTemplate)
+			// if err != nil {
+			// 	log.Printf("get repo template file: %v err: %v, will ignore", v.RepoTemplate, err)
+			// 	// err = fmt.Errorf("get repo template file: %v err: %v", v.RepoTemplate, err)
+			// 	// errs[v.Name] = err
+			// 	// continue // we should hanlde things gracefully at here
+			// } else {
+			// 	templateBody = string(tbody)
+			// }
+
+			// change to read from config-repo
+			tbody, err := p.readRepoTemplate(configrepo, v)
 			if err != nil {
-				log.Printf("get repo template file: %v err: %v, will ignore", v.RepoTemplate, err)
+				log.Printf("get repotemplate file: %v err: %v, will ignore", v.RepoTemplate, err)
 				// err = fmt.Errorf("get repo template file: %v err: %v", v.RepoTemplate, err)
 				// errs[v.Name] = err
 				// continue // we should hanlde things gracefully at here
@@ -300,6 +312,35 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 	}
 	// log.Println("done generate final files for", p.Project)
 	return
+}
+
+func (p *Project) readRepoTemplate(configrepo *git.Repo, v File) (tbody []byte, err error) {
+	// store repotemplate to configrepo if prefixed with config:
+	var (
+		repo = p.repo // for repotemplate only?
+		// updateprojectrepo bool  // we always update project repo for init phase
+		// updateconfigrepo bool
+		rtmplfile string
+		// rtmplconfig       bool // repotemplate flag store to config
+	)
+	projectName := p.Project
+	rtmpl := strings.Split(v.RepoTemplate, ":")
+	if len(rtmpl) == 1 {
+		// rrepo = p.repo
+		// updateprojectrepo = true
+		rtmplfile = rtmpl[0] // store to project repo
+	} else if len(rtmpl) == 2 {
+		repo = configrepo
+		// updateconfigrepo = true
+		rtmplfile = filepath.Join(projectName, rtmpl[1])
+		// log.Printf("will read repotemplate from config for %v\n", v.Name)
+		// rtmplconfig = true // will store to config repo
+	} else {
+		err = fmt.Errorf("repotemplate value incorrect, should be \"path\" or \"config:path\" for %v", v.Name)
+		return
+	}
+
+	return repo.GetFile(rtmplfile)
 }
 
 func (p *Project) CommitAndPush(commitText string) (err error) {
