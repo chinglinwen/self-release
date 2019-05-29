@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"wen/self-release/git"
 
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/chinglinwen/log"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
