@@ -9,6 +9,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"wen/self-release/git"
 
 	"github.com/chinglinwen/log"
@@ -113,13 +114,15 @@ func main() {
 	g.GET("/init", initAPIHandler)
 	g.GET("/gen", genAPIHandler)
 
-	// e.Static("/", "statuspage")
 	e.Static("/logs", "projectlogs")
 
-	e.File("/init", "init.html")
-	e.File("/gen", "gen.html")
+	// e.File("/init", "init.html")
+	// e.File("/gen", "gen.html")
 
-	e.GET("/", homeHandler)
+	assetHandler := http.FileServer(rice.MustFindBox("web").HTTPBox())
+	e.GET("/", echo.WrapHandler(assetHandler))
+
+	// e.GET("/", homeHandler)
 	e.POST("/hook", hookHandler)
 
 	e.Logger.Fatal(e.Start(":" + *port))
