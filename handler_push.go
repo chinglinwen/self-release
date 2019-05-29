@@ -83,7 +83,7 @@ func startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 	project := e.Project
 	branch := e.Branch
-	env := e.Branch
+	env := projectpkg.GetEnvFromBranch(e.Branch)
 
 	log.Printf("got project %v, branch: %v, env: %v\n", project, branch, env)
 
@@ -95,7 +95,7 @@ func startBuild(event Eventer, bo *buildOption) (err error) {
 		}
 	} else {
 		if bo.gen == false && bo.build == false && bo.deploy == false {
-			err = fmt.Errorf("nothing to do, gen=build=deploy=false for %q, err: %v", e.Project, err)
+			err = fmt.Errorf("nothing to do, gen,build and deploy are false for %q, err: %v", e.Project, err)
 			return
 		}
 	}
@@ -197,8 +197,8 @@ func startBuild(event Eventer, bo *buildOption) (err error) {
 	//envsubst.Eval()
 
 	if bo.build {
-		log.Printf("start building for project: %v, branch: %v\n", project, branch)
-		out, e := p.Build(project, branch)
+		log.Printf("start building for project: %v, branch: %v, env: %v\n", project, branch, env)
+		out, e := p.Build(project, branch, env)
 		if e != nil {
 			err = fmt.Errorf("build err: %v", e)
 			return

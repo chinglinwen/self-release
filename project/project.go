@@ -37,6 +37,8 @@ type Project struct {
 	// Env     string // branch, may derive from event's branch as env
 	// not able to get branch? we can, but if it's a tag? init for develop branch only no tags
 	DevBranch string // default dev branch name
+	// disableBuild bool  // if drone or manual push image?
+	ConfigVer string // specify different version
 
 	// ConfigFile string // _ops/config.yaml  //set for every env? what's the difference
 	Files    []File
@@ -44,8 +46,7 @@ type Project struct {
 
 	// GitForce  bool   // git pull force  default is force
 	// InitForce bool   // init project config force, force for re-init, file setting, we often setting it by tag msg
-	NoPull    bool   // `yaml:"nopull"`
-	ConfigVer string // specify different version
+	NoPull bool // `yaml:"nopull"`
 
 	// image ?
 	// size of replicas?

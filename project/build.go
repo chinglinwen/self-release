@@ -8,7 +8,7 @@ import (
 )
 
 // build only build develop branch?
-func (p *Project) Build(project, tag string) (out string, err error) {
+func (p *Project) Build(project, tag, env string) (out string, err error) {
 
 	// clone first
 	// if env is empty, it will set to master
@@ -28,11 +28,11 @@ func (p *Project) Build(project, tag string) (out string, err error) {
 
 	// consider this? https://github.com/go-cmd/cmd
 
-	return Build(dir, project, tag)
+	return Build(dir, project, tag, env)
 }
 
-func Build(dir, project, tag string) (out string, err error) {
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v", GetImage(project, tag)))
+func Build(dir, project, tag, env string) (out string, err error) {
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v %v", GetImage(project, tag)), env)
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
