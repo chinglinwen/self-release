@@ -21,8 +21,8 @@ import (
 const (
 	DEV    = "develop"
 	TEST   = "test"
-	PRE    = "pre"
-	ONLINE = "online"
+	PRE    = "pre" // TODO: pre branch is same as master branch?
+	ONLINE = "master"
 )
 
 // an api call to test?
@@ -57,14 +57,15 @@ func (p *Project) GenerateAndPush(options ...func(*genOption)) (err error) {
 	return p.CommitAndPush(fmt.Sprintf("generate for %v", p.Project))
 }
 
+// get env by parse tag?
+// default is test env
 func GetEnvFromBranch(branch string) string {
 	env := TEST
-	switch branch {
-	case PRE:
-		env = PRE
-	case ONLINE:
+	if git.BranchIsOnline(branch) {
 		env = ONLINE
-	default:
+	}
+	if git.BranchIsPre(branch) {
+		env = PRE
 	}
 	return env
 }

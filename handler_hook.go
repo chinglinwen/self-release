@@ -104,10 +104,15 @@ func hookHandler(c echo.Context) (err error) {
 	// tag push event need to remove messge=empty or commitcount=0(except include force keyword? )
 	event2, ok := data.(*TagPushEvent)
 	if ok {
-		if event2.TotalCommitsCount == 0 {
-			log.Println("ignore 0 commits event")
-			return c.JSONPretty(http.StatusOK, E(0, "zero commits", "ok"), " ")
+		// if event2.TotalCommitsCount == 0 {
+		// 	log.Println("ignore 0 commits event")
+		// 	return c.JSONPretty(http.StatusOK, E(0, "zero commits", "ok"), " ")
+		// }
+		if event2.Message == "" {
+			log.Println("ignore empty message for tag event")
+			return c.JSONPretty(http.StatusOK, E(0, "empty message for tag event", "ok"), " ")
 		}
+
 		fmt.Println("got tag push event")
 		for _, v := range event2.Commits {
 			pp.Print("modified", v.Modified)

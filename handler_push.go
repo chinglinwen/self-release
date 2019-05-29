@@ -65,21 +65,40 @@ func handlePush(event *PushEvent) (err error) {
 	// autoenv["CI_MSG"] = event.Commits[0].Message
 	// autoenv["CI_TIME"] = time.Now().Format("2006-1-2 15:04:05")
 
-	return startBuild(event)
+	return startBuild(event, nil)
 }
 
-func startBuild(event Eventer) (err error) {
+type buildOption struct {
+	gen    bool
+	build  bool
+	deploy bool
+	// no easy way to delete? why need delete?
+}
+
+func startBuild(event Eventer, bo *buildOption) (err error) {
 	e, err := event.GetInfo()
 	if err != nil {
 		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
 		return
 	}
-
 	project := e.Project
 	branch := e.Branch
 	env := e.Branch
 
 	log.Printf("got project %v, branch: %v, env: %v\n", project, branch, env)
+
+	if bo == nil {
+		bo = &buildOption{
+			gen:    true,
+			build:  true,
+			deploy: true,
+		}
+	} else {
+		if bo.gen == false && bo.build == false && bo.deploy == false {
+			err = fmt.Errorf("nothing to do, gen=build=deploy=false for %q, err: %v", e.Project, err)
+			return
+		}
+	}
 
 	autoenv, err := EventInfoToMap(e)
 	if err != nil {
@@ -155,27 +174,37 @@ func startBuild(event Eventer) (err error) {
 			log.Printf("reinited for project: %v", project)
 		}
 	}
-
-	// almost generate everytime, except config
-	finalyaml, err := p.Generate(projectpkg.SetGenAutoEnv(autoenv))
-	if err != nil {
-		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
-		return
+	// do gen if deploy is needed
+	if bo.deploy {
+		bo.gen = true
 	}
-	log.Printf("done generate for project: %v", project)
+
+	var finalyaml string
+	if bo.gen {
+
+		// almost generate everytime, except config
+		finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+		if err != nil {
+			err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
+			return
+		}
+		log.Printf("done generate for project: %v", project)
+	}
 
 	// everytime build, need generate first
 
 	// write to a auto.env? or
 	//envsubst.Eval()
 
-	log.Printf("start building for project: %v, branch: %v\n", project, branch)
-	out, err := p.Build(project, branch)
-	if err != nil {
-		err = fmt.Errorf("build err: %v", err)
-		return
+	if bo.build {
+		log.Printf("start building for project: %v, branch: %v\n", project, branch)
+		out, e := p.Build(project, branch)
+		if e != nil {
+			err = fmt.Errorf("build err: %v", e)
+			return
+		}
+		fmt.Println("output:", out)
 	}
-	fmt.Println("output:", out)
 	// check if inited or force provide, if not, init first
 
 	// builded, how to relate the image?
@@ -183,13 +212,15 @@ func startBuild(event Eventer) (err error) {
 	// have a apply script to do that? passing same tag to it, for the image part?
 	// is it need re-generate? provided env is change everytime though
 
-	ns := autoenv["CI_NAMESPACE"]
-	out, err = apply(ns, finalyaml)
-	if err != nil {
-		err = fmt.Errorf("apply for project: %v, err: %v", project, err)
-		return
+	if bo.deploy {
+		ns := autoenv["CI_NAMESPACE"]
+		out, e := apply(ns, finalyaml)
+		if e != nil {
+			err = fmt.Errorf("apply for project: %v, err: %v", project, e)
+			return
+		}
+		log.Printf("apply for %v ok\noutput: %v\n", project, out)
 	}
-	log.Printf("apply for %v ok\noutput: %v\n", project, out)
 	return
 }
 
@@ -299,5 +330,5 @@ func handleRelease(event *TagPushEvent) (err error) {
 	// 	return
 	// }
 	// log.Printf("apply for %v ok\n", project)
-	return startBuild(event)
+	return startBuild(event, nil)
 }

@@ -97,10 +97,14 @@ func initAPIHandler(c echo.Context) error {
 	return c.String(http.StatusOK, "init ok")
 }
 
-func genAPIHandler(c echo.Context) error {
+// can we deploy after gen? it's need bonded?
+// if we can gen, we can deploy
+// with build and deploy flag to trigger it
+func genAPIHandler(c echo.Context) (err error) {
 	project := c.FormValue("project")
 	branch := c.FormValue("branch")
-	file := c.FormValue("file")
+	env := c.FormValue("env")
+	// file := c.FormValue("file")
 	if branch == "" {
 		branch = "develop"
 	}
@@ -109,31 +113,80 @@ func genAPIHandler(c echo.Context) error {
 	useremail := c.FormValue("useremail")
 	msg := c.FormValue("msg")
 
-	autoenv := make(map[string]string)
-	autoenv["PROJECTPATH"] = project
-	autoenv["BRANCH"] = branch
-	autoenv["USERNAME"] = username
-	autoenv["USEREMAIL"] = useremail
-	autoenv["MSG"] = msg
-	log.Println("autoenv:", autoenv)
-
-	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+	e := &EventInfo{
+		Project:   project,
+		Branch:    branch,
+		Env:       env, // default derive from branch
+		UserName:  username,
+		UserEmail: useremail,
+		Message:   msg,
+	}
+	err = startBuild(e, nil)
 	if err != nil {
-		err = fmt.Errorf("new project: %v, err: %v", project, err)
+		err = fmt.Errorf("startBuild for %q, err: %v", project, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	}
-	if file != "" {
-		_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
-	} else {
-		_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+		return
 	}
 
-	if err != nil {
-		err = fmt.Errorf("gen api err: %v", err)
-		log.Println(err)
-		return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	}
+	// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+	// if err != nil {
+	// 	err = fmt.Errorf("new project: %v, err: %v", project, err)
+	// 	log.Println(err)
+	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+	// }
+	// if file != "" {
+	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
+	// } else {
+	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+	// }
+
+	// if err != nil {
+	// 	err = fmt.Errorf("gen api err: %v", err)
+	// 	log.Println(err)
+	// 	return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+	// }
 
 	return c.String(http.StatusOK, "generate ok")
 }
+
+// func deployAPIHandler(c echo.Context) error {
+// 	project := c.FormValue("project")
+// 	branch := c.FormValue("branch")
+// 	file := c.FormValue("file")
+// 	if branch == "" {
+// 		branch = "develop"
+// 	}
+
+// 	username := c.FormValue("username")
+// 	useremail := c.FormValue("useremail")
+// 	msg := c.FormValue("msg")
+
+// 	autoenv := make(map[string]string)
+// 	autoenv["PROJECTPATH"] = project
+// 	autoenv["BRANCH"] = branch
+// 	autoenv["USERNAME"] = username
+// 	autoenv["USEREMAIL"] = useremail
+// 	autoenv["MSG"] = msg
+// 	log.Println("autoenv:", autoenv)
+
+// 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+// 	if err != nil {
+// 		err = fmt.Errorf("new project: %v, err: %v", project, err)
+// 		log.Println(err)
+// 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 	}
+// 	if file != "" {
+// 		_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
+// 	} else {
+// 		_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+// 	}
+
+// 	if err != nil {
+// 		err = fmt.Errorf("gen api err: %v", err)
+// 		log.Println(err)
+// 		return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 	}
+
+// 	return c.String(http.StatusOK, "generate ok")
+// }

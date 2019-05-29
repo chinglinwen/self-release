@@ -94,6 +94,18 @@ func BranchIsTag(branch string) bool {
 	return re.Match([]byte(branch))
 }
 
+// not online is pre
+func BranchIsPre(branch string) bool {
+	return !BranchIsOnline(branch)
+}
+
+// v1.0.0 is online, only includes number and dot, prefix by v, suffix by number
+func BranchIsOnline(branch string) bool {
+	// re := regexp.MustCompile(`[^v][[:alpha:]]+`)  // not branch is a tag
+	re := regexp.MustCompile(`^v[0-9|.]+[0-9]$`) // prefix with v is a tag
+	return re.Match([]byte(branch))
+}
+
 func SetTag(tag string) func(*Repo) {
 	return func(r *Repo) {
 		r.Tag = tag

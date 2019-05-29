@@ -31,12 +31,17 @@ type EventInfo struct {
 	UserName  string
 	UserEmail string
 	Message   string
-	Time      string
+	// Time      string
+}
+
+func (e *EventInfo) GetInfo() (*EventInfo, error) {
+	return e, nil
 }
 
 const TimeLayout = "2006-1-2_15:04:05"
 
-func (event *PushEvent) GetInfo() (e EventInfo, err error) {
+func (event *PushEvent) GetInfo() (e *EventInfo, err error) {
+	e = &EventInfo{}
 	e.Project = event.Project.PathWithNamespace
 	e.Branch = parseBranch(event.Ref)
 
@@ -44,7 +49,7 @@ func (event *PushEvent) GetInfo() (e EventInfo, err error) {
 		err = fmt.Errorf("project: %v, parse branch err for refs: %v", e.Project, event.Ref)
 		return
 	}
-	e.Env = projectpkg.GetEnvFromBranch(e.Branch)
+	// e.Env = projectpkg.GetEnvFromBranch(e.Branch)
 	e.UserName = event.UserName
 	e.UserEmail = event.UserEmail
 	if len(event.Commits) == 0 {
@@ -52,12 +57,13 @@ func (event *PushEvent) GetInfo() (e EventInfo, err error) {
 		return
 	}
 	e.Message = event.Commits[0].Message
-	e.Time = time.Now().Format(TimeLayout)
+	// e.Time = time.Now().Format(TimeLayout)
 
 	return
 }
 
-func (event *TagPushEvent) GetInfo() (e EventInfo, err error) {
+func (event *TagPushEvent) GetInfo() (e *EventInfo, err error) {
+	e = &EventInfo{}
 	e.Project = event.Project.PathWithNamespace
 	e.Branch = parseBranch(event.Ref)
 
@@ -74,16 +80,16 @@ func (event *TagPushEvent) GetInfo() (e EventInfo, err error) {
 	// }
 	// e.Message = event.Commits[0].Message
 	e.Message = event.Message // release message
-	e.Time = time.Now().Format(TimeLayout)
+	// e.Time = time.Now().Format(TimeLayout)
 
 	return
 }
 
 type Eventer interface {
-	GetInfo() (e EventInfo, err error)
+	GetInfo() (e *EventInfo, err error)
 }
 
-func GetEventInfo(event Eventer) (e EventInfo, err error) {
+func GetEventInfo(event Eventer) (e *EventInfo, err error) {
 	return event.GetInfo()
 }
 
@@ -95,7 +101,7 @@ func GetEventInfoToMap(event Eventer) (autoenv map[string]string, err error) {
 	return EventInfoToMap(e)
 }
 
-func EventInfoToMap(e EventInfo) (autoenv map[string]string, err error) {
+func EventInfoToMap(e *EventInfo) (autoenv map[string]string, err error) {
 
 	namespace, projectName, err := projectpkg.GetProjectName(e.Project)
 	if err != nil {
@@ -106,18 +112,19 @@ func EventInfoToMap(e EventInfo) (autoenv map[string]string, err error) {
 	autoenv = make(map[string]string)
 	autoenv["CI_PROJECT_PATH"] = e.Project
 	autoenv["CI_BRANCH"] = e.Branch
-	autoenv["CI_ENV"] = e.Env
+	autoenv["CI_ENV"] = projectpkg.GetEnvFromBranch(e.Branch)
 	autoenv["CI_NAMESPACE"] = namespace
 	autoenv["CI_PROJECT_NAME"] = projectName
 	autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + e.Env
-	autoenv["REPLICAS"] = "1" // can we parse it? make it from config.yaml? or config.env
+	autoenv["CI_REPLICAS"] = "1" // TODO: can we parse it? make it from config.yaml? or config.env
+	// we choose to config by us, not dev, not using this variable will overwrite default value
 
 	autoenv["CI_IMAGE"] = projectpkg.GetImage(e.Project, e.Branch) // or using project_path
 
 	autoenv["CI_USER_NAME"] = e.UserName
 	autoenv["CI_USER_EMAIL"] = e.UserEmail
 	autoenv["CI_MSG"] = e.Message
-	autoenv["CI_TIME"] = e.Time
+	autoenv["CI_TIME"] = time.Now().Format(TimeLayout)
 
 	return
 }

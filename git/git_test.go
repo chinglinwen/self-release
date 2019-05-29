@@ -34,6 +34,42 @@ func TestBranchIsTag(t *testing.T) {
 	return
 }
 
+func TestBranchIsOnline(t *testing.T) {
+	if BranchIsOnline("develop") {
+		t.Error("develop should not be online")
+		return
+	}
+	if !BranchIsOnline("v1.0.0") {
+		t.Error("v1.0.0 should be online")
+		return
+	}
+	if BranchIsOnline("v1.0.0.") {
+		t.Error("v1.0.0. should be online")
+		return
+	}
+	if BranchIsOnline("v1.0.0a") {
+		t.Error("v1.0.0a should not be online")
+		return
+	}
+	if !BranchIsPre("v1.0.0-beta") {
+		t.Error("v1.0.0-beta should be pre")
+		return
+	}
+	if !BranchIsPre("v1.0.0-alpha") {
+		t.Error("v1.0.0-alpha should be pre")
+		return
+	}
+	// if !BranchIsTag("1.0.0") {
+	// 	t.Error("1.0.0 should be a tag")
+	// 	return
+	// }
+	// if BranchIsTag("x1.0.0") {
+	// 	t.Error("x1.0.0 should be a tag")
+	// 	return
+	// }
+	return
+}
+
 func TestFetch(t *testing.T) {
 	repo, err := NewWithPull("wenzhenglin/test", SetBranch("v1.0.1"))
 	if err != nil {
