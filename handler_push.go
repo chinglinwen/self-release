@@ -150,6 +150,12 @@ func startBuild(event Eventer, bo *buildOption) (err error) {
 	// if I were them, I just do release, let the system figure out when to init?
 	// release to test? it's better to init by tag msg?
 
+	// skip init push event
+	if strings.Contains(e.Message, "init config.yaml") {
+		log.Printf("ignore build for project: %v, branch: %v, it's a init project config event", project, branch)
+		return
+	}
+
 	if !projectpkg.BranchIsTag(branch) {
 		if branch != p.DevBranch { // tag should be release, not build?
 			log.Printf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.DevBranch, project)

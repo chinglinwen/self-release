@@ -15,6 +15,11 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
 
+var (
+	defaultGitUserName  = "robot"
+	defaultGitUserEmail = "robot@example.com"
+)
+
 // type Repo struct {
 // 	R *git.Repository
 // }
@@ -153,8 +158,8 @@ func (r *Repo) Commit(commitText string) (err error) {
 	commit, err := r.wrk.Commit(commitText, &git.CommitOptions{
 		All: true,
 		Author: &object.Signature{
-			Name:  "robot",
-			Email: "john@doe.org",
+			Name:  defaultGitUserName,
+			Email: defaultGitUserEmail,
 			When:  time.Now(),
 		},
 	})
