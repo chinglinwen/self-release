@@ -118,6 +118,8 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 		found             = false
 		updateprojectrepo bool
 		updateconfigrepo  bool
+
+		generatedFiles string
 	)
 
 	// we do ignore template for static files?
@@ -290,19 +292,23 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 		// only one target? for now it is
 		target = filepath.Join(repo.GetWorkDir(), file)
 
+		generatedFiles = fmt.Sprintf("%v%v ", generatedFiles, v.Name)
+
 	}
 	if c.singleName != "" && !found {
 		err = fmt.Errorf("generate finalbody for: %v, err: not found item in config", c.singleName)
 		return
 	}
 	if updateconfigrepo {
-		err = configrepo.CommitAndPush(fmt.Sprintf("generate final files for %v", p.Project))
+		err = configrepo.CommitAndPush(fmt.Sprintf("generate final(%v) files for %v", generatedFiles, p.Project))
 		if err != nil {
 			err = fmt.Errorf("configrepo push err: %v, project: %v", err, p.Project)
 			return
 		}
 		log.Println("configrepo commit and pushed")
 	}
+
+	// currently, this is no need, since we don't update project after init, we update config deploy
 	if updateprojectrepo {
 		err = p.CommitAndPush(fmt.Sprintf("generate final files for %v", p.Project))
 		if err != nil {
