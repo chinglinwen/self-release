@@ -101,22 +101,22 @@ func TestTags(t *testing.T) {
 }
 func TestGetPreviousTag(t *testing.T) {
 	tags := []string{"v1.0.3", "v1.0.4", "v1.0.5"}
-	if tag := GetPreviousTag(tags); tag != "v1.0.4" {
+	if tag, _ := GetPreviousTag(tags); tag != "v1.0.4" {
 		t.Error("err expect tag v1.0.4, got ", tag)
 		return
 	}
 	tags = []string{"v1.1.3", "v1.0.4-pre", "v1.2.5"}
-	if tag := GetPreviousTag(tags); tag != "v1.1.3" {
+	if tag, _ := GetPreviousTag(tags); tag != "v1.1.3" {
 		t.Error("err expect tag v1.1.3, got ", tag)
 		return
 	}
 	tags = []string{"v1.0.3", "v1.0.4-beta", "v1.2.5"}
-	if tag := GetPreviousTag(tags); tag != "v1.0.4-beta" {
+	if tag, _ := GetPreviousTag(tags); tag != "v1.0.4-beta" {
 		t.Error("err expect tag v1.0.4-beta, got ", tag)
 		return
 	}
 	tags = []string{"v1.0.3"}
-	if tag := GetPreviousTag(tags); tag != "v1.0.3" {
+	if tag, _ := GetPreviousTag(tags); tag != "v1.0.3" {
 		t.Error("err expect tag v1.0.3, got ", tag)
 		return
 	}

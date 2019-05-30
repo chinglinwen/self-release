@@ -96,9 +96,12 @@ func BranchIsTag(branch string) bool {
 	return re.Match([]byte(branch))
 }
 
-// not online is pre
+// pre is a tag, and not online is pre
 func BranchIsPre(branch string) bool {
-	return !BranchIsOnline(branch)
+	if BranchIsTag(branch) {
+		return !BranchIsOnline(branch)
+	}
+	return false
 }
 
 // v1.0.0 is online, only includes number and dot, prefix by v, suffix by number

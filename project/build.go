@@ -32,7 +32,9 @@ func (p *Project) Build(project, tag, env string) (out string, err error) {
 }
 
 func Build(dir, project, tag, env string) (out string, err error) {
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v %v", GetImage(project, tag), env))
+	image := GetImage(project, tag)
+	log.Printf("building for image: %v, env: %v\n", image, env)
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v %v", image, env))
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {

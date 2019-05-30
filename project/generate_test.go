@@ -184,3 +184,30 @@ func TestGenerateK8sTest(t *testing.T) {
 		return
 	}
 }
+
+func TestGetEnvFromBranch(t *testing.T) {
+	if env := GetEnvFromBranch("develop"); env != TEST {
+		t.Error("develop should be env test, got ", env)
+		return
+	}
+	if GetEnvFromBranch("v1.0.0") != ONLINE {
+		t.Error("v1.0.0 should be env online")
+		return
+	}
+	if GetEnvFromBranch("v1.0.0.") == ONLINE {
+		t.Error("v1.0.0. should not be online")
+		return
+	}
+	if GetEnvFromBranch("v1.0.0a") != PRE {
+		t.Error("v1.0.0a should env pre")
+		return
+	}
+	if GetEnvFromBranch("v1.0.0-beta") != PRE {
+		t.Error("v1.0.0-beta should be env pre")
+		return
+	}
+	if GetEnvFromBranch("v1.0.0-alpha") != PRE {
+		t.Error("v1.0.0-alpha should be env pre")
+		return
+	}
+}
