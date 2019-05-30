@@ -415,19 +415,21 @@ func (p *Project) readEnvs(autoenv map[string]string) (envMap map[string]string,
 	envFiles := []string{}
 
 	// read env
-	if len(p.EnvFiles) == 0 {
-		defaultEnv := fmt.Sprintf("%v/config.env", defaultRepoConfigPath)
-		log.Printf("no env specified, setting default to %v\n", defaultEnv)
-		envFiles = append(envFiles, defaultEnv)
-	}
+	if p.EnvFiles != nil {
+		if len(p.EnvFiles) == 0 {
+			defaultEnv := fmt.Sprintf("%v/config.env", defaultRepoConfigPath)
+			log.Printf("no env specified, setting default to %v\n", defaultEnv)
+			envFiles = append(envFiles, defaultEnv)
+		}
 
-	for _, v := range p.EnvFiles {
-		// log.Println("got env file setting:", v)
-		f := filepath.Join(p.repo.GetWorkDir(), v)
-		if isExist(f) {
-			envFiles = append(envFiles, f)
-		} else {
-			log.Printf("env file: %v, setted but not exist, usually for the firsttime init\n", f)
+		for _, v := range p.EnvFiles {
+			// log.Println("got env file setting:", v)
+			f := filepath.Join(p.repo.GetWorkDir(), v)
+			if isExist(f) {
+				envFiles = append(envFiles, f)
+			} else {
+				log.Printf("env file: %v, setted but not exist, usually for the firsttime init\n", f)
+			}
 		}
 	}
 

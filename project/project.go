@@ -93,7 +93,12 @@ func BranchIsTag(branch string) bool {
 }
 
 func (p *Project) Inited() bool {
-	return p.repo.IsExist("_ops/config.yaml")
+	if p != nil {
+		if p.repo != nil {
+			return p.repo.IsExist("_ops/config.yaml")
+		}
+	}
+	return false
 }
 
 func (p *Project) GetRepo() *git.Repo {
@@ -182,7 +187,10 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 		err = fmt.Errorf("clone or open project: %v, err: %v, configver: %v", project, e, configVer)
 		return
 	}
-	p, e = readRepoConfig(repo)
+	p.repo = repo
+	p.workDir = p.repo.GetWorkDir()
+
+	pp, e := readRepoConfig(repo)
 	if e != nil {
 		// // not inited, using template config? or just return error,since it not inited?
 		// tp, e := readTemplateConfig(configVer)
@@ -200,10 +208,11 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 		// p.Branch = branch
 
 		// log.Printf("set to default config for project %q\n", project)
-		err = fmt.Errorf("project %v not inited, for branch: %v", p.Project, branch)
+		// err = fmt.Errorf("project %v not inited, for branch: %v", project, branch)
+		log.Printf("project %v not inited, for branch: %v", project, branch)
 		return
 	} else {
-		log.Printf("try read repoconfig for repo: %v, branch: %v ok\n", p.Project, branch)
+		log.Printf("try read repoconfig for repo: %v, branch: %v ok\n", project, branch)
 	}
 
 	// var tp *Project
@@ -239,11 +248,11 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	// 	return
 	// }
 
-	p.repo = repo
-	p.workDir = p.repo.GetWorkDir()
+	pp.repo = repo
+	pp.workDir = p.repo.GetWorkDir()
 	log.Printf("create project: %q ok\n", project)
 
-	return
+	return pp, nil
 }
 
 func readTemplateConfig(configrepo *git.Repo, configVer string) (p *Project, err error) {

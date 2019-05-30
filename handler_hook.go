@@ -50,8 +50,11 @@ func hookHandler(c echo.Context) (err error) {
 	}
 	// log.Println("marshal ok")
 
-	project := gjson.GetBytes(payload, "project.path_with_namespace").String()
-	if project != "wenzhenglin/project-example" {
+	// fmt.Printf("out: %s\n", out)
+
+	// project := gjson.GetBytes(payload, "project.path_with_namespace").String()
+	ns := gjson.GetBytes(payload, "project.namespace").String()
+	if ns != "wenzhenglin" && ns != "donglintong" {
 		log.Println("ignore non-test projects")
 		c.JSONPretty(http.StatusOK, E(0, "ignore non-test projects", "ok"), " ")
 		return
@@ -88,7 +91,7 @@ func hookHandler(c echo.Context) (err error) {
 		// spew.Dump("details:", event1.Commits)
 
 		// PathWithNamespace is better, name or namespace maybe chinese chars
-		if event1.Project.Name == "test" || event1.Project.Name == "project-example" {
+		if event1.Project.Namespace == "wenzhenglin" || event1.Project.Namespace == "donglintong" {
 			err = handlePush(event1)
 			if err != nil {
 				err = fmt.Errorf("handle push event err: %v", err)
@@ -120,7 +123,7 @@ func hookHandler(c echo.Context) (err error) {
 		fmt.Printf("commits: %v\n", len(event2.Commits))
 		// spew.Dump("details:", event2.Commits)
 
-		if event2.Project.Name == "test" || event2.Project.Name == "project-example" {
+		if event1.Project.Namespace == "wenzhenglin" || event1.Project.Namespace == "donglintong" {
 			err = handleRelease(event2)
 			if err != nil {
 				err = fmt.Errorf("handle release event err: %v", err)

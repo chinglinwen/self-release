@@ -49,6 +49,7 @@ func (errs *initErr) Error() (s string) {
 // init template file, config.yaml and repotemplate files
 // if repo config.yaml exist, it will affect init process?
 func (p *Project) Init(options ...func(*initOption)) (err error) {
+
 	configrepo, err := GetConfigRepo()
 	if err != nil {
 		err = fmt.Errorf("get configrepo err: %v", err)
