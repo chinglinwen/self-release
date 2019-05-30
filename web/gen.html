@@ -7,9 +7,17 @@
 
     <form action="/api/gen">
         Project:
-        <input type="text" name="project" placeholder="namespace/repo-name" size="30"> Branch:
+        <input type="text" name="project" placeholder="namespace/repo-name" size="30" required> Branch:
         <input type="text" name="branch" placeholder="branch or tag(default to develop)" size="30">
+        <!-- <input type="text" name="env" placeholder="( optional default derive from branch)" size="30"> -->
         <br><br>
+
+        <input type="checkbox" name="booptions" checked value="gen">gen</input>
+        <input type="checkbox" name="booptions" checked value="build">build</input>
+        <input type="checkbox" name="booptions" checked value="deploy">deploy</input>
+
+        <br><br>
+
         <input type="submit" value="Submit">
     </form>
 

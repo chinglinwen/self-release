@@ -101,6 +101,7 @@ func main() {
 	e := echo.New()
 	//e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.Logger())
 	//e.Use(middleware.Static("/data"))
 
 	// automatically add routers for net/http/pprof
@@ -114,6 +115,9 @@ func main() {
 	g := e.Group("/api")
 	g.GET("/init", initAPIHandler)
 	g.GET("/gen", genAPIHandler)
+	g.GET("/rollback", rollbackAPIHandler)
+
+	e.POST("/hook", hookHandler)
 
 	e.Static("/logs", "projectlogs")
 
@@ -121,10 +125,8 @@ func main() {
 	// e.File("/gen", "gen.html")
 
 	assetHandler := http.FileServer(rice.MustFindBox("web").HTTPBox())
-	e.GET("/", echo.WrapHandler(assetHandler))
-
+	e.GET("/ui/*", echo.WrapHandler(http.StripPrefix("/ui/", assetHandler)))
 	// e.GET("/", homeHandler)
-	e.POST("/hook", hookHandler)
 
 	e.Logger.Fatal(e.Start(":" + *port))
 	// err := e.Start(":" + *port)

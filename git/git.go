@@ -9,6 +9,8 @@ import (
 	"log"
 	"path/filepath"
 	"regexp"
+	"sort"
+	"strings"
 
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -321,6 +323,41 @@ func (repo *Repo) Fetch() (err error) {
 	})
 	if err != nil {
 		err = fmt.Errorf("fetch err: %v", err)
+	}
+	return
+}
+
+func (repo *Repo) Tags() (tags []string, err error) {
+	iter, err := repo.R.Tags()
+	if err != nil {
+		err = fmt.Errorf("get tags err: %v", err)
+		return
+	}
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		tags = append(tags, strings.TrimPrefix(string(ref.Name()), "refs/tags/"))
+		return nil
+	})
+	return
+}
+
+func (repo *Repo) GetPreviousTag() (tag string, err error) {
+	tags, err := repo.Tags()
+	if err != nil {
+		return
+	}
+	return GetPreviousTag(tags)
+}
+
+func GetPreviousTag(tags []string) (tag string, err error) {
+	if tags == nil {
+		err = fmt.Errorf("empty tags")
+		return
+	}
+	sort.SliceStable(tags, func(i, j int) bool { return tags[i] < tags[j] })
+	if len(tags) >= 2 {
+		tag = tags[(len(tags) - 2)]
+	} else {
+		tag = tags[0]
 	}
 	return
 }

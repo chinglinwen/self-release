@@ -30,7 +30,7 @@ func TestHandlePush(t *testing.T) {
 
 func TestHandleTagPush(t *testing.T) {
 	e := &TagPushEvent{}
-	err := json.Unmarshal([]byte(exampleTagPush), e)
+	err := json.Unmarshal([]byte(exampleTagPush2), e)
 	if err != nil {
 		t.Error("unmarshal pushevent err", err)
 		return
@@ -103,8 +103,129 @@ var examplePush = `
 	"user_name": "wenzhenglin",
 	"user_username": "wenzhenglin"
   }
-  `
+	`
 
+var exampleTagPush2 = `
+	{
+		"after": "c98306e92c8905b391e92ea594d5bdc2927da381",
+		"before": "0000000000000000000000000000000000000000",
+		"checkout_sha": "a3a9cbff9818644faa990f08a1e98b9304ffc8a7",
+		"commits": [
+			{
+				"added": [],
+				"author": {
+					"email": "wenzhenglin@haodai.net",
+					"name": "wenzhenglin"
+				},
+				"id": "a3a9cbff9818644faa990f08a1e98b9304ffc8a7",
+				"message": "Merge branch 'master' into 'develop'\n\n# Conflicts:\n#   _ops/config.env\n#   _ops/config.yaml\n#   build-docker.sh",
+				"modified": [],
+				"removed": [],
+				"timestamp": "2019-05-30T15:14:38+08:00",
+				"url": "http://g.haodai.net/wenzhenglin/project-example/commit/a3a9cbff9818644faa990f08a1e98b9304ffc8a7"
+			}
+		],
+		"event_name": "tag_push",
+		"message": "v1.0.3-pre2 msg",
+		"object_kind": "tag_push",
+		"project": {
+			"avatar_url": null,
+			"ci_config_path": null,
+			"default_branch": "master",
+			"description": "main-new as project example for test",
+			"git_http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+			"git_ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"homepage": "http://g.haodai.net/wenzhenglin/project-example",
+			"http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+			"id": 308,
+			"name": "project-example",
+			"namespace": "wenzhenglin",
+			"path_with_namespace": "wenzhenglin/project-example",
+			"ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"visibility_level": 0,
+			"web_url": "http://g.haodai.net/wenzhenglin/project-example"
+		},
+		"project_id": 308,
+		"ref": "refs/tags/v1.0.3-pre3",
+		"repository": {
+			"description": "main-new as project example for test",
+			"git_http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+			"git_ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"homepage": "http://g.haodai.net/wenzhenglin/project-example",
+			"name": "project-example",
+			"url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"visibility_level": 0
+		},
+		"total_commits_count": 1,
+		"user_avatar": "http://g.haodai.net/uploads/-/system/user/avatar/75/avatar.png",
+		"user_email": "wenzhenglin@haodai.net",
+		"user_id": 75,
+		"user_name": "wenzhenglin",
+		"user_username": "wenzhenglin"
+	}`
+var exampleTagPush2Badbranch = `
+{
+	"after": "c9c4486efaef4a449ddcc8d0e7e49b46dd8d7409",
+	"before": "0000000000000000000000000000000000000000",
+	"checkout_sha": "3d04f23fb490b12def8bcdbe5be623970f9efae2",
+	"commits": [{
+			"added": [
+					"_ops/config.env",
+					"_ops/config.yaml",
+					"_ops/nginx.conf",
+					"build-docker.sh"
+			],
+			"author": {
+					"email": "john@doe.org",
+					"name": "robot"
+			},
+			"id": "3d04f23fb490b12def8bcdbe5be623970f9efae2",
+			"message": "generate final files for wenzhenglin/project-example",
+			"modified": [],
+			"removed": [],
+			"timestamp": "2019-05-21T15:41:07+08:00",
+			"url": "http://g.haodai.net/wenzhenglin/project-example/commit/3d04f23fb490b12def8bcdbe5be623970f9efae2"
+	}],
+	"event_name": "tag_push",
+	"message": "v1.0.3-pre2 msg",
+	"object_kind": "tag_push",
+	"project": {
+			"avatar_url": null,
+			"ci_config_path": null,
+			"default_branch": "master",
+			"description": "main-new as project example for test",
+			"git_http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+			"git_ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"homepage": "http://g.haodai.net/wenzhenglin/project-example",
+			"http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+			"id": 308,
+			"name": "project-example",
+			"namespace": "wenzhenglin",
+			"path_with_namespace": "wenzhenglin/project-example",
+			"ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"visibility_level": 0,
+			"web_url": "http://g.haodai.net/wenzhenglin/project-example"
+	},
+	"project_id": 308,
+	"ref": "refs/tags/v1.0.3-pre2",
+	"repository": {
+			"description": "main-new as project example for test",
+			"git_http_url": "http://g.haodai.net/wenzhenglin/project-example.git",
+			"git_ssh_url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"homepage": "http://g.haodai.net/wenzhenglin/project-example",
+			"name": "project-example",
+			"url": "git@g.haodai.net:wenzhenglin/project-example.git",
+			"visibility_level": 0
+	},
+	"total_commits_count": 1,
+	"user_avatar": "http://g.haodai.net/uploads/-/system/user/avatar/75/avatar.png",
+	"user_email": "wenzhenglin@haodai.net",
+	"user_id": 75,
+	"user_name": "wenzhenglin",
+	"user_username": "wenzhenglin"
+}`
 var exampleTagPush = `
 	{
     "after": "3ac0156a0821c5bba3ae68b2daea2a7dc0b119a8",

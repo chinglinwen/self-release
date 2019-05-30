@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+    <h2>Rollback project to previous release version</h2>
+
+    <form action="/api/rollback">
+        Project:
+        <input type="text" name="project" placeholder="namespace/repo-name" size="30" required> Branch:
+        <input type="text" name="tag" placeholder="optional tag(default to previous tag)" size="30">
+        <!-- <input type="text" name="env" placeholder="( optional default derive from branch)" size="30"> -->
+
+        <br><br>
+
+        <input type="submit" value="Submit">
+    </form>
+
+</body>
+
+</html>

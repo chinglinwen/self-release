@@ -148,14 +148,23 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	// }
 
 	p = &Project{
-		Project:   project,  // "template-before-create",
-		Branch:    "master", // TODO: default to master?
-		ConfigVer: GetDefaultConfigVer(),
-		DevBranch: "develop", // default dev branch
+		Project: project, // "template-before-create",
+		// Branch:    "master", // TODO: default to master?
+		// ConfigVer: GetDefaultConfigVer(),
+		// DevBranch: "develop", // default dev branch
 	}
 	// log.Printf("before options apply for repo: %q ok\n", p.Project)
 	for _, op := range options {
 		op(p)
+	}
+	if p.Branch == "" {
+		p.Branch = "master"
+	}
+	if p.ConfigVer == "" {
+		p.ConfigVer = GetDefaultConfigVer()
+	}
+	if p.DevBranch == "" {
+		p.DevBranch = "develop"
 	}
 
 	// // p variable will change multiple times, save the variable here

@@ -85,6 +85,44 @@ func TestFetch(t *testing.T) {
 	// }
 	// _ = repo
 }
+
+func TestTags(t *testing.T) {
+	repo, err := NewWithPull("wenzhenglin/test", SetBranch("v1.0.1"))
+	if err != nil {
+		t.Error("new err", err)
+		return
+	}
+	tags, err := repo.Tags()
+	if err != nil {
+		t.Error("new err", err)
+		return
+	}
+	fmt.Printf("tags: %v\n", tags)
+}
+func TestGetPreviousTag(t *testing.T) {
+	tags := []string{"v1.0.3", "v1.0.4", "v1.0.5"}
+	if tag := GetPreviousTag(tags); tag != "v1.0.4" {
+		t.Error("err expect tag v1.0.4, got ", tag)
+		return
+	}
+	tags = []string{"v1.1.3", "v1.0.4-pre", "v1.2.5"}
+	if tag := GetPreviousTag(tags); tag != "v1.1.3" {
+		t.Error("err expect tag v1.1.3, got ", tag)
+		return
+	}
+	tags = []string{"v1.0.3", "v1.0.4-beta", "v1.2.5"}
+	if tag := GetPreviousTag(tags); tag != "v1.0.4-beta" {
+		t.Error("err expect tag v1.0.4-beta, got ", tag)
+		return
+	}
+	tags = []string{"v1.0.3"}
+	if tag := GetPreviousTag(tags); tag != "v1.0.3" {
+		t.Error("err expect tag v1.0.3, got ", tag)
+		return
+	}
+
+}
+
 func TestNew(t *testing.T) {
 	var repo *Repo
 	var err error

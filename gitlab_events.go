@@ -109,10 +109,15 @@ func EventInfoToMap(e *EventInfo) (autoenv map[string]string, err error) {
 		return
 	}
 
+	// is this needed, we often don't need overwrite env by manual?
+	if e.Env == "" {
+		e.Env = projectpkg.GetEnvFromBranch(e.Branch)
+	}
+
 	autoenv = make(map[string]string)
 	autoenv["CI_PROJECT_PATH"] = e.Project
 	autoenv["CI_BRANCH"] = e.Branch
-	autoenv["CI_ENV"] = projectpkg.GetEnvFromBranch(e.Branch)
+	autoenv["CI_ENV"] = e.Env
 	autoenv["CI_NAMESPACE"] = namespace
 	autoenv["CI_PROJECT_NAME"] = projectName
 	autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + e.Env

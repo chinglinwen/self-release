@@ -69,9 +69,10 @@ func handlePush(event *PushEvent) (err error) {
 }
 
 type buildOption struct {
-	gen    bool
-	build  bool
-	deploy bool
+	gen      bool
+	build    bool
+	deploy   bool
+	rollback bool
 	// no easy way to delete? why need delete?
 }
 
@@ -100,16 +101,6 @@ func startBuild(event Eventer, bo *buildOption) (err error) {
 		}
 	}
 
-	autoenv, err := EventInfoToMap(e)
-	if err != nil {
-		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
-		return
-	}
-
-	for k, v := range autoenv {
-		log.Printf("autoenv: %v=%v", k, v)
-	}
-
 	// only build for develop branch, need confirm?
 	// we shoult not limit the branch, let them easy to change? change in config.yaml, based on tag?
 	//so release need to build too? or just add addition condition to build for other branch?
@@ -121,6 +112,31 @@ func startBuild(event Eventer, bo *buildOption) (err error) {
 	if err != nil {
 		err = fmt.Errorf("project: %v, new err: %v", project, err)
 		return
+	}
+
+	// if rollback is set, get previous tag as branch
+	if bo.rollback {
+		branch, err = p.GetRepo().GetPreviousTag()
+		if err != nil {
+			return fmt.Errorf("GetPreviousTag err: %v", err)
+		}
+		e.Branch = branch
+
+		// build already, no need to build again?
+		// TODO: what if no build before? let's just build it?
+		// detect k8s-online.yaml see if exist and what's the tag?
+		bo.gen = true
+		bo.deploy = true
+	}
+
+	autoenv, err := EventInfoToMap(e)
+	if err != nil {
+		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
+		return
+	}
+
+	for k, v := range autoenv {
+		log.Printf("autoenv: %v=%v", k, v)
 	}
 
 	// it should be config from repo or template now
