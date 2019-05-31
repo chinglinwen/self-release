@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"wen/self-release/git"
+	"wen/self-release/pkg/sse"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/chinglinwen/log"
@@ -119,7 +120,9 @@ func main() {
 
 	e.POST("/hook", hookHandler)
 
-	e.Static("/logs", "projectlogs")
+	// e.Static("/logs", "projectlogs")
+
+	dosse(e)
 
 	// e.File("/init", "init.html")
 	// e.File("/gen", "gen.html")
@@ -133,4 +136,13 @@ func main() {
 	// log.Println("fatal", err)
 
 	log.Println("exit")
+}
+
+func dosse(e *echo.Echo) {
+	// b := sse.New()
+	e.GET("/events", echo.WrapHandler(http.HandlerFunc(sse.SSEHandler)))
+	// e.GET("/logs", echo.WrapHandler(http.HandlerFunc(sse.UIHandler)))
+
+	// e.GET("/events/", homeHandler)
+	e.GET("/logs", logsHandler)
 }

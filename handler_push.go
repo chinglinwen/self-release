@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"wen/self-release/pkg/sse"
 
 	projectpkg "wen/self-release/project"
 )
@@ -33,7 +34,8 @@ $
 //
 // receive push, do the build for test,  or filter out based on commit text? Force keyword?
 func handlePush(event *PushEvent) (err error) {
-	log.Printf("got project %v to build for test env\n", event.Project.PathWithNamespace)
+	project := event.Project.PathWithNamespace
+	log.Printf("got project %v to build for test env\n", project)
 
 	// project := event.Project.PathWithNamespace // we don't use event.Project.Name, since it may be chinese
 	// namespace, projectName, err := projectpkg.GetProjectName(project)
@@ -65,7 +67,8 @@ func handlePush(event *PushEvent) (err error) {
 	// autoenv["CI_MSG"] = event.Commits[0].Message
 	// autoenv["CI_TIME"] = time.Now().Format("2006-1-2 15:04:05")
 
-	return startBuild(event, nil)
+	b := NewBuilder(project)
+	return b.startBuild(event, nil)
 }
 
 type buildOption struct {
@@ -76,7 +79,35 @@ type buildOption struct {
 	// no easy way to delete? why need delete?
 }
 
-func startBuild(event Eventer, bo *buildOption) (err error) {
+type builder struct {
+	*sse.Broker
+}
+
+func NewBuilder(project string) *builder {
+	b := &builder{
+		Broker: sse.New(project),
+	}
+	b.logf("<h1>created log for project: %v</h1>", project)
+	return b
+}
+
+func (b *builder) logf(s string, msgs ...interface{}) {
+	msg := fmt.Sprintf(s, msgs...)
+	log.Println(msg)
+	fmt.Fprint(b.PWriter, msg)
+	// b.Messages <- msg
+}
+
+func (b *builder) log(msgs ...interface{}) {
+	msg := fmt.Sprint(msgs...)
+	log.Println(msg)
+	fmt.Fprint(b.PWriter, msg)
+	// b.Messages <- msg
+}
+
+func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
+	defer b.PWriter.Close()
+
 	e, err := event.GetInfo()
 	if err != nil {
 		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
@@ -86,7 +117,7 @@ func startBuild(event Eventer, bo *buildOption) (err error) {
 	branch := e.Branch
 	env := projectpkg.GetEnvFromBranch(e.Branch)
 
-	log.Printf("got project %v, branch: %v, env: %v\n", project, branch, env)
+	b.logf("start build for project %v, branch: %v, env: %v\n", project, branch, env)
 
 	if bo == nil {
 		bo = &buildOption{
@@ -243,6 +274,8 @@ func startBuild(event Eventer, bo *buildOption) (err error) {
 		}
 		log.Printf("apply for %v ok\noutput: %v\n", project, out)
 	}
+
+	b.log("end.")
 	return
 }
 
@@ -280,7 +313,8 @@ func parseBranch(refs string) string {
 //
 // if project set to auto, we auto tag for master? or just directly
 func handleRelease(event *TagPushEvent) (err error) {
-	log.Printf("got project %v to build for pre or online env\n", event.Project.PathWithNamespace)
+	project := event.Project.PathWithNamespace
+	log.Printf("got project %v to build for pre or online env\n", project)
 
 	// autoenv := make(map[string]string)
 	// autoenv["PROJECTPATH"] = event.Project.PathWithNamespace
@@ -352,5 +386,7 @@ func handleRelease(event *TagPushEvent) (err error) {
 	// 	return
 	// }
 	// log.Printf("apply for %v ok\n", project)
-	return startBuild(event, nil)
+
+	b := NewBuilder(project)
+	return b.startBuild(event, nil)
 }

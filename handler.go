@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"text/template"
 	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
@@ -13,6 +14,66 @@ import (
 func homeHandler(c echo.Context) error {
 	//may do redirect later?
 	return c.String(http.StatusOK, "home page")
+}
+
+func logsHandler(c echo.Context) (err error) {
+
+	project := c.FormValue("project")
+	branch := c.FormValue("branch") // branch includes tag
+	var note string
+
+	if project == "" {
+		err = fmt.Errorf("project parameter value is empty")
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return
+	}
+
+	if branch == "" {
+		branch = "develop"
+		note = "default"
+		// err = fmt.Errorf("branch parameter value is empty")
+		// log.Println(err)
+		// c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		// return
+	}
+
+	// Did you know Golang's ServeMux matches only the
+	// prefix of the request URL?  It's true.  Here we
+	// insist the path is just "/".
+	// uri := c.Request().URL.Path
+	// if uri != "/" {
+	// 	err = fmt.Errorf("bad url path")
+	// 	log.Println(err)
+	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+	// 	return
+	// }
+
+	type P struct {
+		Project string
+		Branch  string
+		Note    string
+	}
+
+	p := P{
+		Project: project,
+		Branch:  branch,
+		Note:    note,
+	}
+
+	// Read in the template with our SSE JavaScript code.
+	t, err := template.ParseFiles("web/logs.html")
+	if err != nil {
+		log.Fatal("WTF dude, error parsing your template.")
+	}
+	// log.Println("parsed template")
+
+	// Render the template, writing to `w`.
+	t.Execute(c.Response(), p)
+
+	// Done.
+	log.Println("Finished HTTP request for", project)
+	return
 }
 
 // func initPageHandler(c echo.Context) error {
@@ -130,11 +191,12 @@ func genAPIHandler(c echo.Context) (err error) {
 		Message:   msg,
 	}
 
-	log.Println("event", e)
-	log.Println("option", bo)
-	return
+	// log.Println("event", e)
+	// log.Println("option", bo)
+	// return
 
-	err = startBuild(e, bo)
+	b := NewBuilder(project)
+	err = b.startBuild(e, bo)
 	if err != nil {
 		err = fmt.Errorf("startBuild for project: %v, branch: %v, err: %v", project, branch, err)
 		log.Println(err)
@@ -220,7 +282,8 @@ func rollbackAPIHandler(c echo.Context) (err error) {
 	log.Println("option", bo)
 	return
 
-	err = startBuild(e, bo)
+	b := NewBuilder(project)
+	err = b.startBuild(e, bo)
 	if err != nil {
 		err = fmt.Errorf("startBuild for project: %v, branch: %v, err: %v", project, tag, err)
 		log.Println(err)
