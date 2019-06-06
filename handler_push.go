@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"wen/self-release/pkg/notify"
 	"wen/self-release/pkg/sse"
 
 	projectpkg "wen/self-release/project"
@@ -40,39 +41,26 @@ func handlePush(event *PushEvent) (err error) {
 
 	log.Printf("got project %v to build for test env\n", project)
 
-	// project := event.Project.PathWithNamespace // we don't use event.Project.Name, since it may be chinese
-	// namespace, projectName, err := projectpkg.GetProjectName(project)
-	// if err != nil {
-	// 	err = fmt.Errorf("parse project name for %q, err: %v", project, err)
-	// 	return
-	// }
-
-	// branch := parseBranch(event.Ref)
-	// if branch == errParseRefs {
-	// 	err = fmt.Errorf("project: %v, parse branch err for refs: %v", project, event.Ref)
-	// 	return
-	// }
-	// env := projectpkg.GetEnvFromBranch(branch)
-
-	// autoenv := make(map[string]string)
-	// autoenv["CI_PROJECT_PATH"] = project
-	// autoenv["CI_BRANCH"] = branch
-	// autoenv["CI_ENV"] = env
-	// autoenv["CI_NAMESPACE"] = namespace
-	// autoenv["CI_PROJECT_NAME"] = projectName
-	// autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + env
-	// autoenv["CI_REPLICAS"] = "2"
-
-	// autoenv["CI_REGISTRY_IMAGE"] = "image?" // or using project_path
-
-	// autoenv["CI_USER_NAME"] = event.UserName
-	// autoenv["CI_USER_EMAIL"] = event.UserEmail
-	// autoenv["CI_MSG"] = event.Commits[0].Message
-	// autoenv["CI_TIME"] = time.Now().Format("2006-1-2 15:04:05")
-
 	b := NewBuilder(project, branch)
 	b.log("starting logs")
 
+	return b.startBuild(event, nil)
+}
+
+// do we really need to handle this, since we will merge to such branch
+// say pre branch, then it will trigger build? ( only is only for dev now )
+//
+// receive tag release, do the build for pre,  or filter based on commit text?
+// it should be the same image as test, so no need to build image again? image name is been fixed by build
+//
+// if project set to auto, we auto tag for master? or just directly
+func handleRelease(event *TagPushEvent) (err error) {
+	project := event.Project.PathWithNamespace
+	branch := parseBranch(event.Ref)
+	log.Printf("got project %v to build for pre or online env\n", project)
+
+	b := NewBuilder(project, branch)
+	b.log("starting logs")
 	return b.startBuild(event, nil)
 }
 
@@ -110,6 +98,19 @@ func (b *builder) log(msgs ...interface{}) {
 	// b.Messages <- msg
 }
 
+func (b *builder) notify(msg, username string) {
+	if username == "" {
+		log.Printf("username is empty for %v, ignore notify\n", b.Project)
+		return
+	}
+	// notifytext := fmt.Sprintf("%vlog url: http://t.com:8089/logs?key=%v\n", tip, b.Key)
+	reply, err := notify.SendPerson(msg, username)
+	if err != nil {
+		log.Printf("SendPerson err: %v\nout: %v\n", err, reply)
+	}
+	return
+}
+
 func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	e, err := event.GetInfo()
 	if err != nil {
@@ -124,7 +125,11 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// b := NewBuilder(bname)
 	defer b.Close()
 
-	b.logf("start build for project %v, branch: %v, env: %v\n", project, branch, env)
+	tip := fmt.Sprintf("start build for project %v, branch: %v, env: %v\n", project, branch, env)
+	b.logf(tip)
+
+	notifytext := fmt.Sprintf("%vlog url: http://t.com:8089/logs?key=%v\n", tip, b.Key)
+	b.notify(notifytext, e.UserName)
 
 	if bo == nil {
 		bo = &buildOption{
@@ -344,92 +349,4 @@ func parseBranch(refs string) string {
 		return refss[2]
 	}
 	return errParseRefs
-}
-
-// do we really need to handle this, since we will merge to such branch
-// say pre branch, then it will trigger build? ( only is only for dev now )
-//
-// receive tag release, do the build for pre,  or filter based on commit text?
-// it should be the same image as test, so no need to build image again? image name is been fixed by build
-//
-// if project set to auto, we auto tag for master? or just directly
-func handleRelease(event *TagPushEvent) (err error) {
-	project := event.Project.PathWithNamespace
-	branch := parseBranch(event.Ref)
-	log.Printf("got project %v to build for pre or online env\n", project)
-
-	// autoenv := make(map[string]string)
-	// autoenv["PROJECTPATH"] = event.Project.PathWithNamespace
-	// autoenv["BRANCH"] = event.Ref
-	// autoenv["USERNAME"] = event.UserName
-	// autoenv["USEREMAIL"] = event.UserEmail
-	// autoenv["MSG"] = event.Message
-
-	// fmt.Println("autoenv:", autoenv)
-
-	// e, err := event.GetInfo()
-	// if err != nil {
-	// 	err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
-	// 	return
-	// }
-
-	// project := e.Project
-	// branch := e.Branch
-	// env := e.Branch
-
-	// if !projectpkg.BranchIsTag(branch) {
-	// 	err = fmt.Errorf("project %v release tag format incorrect, should prefix with v, got %v", project, branch)
-	// 	return
-	// }
-	// log.Printf("got project %v, branch: %v, env: %v\n", project, branch, env)
-
-	// autoenv, err := EventInfoToMap(e)
-	// if err != nil {
-	// 	err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
-	// 	return
-	// }
-
-	// for k, v := range autoenv {
-	// 	log.Printf("autoenv: %v=%v", k, v)
-	// }
-
-	// // set branch or set tag?
-	// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-	// if err != nil {
-	// 	err = fmt.Errorf("project: %v, new err: %v", project, err)
-	// 	return
-	// }
-
-	// // almost generate everytime, except config
-	// err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
-	// if err != nil {
-	// 	err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
-	// 	return
-	// }
-	// log.Printf("done generate for project: %v", project)
-
-	// // everytime build, need generate first
-
-	// // write to a auto.env? or
-	// //envsubst.Eval()
-
-	// log.Printf("start building for project: %v, branch: %v\n", project, branch)
-	// out, err := p.Build(project, branch)
-	// if err != nil {
-	// 	err = fmt.Errorf("build err: %v", err)
-	// 	return
-	// }
-	// fmt.Println("output:", out)
-
-	// ns := autoenv["CI_NAMESPACE"]
-	// err = apply(ns, finalyaml)
-	// if err != nil {
-	// 	err = fmt.Errorf("apply for project: %v, err: %v", project, err)
-	// 	return
-	// }
-	// log.Printf("apply for %v ok\n", project)
-
-	b := NewBuilder(project, branch)
-	b.log("starting logs")
-	return b.startBuild(event, nil)
 }

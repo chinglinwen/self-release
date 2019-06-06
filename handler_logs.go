@@ -122,6 +122,6 @@ func logsHandler(c echo.Context) (err error) {
 	t.Execute(c.Response(), p)
 
 	// Done.
-	log.Println("Finished HTTP request for", project)
+	// log.Println("finished HTTP request for", project)
 	return
 }

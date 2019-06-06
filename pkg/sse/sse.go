@@ -242,7 +242,7 @@ func (b *Broker) Start() {
 				break
 			}
 			msg := string(p[:n])
-			log.Printf("%v --> msg: %q \n", b.Key, msg)
+			// log.Printf("%v --> msg: %q \n", b.Key, msg)
 			b.ExistMsg = append(b.ExistMsg, msg)
 			b.Messages <- msg
 		}
@@ -267,7 +267,7 @@ func (b *Broker) Start() {
 				// There is a new client attached and we
 				// want to start sending them messages.
 				b.clients[s] = true
-				log.Println("Added new client")
+				// log.Println("Added new client")
 
 				// read existing msg, send it
 				for _, v := range b.ExistMsg {
@@ -293,7 +293,7 @@ func (b *Broker) Start() {
 				for s := range b.clients {
 					s <- msg
 				}
-				log.Printf("Broadcast message to %d clients", len(b.clients))
+				// log.Printf("Broadcast message to %d clients", len(b.clients))
 			}
 		}
 	}()
@@ -414,7 +414,7 @@ func SSEHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Done.
-	log.Println("Finished HTTP request at ", r.URL.Path)
+	// log.Println("Finished HTTP request at ", r.URL.Path)
 }
 
 func pretty(a interface{}) {
