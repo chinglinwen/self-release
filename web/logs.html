@@ -2,19 +2,21 @@
 <html>
 
 <head>
-    <title>HTML5 Server Side Event Example in Go</title>
+    <title>Project build logs</title>
 </head>
 
 <body>
 
-    <!-- Yo {{.}}, here are some facinating messages about the current time:<br> -->
+    {{if .List}} Lists of projects:<br> <br> {{range .Items}}
 
-    Project: <b></b>{{.Project}}</b> Branch: <b></b>{{.Branch}} {{if .Note}}(default){{end}}</b> logs:
-    <hr>
+    <a href="/logs?key={{.Key}}">{{.Key}}</a><br><br> {{end}}
+    <!-- Yo {{.}}, here are some facinating messages about the current time:<br> -->
+    {{else}} Project: <b>{{.Project}}</b> Branch: <b>{{.Branch}} {{if .Note}}(default){{end}}</b> logs:
+    <hr> {{if .Stored}} <pre>{{.ExistMsg}}</pre>{{else}}
     <script type="text/javascript">
         // Create a new HTML5 EventSource
-        var url = "/events?project={{.Project}}&branch={{.Branch}}";
-        // console.log("start get events from " + url)
+        var url = encodeURI("/events?{{if .Key}}key={{.Key}}{{else}}project={{.Project}}&branch={{.Branch}}{{end}}");
+        console.log("start get events from " + url)
         var source = new EventSource(url);
 
         // Create a callback for when a new message is received.
@@ -24,6 +26,7 @@
             document.body.innerHTML += e.data + '<br>';
         };
     </script>
+    {{end}} {{end}}
 </body>
 
 </html>

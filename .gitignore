@@ -5,3 +5,5 @@ self-release
 *.json
 *.log
 *.gz
+projectlogs
+*.gz

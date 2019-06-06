@@ -6,7 +6,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
+
+	"github.com/mohae/deepcopy"
 )
 
 // var brokers = []Broker{}
@@ -18,54 +22,80 @@ var brokerMaps sync.Map
 // and broadcasting events (messages) to those clients.
 //
 type Broker struct {
-	Name string // project
+	Project string // project
+	Key     string // unique key
+	Branch  string
 	// Channel into which messages are pushed to be broadcast out
 	// to attahed clients.
 	//
-	Messages chan string
+	Messages chan string `json:"-"`
 
-	PReader *io.PipeReader
-	PWriter *io.PipeWriter
+	PReader *io.PipeReader `json:"-"`
+	PWriter *io.PipeWriter `json:"-"`
 
 	// Create a map of clients, the keys of the map are the channels
 	// over which we can push messages to attached clients.  (The values
 	// are just booleans and are meaningless.)
 	//
-	clients map[chan string]bool
+	clients map[chan string]bool `json:"-"`
 
 	// Channel into which new clients can be pushed
 	//
-	newClients chan chan string
+	newClients chan chan string `json:"-"`
 
 	// Channel into which disconnected clients should be pushed
 	//
-	defunctClients chan chan string
+	defunctClients chan chan string `json:"-"`
 
-	existMsg []string
+	ExistMsg   []string
+	CreateTime string
+	Stored     bool
+}
+
+const TimeLayout = "2006-1-2_15:04:05"
+
+type option struct {
+	key string
+}
+
+func SetKey(key string) func(*option) {
+	return func(o *option) {
+		o.key = key
+	}
 }
 
 // how to log everytime's log? history logs?
 // store history somewhere(in fs), read it later?
-func New(name string) (b *Broker) {
+func New(project, branch string, options ...func(*option)) (b *Broker) {
+	c := &option{}
+	for _, op := range options {
+		op(c)
+	}
+	if c.key == "" {
+		c.key = strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
+	}
 
 	pr, pw := io.Pipe()
 
-	x, ok := brokerMaps.Load(name)
+	x, ok := brokerMaps.Load(c.key)
 	if ok {
 		b, ok = x.(*Broker)
 		if !ok {
-			log.Println("convert from brockerMaps error for ", name)
+			log.Println("convert from brockerMaps error for ", c.key)
 			return
 		}
 	} else {
 		b = &Broker{
-			Name:           name,
+			Key:            c.key,
+			Project:        project,
+			Branch:         branch,
 			Messages:       make(chan string),
 			PReader:        pr,
 			PWriter:        pw,
 			clients:        make(map[chan string]bool),
 			newClients:     make(chan (chan string)),
 			defunctClients: make(chan (chan string)),
+			CreateTime:     time.Now().Format(TimeLayout),
 		}
 	}
 
@@ -74,7 +104,7 @@ func New(name string) (b *Broker) {
 	// into the Broker's messages channel and are then broadcast
 	// out to any clients that are attached.
 
-	brokerMaps.Store(name, b)
+	brokerMaps.Store(c.key, b)
 
 	// spew.Dump("newbroker", b)
 	// fmt.Fprint(b.PWriter, "starting logs for ", name)
@@ -101,8 +131,77 @@ func New(name string) (b *Broker) {
 	return b
 }
 
-func init() {
+func GetBrokers() (bs []*Broker, err error) {
+	bs = GetBrokersFromMem()
+	dbs, err := GetBrokersFromDisk()
+	if err != nil {
+		return
+	}
+	bs = append(bs, dbs...)
+	return
+}
 
+func GetBrokersFromMem() []*Broker {
+	// spew.Dump("brokerMaps", brokerMaps)
+
+	bs := []*Broker{}
+	brokerMaps.Range(func(k, v interface{}) bool {
+		// spew.Dump("k", k, v)
+		if b, ok := v.(*Broker); ok {
+			bs = append(bs, b)
+			// bs[k.(string)] = b
+		} else {
+			log.Println("cast back to broker error", v)
+		}
+
+		return true
+	})
+	// spew.Dump("bs", bs)
+	return bs
+}
+
+func GetBrokerFromKey(key string) (b *Broker, err error) {
+	bs, err := GetBrokers()
+	if err != nil {
+		return
+	}
+	for _, v := range bs {
+		if v.Key == key {
+			b = v
+			return
+		}
+	}
+	return
+}
+func (b *Broker) GetExistMsg() (existmsg string) {
+	for _, v := range b.ExistMsg {
+		existmsg = fmt.Sprintf("%v%v\n", existmsg, v)
+	}
+	return
+}
+
+func (b *Broker) Close() {
+	b.PWriter.Close()
+
+	// copy as backup, the name is the same? how to distinguish later
+	// key := b.Project + "." + b.CreateTime
+
+	key := strings.Replace(fmt.Sprintf("%v-%v", b.Project, b.CreateTime), "/", "-", -1)
+
+	b1 := deepcopy.Copy(b)
+	newb, _ := b1.(*Broker)
+
+	newb.Key = key
+	newb.Stored = true
+
+	// store to local distk too? not to store in memory, because it will lost, and occupy memory
+	// brokerMaps.Store(key, newb)
+	err := WriteFile(key, newb)
+	if err != nil {
+		log.Printf("close broker and backup as %v, err: %v\n", key, err)
+		return
+	}
+	log.Printf("close broker and backup as %v ok\n", key)
 }
 
 // This Broker method starts a new goroutine.  It handles
@@ -114,7 +213,7 @@ func (b *Broker) Start() {
 		log.Println("nil brocker for")
 		return
 	}
-	log.Println("starting brocker for ", b.Name)
+	log.Println("starting brocker for ", b.Key)
 
 	// existMsg := []string{}
 
@@ -134,7 +233,7 @@ func (b *Broker) Start() {
 	// }()
 
 	go func() {
-		log.Println("try reading msg into brocker for ", b.Name)
+		log.Println("try reading msg into brocker for ", b.Key)
 
 		p := make([]byte, 256) // make it long enough to not split lines
 		for {
@@ -143,8 +242,8 @@ func (b *Broker) Start() {
 				break
 			}
 			msg := string(p[:n])
-			log.Printf("%v --> msg: %q \n", b.Name, msg)
-			b.existMsg = append(b.existMsg, msg)
+			log.Printf("%v --> msg: %q \n", b.Key, msg)
+			b.ExistMsg = append(b.ExistMsg, msg)
 			b.Messages <- msg
 		}
 
@@ -171,7 +270,7 @@ func (b *Broker) Start() {
 				log.Println("Added new client")
 
 				// read existing msg, send it
-				for _, v := range b.existMsg {
+				for _, v := range b.ExistMsg {
 					s <- v
 				}
 
@@ -219,7 +318,10 @@ func SSEHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	project := r.FormValue("project")
-	if project == "" {
+	branch := r.FormValue("branch")
+	key := r.FormValue("key")
+
+	if project == "" && key == "" {
 		err = fmt.Errorf("project query value is empty")
 		fmt.Fprintf(w, "%v\n", err)
 		log.Println(err)
@@ -227,8 +329,18 @@ func SSEHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("got project: %v for eventsources\n", project)
 
+	if branch == "" {
+		branch = "develop"
+	}
+
+	needcreate := true
+	if key == "" {
+		needcreate = false
+	}
+	// bname := fmt.Sprintf("%v-%v", project, branch)
+
 	var b *Broker
-	x, ok := brokerMaps.Load(project)
+	x, ok := brokerMaps.Load(key)
 	if ok {
 		b, ok = x.(*Broker)
 		if !ok {
@@ -237,16 +349,19 @@ func SSEHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		log.Printf("got existing broker for %v\n", project)
+		log.Printf("got existing broker for %v\n", key)
 	} else {
-
-		// err = fmt.Errorf("project doesn't exist yet")
-		// fmt.Fprintf(w, "%v\n", err)
-		// log.Println(err)
-		// return
-		b = New(project)
-		// spew.Dump("broker", b)
-		log.Printf("created broker for %v\n", project)
+		if needcreate {
+			// err = fmt.Errorf("project doesn't exist yet")
+			// fmt.Fprintf(w, "%v\n", err)
+			// log.Println(err)
+			// return
+			b = New(project, branch)
+			// spew.Dump("broker", b)
+			log.Printf("created broker for %v\n", project)
+		} else {
+			log.Printf("not created broker for %v, it should exist\n", key)
+		}
 	}
 
 	if b == nil {

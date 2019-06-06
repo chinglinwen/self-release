@@ -52,6 +52,13 @@ func hookHandler(c echo.Context) (err error) {
 
 	// fmt.Printf("out: %s\n", out)
 
+	projectName := gjson.GetBytes(payload, "project.name").String()
+	if projectName == "config-deploy" {
+		log.Println("ignore config-deploy projects")
+		c.JSONPretty(http.StatusOK, E(0, "ignore config-deploy", "ok"), " ")
+		return
+	}
+
 	// project := gjson.GetBytes(payload, "project.path_with_namespace").String()
 	ns := gjson.GetBytes(payload, "project.namespace").String()
 	if ns != "wenzhenglin" && ns != "donglintong" {

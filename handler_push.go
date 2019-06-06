@@ -35,6 +35,8 @@ $
 // receive push, do the build for test,  or filter out based on commit text? Force keyword?
 func handlePush(event *PushEvent) (err error) {
 	project := event.Project.PathWithNamespace
+	branch := parseBranch(event.Ref)
+
 	log.Printf("got project %v to build for test env\n", project)
 
 	// project := event.Project.PathWithNamespace // we don't use event.Project.Name, since it may be chinese
@@ -67,7 +69,9 @@ func handlePush(event *PushEvent) (err error) {
 	// autoenv["CI_MSG"] = event.Commits[0].Message
 	// autoenv["CI_TIME"] = time.Now().Format("2006-1-2 15:04:05")
 
-	b := NewBuilder(project)
+	b := NewBuilder(project, branch)
+	b.log("starting logs")
+
 	return b.startBuild(event, nil)
 }
 
@@ -83,9 +87,9 @@ type builder struct {
 	*sse.Broker
 }
 
-func NewBuilder(project string) *builder {
+func NewBuilder(project, branch string) *builder {
 	b := &builder{
-		Broker: sse.New(project),
+		Broker: sse.New(project, branch),
 	}
 	b.logf("<h1>created log for project: %v</h1>", project)
 	return b
@@ -106,8 +110,6 @@ func (b *builder) log(msgs ...interface{}) {
 }
 
 func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
-	defer b.PWriter.Close()
-
 	e, err := event.GetInfo()
 	if err != nil {
 		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
@@ -116,6 +118,10 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	project := e.Project
 	branch := e.Branch
 	env := projectpkg.GetEnvFromBranch(e.Branch)
+
+	// bname := strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
+	// b := NewBuilder(bname)
+	defer b.Close()
 
 	b.logf("start build for project %v, branch: %v, env: %v\n", project, branch, env)
 
@@ -314,6 +320,7 @@ func parseBranch(refs string) string {
 // if project set to auto, we auto tag for master? or just directly
 func handleRelease(event *TagPushEvent) (err error) {
 	project := event.Project.PathWithNamespace
+	branch := parseBranch(event.Ref)
 	log.Printf("got project %v to build for pre or online env\n", project)
 
 	// autoenv := make(map[string]string)
@@ -387,6 +394,7 @@ func handleRelease(event *TagPushEvent) (err error) {
 	// }
 	// log.Printf("apply for %v ok\n", project)
 
-	b := NewBuilder(project)
+	b := NewBuilder(project, branch)
+	b.log("starting logs")
 	return b.startBuild(event, nil)
 }
