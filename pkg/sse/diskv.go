@@ -12,7 +12,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/peterbourgon/diskv"
 )
 
@@ -37,15 +36,11 @@ func ReadFile(key string) (b *Broker, err error) {
 		return
 	}
 	b = &Broker{}
-	// b.ExistMsg = []string{}
 	err = json.Unmarshal(s, b)
-	spew.Dump("got b", b)
-
 	return
 }
 
 func GetBrokersFromDisk() (bs []*Broker, err error) {
-	// bs := []*Broker{}
 	keys, err := readfilenames()
 	if err != nil {
 		err = fmt.Errorf("readfilenames err %v", err)
