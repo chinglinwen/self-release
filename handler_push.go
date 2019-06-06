@@ -134,6 +134,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	} else {
 		if bo.gen == false && bo.build == false && bo.deploy == false {
 			err = fmt.Errorf("nothing to do, gen,build and deploy are false for %q, err: %v", e.Project, err)
+			b.log(err)
 			return
 		}
 	}
@@ -148,14 +149,18 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 	if err != nil {
 		err = fmt.Errorf("project: %v, new err: %v", project, err)
+		b.log(err)
 		return
 	}
+	b.log("clone or open project ok")
 
 	// if rollback is set, get previous tag as branch
 	if bo.rollback {
 		branch, err = p.GetRepo().GetPreviousTag()
 		if err != nil {
-			return fmt.Errorf("GetPreviousTag err: %v", err)
+			err = fmt.Errorf("GetPreviousTag err: %v", err)
+			b.log(err)
+			return
 		}
 		e.Branch = branch
 
@@ -164,16 +169,20 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// detect k8s-online.yaml see if exist and what's the tag?
 		bo.gen = true
 		bo.deploy = true
+
+		b.log("this is a rollback operation")
 	}
 
 	autoenv, err := EventInfoToMap(e)
 	if err != nil {
 		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
+		b.log(err)
 		return
 	}
 
 	for k, v := range autoenv {
 		log.Printf("autoenv: %v=%v", k, v)
+		b.logf("autoenv: %v=%v", k, v)
 	}
 
 	// it should be config from repo or template now
@@ -189,21 +198,27 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	// skip init push event
 	if strings.Contains(e.Message, "init config.yaml") {
-		log.Printf("ignore build for project: %v, branch: %v, it's a init project config event", project, branch)
+		a := fmt.Sprintf("ignore build for project: %v, branch: %v, it's a init project config event", project, branch)
+		// log.Println(a)
+		b.log(a)
 		return
 	}
 
 	if !projectpkg.BranchIsTag(branch) {
 		if branch != p.DevBranch { // tag should be release, not build?
-			log.Printf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.DevBranch, project)
+			a := fmt.Sprintf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.DevBranch, project)
+			// log.Println(a)
+			b.log(a)
 			return
 		}
 
 		var init, reinit bool
 		if strings.Contains(e.Message, "/init") {
+			b.log("will do init")
 			init = true
 		}
 		if strings.Contains(e.Message, "/reinit") {
+			b.log("will do reinit")
 			reinit = true
 		}
 
@@ -220,17 +235,20 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			err = p.Init()
 			if err != nil {
 				err = fmt.Errorf("project: %v, init err: %v", project, err)
+				b.log(err)
 				return
 			}
-			log.Printf("inited for project: %v", project)
+			// log.Printf("inited for project: %v", project)
+			b.logf("inited for project: %v", project)
 		}
 		if reinit {
 			err = p.Init(projectpkg.SetInitForce())
 			if err != nil {
 				err = fmt.Errorf("project: %v, reinit err: %v", project, err)
+				b.log(err)
 				return
 			}
-			log.Printf("reinited for project: %v", project)
+			b.logf("reinited for project: %v", project)
 		}
 	}
 	// do gen if deploy is needed
@@ -245,9 +263,10 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
 		if err != nil {
 			err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
+			b.log(err)
 			return
 		}
-		log.Printf("done generate for project: %v", project)
+		b.logf("done generate for project: %v", project)
 	}
 
 	// everytime build, need generate first
@@ -256,13 +275,14 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	//envsubst.Eval()
 
 	if bo.build {
-		log.Printf("start building for project: %v, branch: %v, env: %v\n", project, branch, env)
+		b.logf("start building for project: %v, branch: %v, env: %v\n", project, branch, env)
 		out, e := p.Build(project, branch, env)
 		if e != nil {
 			err = fmt.Errorf("build err: %v", e)
+			b.log(err)
 			return
 		}
-		fmt.Println("output:", out)
+		b.log("output:", out)
 	}
 	// check if inited or force provide, if not, init first
 
@@ -276,9 +296,10 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		out, e := apply(ns, finalyaml)
 		if e != nil {
 			err = fmt.Errorf("apply for project: %v, err: %v", project, e)
+			b.log(err)
 			return
 		}
-		log.Printf("apply for %v ok\noutput: %v\n", project, out)
+		b.logf("apply for %v ok\noutput: %v\n", project, out)
 	}
 
 	b.log("end.")

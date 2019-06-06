@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	*logsPath = "../projectlogs"
+	*logsPath = "../../projectlogs"
 	os.MkdirAll(*logsPath, 0755)
 
 	disk = diskv.New(diskv.Options{
@@ -30,7 +30,7 @@ func TestGetBrokers(t *testing.T) {
 	}
 	for _, v := range bs {
 		fmt.Println(v.Key)
-		fmt.Println("logs:", v.ExistMsg)
+		// fmt.Println("logs:", v.ExistMsg)
 	}
 }
 
