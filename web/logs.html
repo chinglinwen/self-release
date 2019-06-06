@@ -9,7 +9,7 @@
 
     {{if .List}} Lists of projects:<br> <br> {{range .Items}}
 
-    <a href="/logs?key={{.Key}}">{{.Key}}</a><br><br> {{end}}
+    <a href="/logs?key={{.Key}}">{{.Key}}</a><br> {{end}}
     <!-- Yo {{.}}, here are some facinating messages about the current time:<br> -->
     {{else}} Project: <b>{{.Project}}</b> Branch: <b>{{.Branch}} {{if .Note}}(default){{end}}</b> logs:
     <hr> {{if .Stored}} <pre>{{.ExistMsg}}</pre>{{else}}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"strings"
@@ -97,14 +98,14 @@ func NewBuilder(project, branch string) *builder {
 
 func (b *builder) logf(s string, msgs ...interface{}) {
 	msg := fmt.Sprintf(s, msgs...)
-	log.Println(msg)
+	// log.Println(msg)
 	fmt.Fprint(b.PWriter, msg)
 	// b.Messages <- msg
 }
 
 func (b *builder) log(msgs ...interface{}) {
 	msg := fmt.Sprint(msgs...)
-	log.Println(msg)
+	// log.Println(msg)
 	fmt.Fprint(b.PWriter, msg)
 	// b.Messages <- msg
 }
@@ -275,14 +276,27 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	//envsubst.Eval()
 
 	if bo.build {
+		// out := make(chan string, 10)
+
 		b.logf("start building for project: %v, branch: %v, env: %v\n", project, branch, env)
 		out, e := p.Build(project, branch, env)
+		// e := p.Build(project, branch, env, out)
 		if e != nil {
 			err = fmt.Errorf("build err: %v", e)
 			b.log(err)
 			return
 		}
-		b.log("output:", out)
+		b.log("build outputs:")
+		scanner := bufio.NewScanner(strings.NewReader(out))
+		// scanner.Split(bufio.ScanLines)
+		for scanner.Scan() {
+			b.log(scanner.Text())
+		}
+
+		// for v := range out {
+		// 	b.log("output:", v)
+		// }
+		b.log("build is done.")
 	}
 	// check if inited or force provide, if not, init first
 

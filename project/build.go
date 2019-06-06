@@ -1,6 +1,7 @@
 package project
 
 import (
+	"bufio"
 	"fmt"
 	"os/exec"
 
@@ -42,6 +43,41 @@ func Build(dir, project, tag, env string) (out string, err error) {
 		return
 	}
 	out = string(output)
+	return
+}
+
+func Build2(dir, project, tag, env string, out chan string) (err error) {
+	image := GetImage(project, tag)
+	log.Printf("building for image: %v, env: %v\n", image, env)
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v %v", image, env))
+	cmd.Dir = dir
+	// output, err := cmd.CombinedOutput()
+	// if err != nil {
+	// 	log.Printf("build execute build err: %v\noutput: %v\n", err, string(output))
+	// 	return
+	// }
+	// out = string(output)
+
+	stdout, _ := cmd.StdoutPipe()
+	// stderr, _ := cmd.StderrPipe()
+	cmd.Start()
+
+	// out = make(chan<- string)
+	// defer close(out)
+	// defer stdout.Close()
+	// defer stderr.Close()
+
+	// scanner := bufio.NewScanner(io.MultiReader(stdout, stderr))
+	scanner := bufio.NewScanner(stdout)
+	scanner.Split(bufio.ScanWords)
+	for scanner.Scan() {
+		out <- scanner.Text()
+	}
+	go func() {
+		cmd.Wait()
+		close(out)
+	}()
+
 	return
 }
 
