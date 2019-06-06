@@ -103,7 +103,6 @@ func (b *builder) notify(msg, username string) {
 		log.Printf("username is empty for %v, ignore notify\n", b.Project)
 		return
 	}
-	// notifytext := fmt.Sprintf("%vlog url: http://t.com:8089/logs?key=%v\n", tip, b.Key)
 	reply, err := notify.SendPerson(msg, username)
 	if err != nil {
 		log.Printf("SendPerson err: %v\nout: %v\n", err, reply)
@@ -128,7 +127,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	tip := fmt.Sprintf("start build for project %v, branch: %v, env: %v\n", project, branch, env)
 	b.logf(tip)
 
-	notifytext := fmt.Sprintf("%vlog url: http://t.com:8089/logs?key=%v\n", tip, b.Key)
+	notifytext := fmt.Sprintf("%vlog url: http://build.newops.haodai.net/logs?key=%v\n", tip, b.Key)
 	b.notify(notifytext, e.UserName)
 
 	if bo == nil {
@@ -283,7 +282,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	if bo.build {
 		// out := make(chan string, 10)
 
-		b.logf("start building for project: %v, branch: %v, env: %v\n", project, branch, env)
+		b.logf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
 		out, e := p.Build(project, branch, env)
 		// e := p.Build(project, branch, env, out)
 		if e != nil {
@@ -291,7 +290,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			b.log(err)
 			return
 		}
-		b.log("build outputs:")
+		b.log("<h2>docker build outputs:</h2>")
 		scanner := bufio.NewScanner(strings.NewReader(out))
 		// scanner.Split(bufio.ScanLines)
 		for scanner.Scan() {
@@ -318,7 +317,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			b.log(err)
 			return
 		}
-		b.logf("apply for %v ok\noutput: %v\n", project, out)
+		b.logf("apply for %v ok\n<h2>k8s apply output:</h2>%v\n", project, out)
 	}
 
 	b.log("end.")

@@ -53,7 +53,7 @@ func hookHandler(c echo.Context) (err error) {
 	// fmt.Printf("out: %s\n", out)
 
 	projectName := gjson.GetBytes(payload, "project.name").String()
-	if projectName == "config-deploy" {
+	if projectName == "config-deploy" || projectName == "self-release" {
 		log.Println("ignore config-deploy projects")
 		c.JSONPretty(http.StatusOK, E(0, "ignore config-deploy", "ok"), " ")
 		return
