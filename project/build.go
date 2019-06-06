@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/acarl005/stripansi"
 	"github.com/chinglinwen/log"
 )
 
@@ -42,7 +43,7 @@ func Build(dir, project, tag, env string) (out string, err error) {
 		log.Printf("build execute build err: %v\noutput: %v\n", err, string(output))
 		return
 	}
-	out = string(output)
+	out = stripansi.Strip(string(output))
 	return
 }
 
