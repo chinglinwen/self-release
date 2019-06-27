@@ -74,14 +74,18 @@ type buildOption struct {
 
 type builder struct {
 	*sse.Broker
+	// Event EventInfo // for later modified to restart event
 }
 
-func NewBuilder(project, branch string) *builder {
-	b := &builder{
+// how user send the commands without release: commit? ci trigger, wechat msg?
+
+// try grab the event too, so it can trigger again, or even changed event
+func NewBuilder(project, branch string) (b *builder) {
+	b = &builder{
 		Broker: sse.New(project, branch),
 	}
 	b.logf("<h1>created log for project: %v</h1>", project)
-	return b
+	return
 }
 
 func (b *builder) logf(s string, msgs ...interface{}) {
@@ -103,9 +107,9 @@ func (b *builder) notify(msg, username string) {
 		log.Printf("username is empty for %v, ignore notify\n", b.Project)
 		return
 	}
-	reply, err := notify.SendPerson(msg, username)
+	reply, err := notify.Send(username, msg)
 	if err != nil {
-		log.Printf("SendPerson err: %v\nout: %v\n", err, reply)
+		log.Printf("send err: %v\nout: %v\n", err, reply)
 	}
 	return
 }
@@ -116,6 +120,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
 		return
 	}
+	b.Event = e
+
 	project := e.Project
 	branch := e.Branch
 	env := projectpkg.GetEnvFromBranch(e.Branch)

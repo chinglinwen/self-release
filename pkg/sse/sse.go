@@ -25,6 +25,8 @@ type Broker struct {
 	Project string // project
 	Key     string // unique key
 	Branch  string
+	Event   *EventInfo
+
 	// Channel into which messages are pushed to be broadcast out
 	// to attahed clients.
 	//
@@ -52,15 +54,37 @@ type Broker struct {
 	Stored     bool
 }
 
+type EventInfo struct {
+	Project   string // event.Project.PathWithNamespace
+	Branch    string // parseBranch(event.Ref)
+	Env       string
+	UserName  string
+	UserEmail string
+	Message   string
+	// Time      string
+}
+
+// GetInfo to satisfy eventer
+func (e *EventInfo) GetInfo() (event *EventInfo, err error) {
+	return e, nil
+}
+
 const TimeLayout = "2006-1-2_15:04:05"
 
 type option struct {
-	key string
+	key   string
+	event EventInfo
 }
 
 func SetKey(key string) func(*option) {
 	return func(o *option) {
 		o.key = key
+	}
+}
+
+func SetEventInfo(event EventInfo) func(*option) {
+	return func(o *option) {
+		o.event = event
 	}
 }
 
@@ -173,6 +197,21 @@ func GetBrokerFromKey(key string) (b *Broker, err error) {
 	}
 	return
 }
+
+func GetBrokerFromPerson(name string) (b *Broker, err error) {
+	bs, err := GetBrokers()
+	if err != nil {
+		return
+	}
+	for _, v := range bs {
+		if v.Event.UserName == name {
+			b = v
+			return
+		}
+	}
+	return
+}
+
 func (b *Broker) GetExistMsg() (existmsg string) {
 	for _, v := range b.ExistMsg {
 		existmsg = fmt.Sprintf("%v%v\n", existmsg, v)

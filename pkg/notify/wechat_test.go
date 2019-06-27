@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestSendPerson(t *testing.T) {
-	reply, err := SendPerson("hello", "wenzhenglin")
+func TestSend(t *testing.T) {
+	reply, err := Send("wenzhenglin", "hello2")
 	if err != nil {
 		t.Error(err)
 		return

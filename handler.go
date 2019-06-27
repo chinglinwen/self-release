@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"wen/self-release/pkg/sse"
 	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
@@ -121,7 +122,7 @@ func genAPIHandler(c echo.Context) (err error) {
 
 	username, useremail, msg := getUserInfo(c)
 
-	e := &EventInfo{
+	e := &sse.EventInfo{
 		Project:   project,
 		Branch:    branch,
 		Env:       env, // default derive from branch
@@ -210,7 +211,7 @@ func rollbackAPIHandler(c echo.Context) (err error) {
 
 	username, useremail, msg := getUserInfo(c)
 
-	e := &EventInfo{
+	e := &sse.EventInfo{
 		Project:   project,
 		Branch:    tag,
 		Env:       env, // default derive from branch

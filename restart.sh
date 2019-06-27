@@ -1,2 +1,2 @@
 pkill self-release
-./self-release &> s.log &
+./start.sh

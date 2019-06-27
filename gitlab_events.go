@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"wen/self-release/pkg/sse"
 	projectpkg "wen/self-release/project"
 )
 
@@ -24,24 +25,10 @@ func ParseEvent(eventName string, payload []byte) (data interface{}, err error) 
 	return
 }
 
-type EventInfo struct {
-	Project   string // event.Project.PathWithNamespace
-	Branch    string // parseBranch(event.Ref)
-	Env       string
-	UserName  string
-	UserEmail string
-	Message   string
-	// Time      string
-}
-
-func (e *EventInfo) GetInfo() (*EventInfo, error) {
-	return e, nil
-}
-
 const TimeLayout = "2006-1-2_15:04:05"
 
-func (event *PushEvent) GetInfo() (e *EventInfo, err error) {
-	e = &EventInfo{}
+func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
+	e = &sse.EventInfo{}
 	e.Project = event.Project.PathWithNamespace
 	e.Branch = parseBranch(event.Ref)
 
@@ -62,8 +49,8 @@ func (event *PushEvent) GetInfo() (e *EventInfo, err error) {
 	return
 }
 
-func (event *TagPushEvent) GetInfo() (e *EventInfo, err error) {
-	e = &EventInfo{}
+func (event *TagPushEvent) GetInfo() (e *sse.EventInfo, err error) {
+	e = &sse.EventInfo{}
 	e.Project = event.Project.PathWithNamespace
 	e.Branch = parseBranch(event.Ref)
 
@@ -86,10 +73,10 @@ func (event *TagPushEvent) GetInfo() (e *EventInfo, err error) {
 }
 
 type Eventer interface {
-	GetInfo() (e *EventInfo, err error)
+	GetInfo() (e *sse.EventInfo, err error)
 }
 
-func GetEventInfo(event Eventer) (e *EventInfo, err error) {
+func GetEventInfo(event Eventer) (e *sse.EventInfo, err error) {
 	return event.GetInfo()
 }
 
@@ -101,7 +88,7 @@ func GetEventInfoToMap(event Eventer) (autoenv map[string]string, err error) {
 	return EventInfoToMap(e)
 }
 
-func EventInfoToMap(e *EventInfo) (autoenv map[string]string, err error) {
+func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 
 	namespace, projectName, err := projectpkg.GetProjectName(e.Project)
 	if err != nil {

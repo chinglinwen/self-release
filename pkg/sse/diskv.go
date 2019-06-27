@@ -22,6 +22,7 @@ var disk = diskv.New(diskv.Options{
 	CacheSizeMax: 1024 * 1024,
 })
 
+// try store the command too, for restart a build ( mostly last time build )
 func WriteFile(key string, b *Broker) (err error) {
 	s, err := json.MarshalIndent(b, "", "  ")
 	if err != nil {
@@ -69,7 +70,7 @@ func readfilenames() (keys []string, err error) {
 	return
 }
 
-var cutoff = 1 * time.Hour
+var cutoff = 31 * 24 * time.Hour
 
 // how to clean though? run a shell?
 func clean() {

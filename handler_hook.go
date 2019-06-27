@@ -61,7 +61,7 @@ func hookHandler(c echo.Context) (err error) {
 
 	// project := gjson.GetBytes(payload, "project.path_with_namespace").String()
 	ns := gjson.GetBytes(payload, "project.namespace").String()
-	if ns != "wenzhenglin" && ns != "donglintong" {
+	if ns != "wenzhenglin" && ns != "donglintong" && ns != "yuzongwei" {
 		log.Println("ignore non-test projects")
 		c.JSONPretty(http.StatusOK, E(0, "ignore non-test projects", "ok"), " ")
 		return
