@@ -105,7 +105,7 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 
 	// default to test?
 	env := GetEnvFromBranch(p.Branch)
-	log.Printf("got project %v, env: %v to generate", p.Project, env)
+	log.Printf("generate for project: %v, env: %v", p.Project, env)
 
 	// set envs with autoenv together
 	envMap, err := p.readEnvs(c.autoenv)

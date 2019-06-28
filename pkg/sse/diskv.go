@@ -51,7 +51,7 @@ func GetBrokersFromDisk() (bs []*Broker, err error) {
 	for _, v := range keys {
 		b, err := ReadFile(v)
 		if err != nil {
-			log.Printf("read key %v err: %v\n", v, err)
+			log.Printf("read key: %v err: %v\n", v, err)
 			continue
 		}
 		bs = append(bs, b)

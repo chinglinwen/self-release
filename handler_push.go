@@ -39,7 +39,7 @@ func handlePush(event *PushEvent) (err error) {
 	project := event.Project.PathWithNamespace
 	branch := parseBranch(event.Ref)
 
-	log.Printf("got project %v to build for test env\n", project)
+	log.Printf("got push for project %v to build for test env\n", project)
 
 	b := NewBuilder(project, branch)
 	b.log("starting logs")
@@ -57,7 +57,7 @@ func handlePush(event *PushEvent) (err error) {
 func handleRelease(event *TagPushEvent) (err error) {
 	project := event.Project.PathWithNamespace
 	branch := parseBranch(event.Ref)
-	log.Printf("got project %v to build for pre or online env\n", project)
+	log.Printf("got release project %v to build for pre or online env\n", project)
 
 	b := NewBuilder(project, branch)
 	b.log("starting logs")
@@ -70,6 +70,7 @@ type buildOption struct {
 	deploy   bool
 	rollback bool
 	// no easy way to delete? why need delete?
+	nonotify bool
 }
 
 type builder struct {
@@ -104,23 +105,37 @@ func (b *builder) log(msgs ...interface{}) {
 
 func (b *builder) notify(msg, username string) {
 	if username == "" {
-		log.Printf("username is empty for %v, ignore notify\n", b.Project)
+		log.Printf("username is empty for %v, ignore notify msg: %v\n", b.Project, msg)
 		return
 	}
 	reply, err := notify.Send(username, msg)
 	if err != nil {
 		log.Printf("send err: %v\nout: %v\n", err, reply)
 	}
+	log.Println("sended notify to ", username)
 	return
 }
 
 func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
+	defer func() {
+		if bo.nonotify {
+			return
+		}
+		if err != nil {
+			b.notify("build err:\n"+err.Error(), b.Event.UserName)
+		} else {
+			text := fmt.Sprintf("release for project: %v, branch: %v, env: %v ok", b.Project, b.Branch, b.Event.Env)
+			b.notify(text, b.Event.UserName)
+		}
+	}()
 	e, err := event.GetInfo()
 	if err != nil {
 		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
 		return
 	}
 	b.Event = e
+
+	// spew.Dump("build event", e)
 
 	project := e.Project
 	branch := e.Branch
@@ -133,7 +148,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	tip := fmt.Sprintf("start build for project %v, branch: %v, env: %v\n", project, branch, env)
 	b.logf(tip)
 
-	notifytext := fmt.Sprintf("%vlog url: http://build.newops.haodai.net/logs?key=%v\n", tip, b.Key)
+	notifytext := fmt.Sprintf("%vlog url: http://build.newops.haodai.net/logs?key=%v", tip, b.Key)
 	b.notify(notifytext, e.UserName)
 
 	if bo == nil {

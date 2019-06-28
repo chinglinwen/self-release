@@ -101,7 +101,7 @@ func hookHandler(c echo.Context) (err error) {
 		if event1.Project.Namespace == "wenzhenglin" || event1.Project.Namespace == "donglintong" {
 			err = handlePush(event1)
 			if err != nil {
-				err = fmt.Errorf("handle push event err: %v", err)
+				err = fmt.Errorf("push release err: %v", err)
 				log.Println(err)
 				c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 				return
@@ -133,7 +133,7 @@ func hookHandler(c echo.Context) (err error) {
 		if event1.Project.Namespace == "wenzhenglin" || event1.Project.Namespace == "donglintong" {
 			err = handleRelease(event2)
 			if err != nil {
-				err = fmt.Errorf("handle release event err: %v", err)
+				err = fmt.Errorf("tag release err: %v", err)
 				log.Println(err)
 				c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 				return

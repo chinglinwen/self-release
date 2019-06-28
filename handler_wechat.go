@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/chinglinwen/log"
 	"github.com/labstack/echo"
@@ -31,18 +29,19 @@ func wechatHandler(c echo.Context) error {
 	}
 	log.Printf("from %v(ip: %v), cmd: %v", from, ip, cmd)
 
-	cmd = strings.TrimPrefix(cmd, "/")
-
-	var out string
-	var err error
-	switch cmd {
-	case "demo":
-		out, err = demo(from)
-	case "retry":
-		out, err = retry(from)
-	default:
-		err = fmt.Errorf("no cmd to try")
-	}
+	out, err := doAction(from, cmd)
+	// var out string
+	// var err error
+	// switch cmd {
+	// case "demo":
+	// 	out, err = demo(from)
+	// case "myproject":
+	// 	out, err = myproject(from)
+	// case "retry":
+	// 	out, err = retry(from)
+	// default:
+	// 	err = fmt.Errorf("no cmd to try")
+	// }
 
 	data, err := encode(out, err)
 	if err != nil {

@@ -203,12 +203,15 @@ func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
 	if err != nil {
 		err = fmt.Errorf("checkout to local error: %v, for repo: %q, branch: %q\n", err, repo.Project, repo.Branch)
 		log.Println(err)
+		// log.Println("niled err")
+		// err = nil
 		return nil, err
 	}
 	return
 }
 
 func NewWithPull(project string, options ...func(*Repo)) (repo *Repo, err error) {
+	log.Println("newwith pull", project)
 	repo, err = New(project, options...)
 	if err != nil {
 		return nil, err
@@ -356,9 +359,9 @@ func GetPreviousTag(tags []string) (tag string, err error) {
 		err = fmt.Errorf("empty tags")
 		return
 	}
-	sort.SliceStable(tags, func(i, j int) bool { return tags[i] < tags[j] })
+	sort.SliceStable(tags, func(i, j int) bool { return tags[i] > tags[j] })
 	if len(tags) >= 2 {
-		tag = tags[(len(tags) - 2)]
+		tag = tags[1] // (len(tags) - 2)
 	} else {
 		tag = tags[0]
 	}

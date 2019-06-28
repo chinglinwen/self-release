@@ -64,6 +64,7 @@ func (r *Repo) CheckoutLocalWith(refs string) (err error) {
 	if refs == "" {
 		refs = r.refs
 	}
+	// fmt.Println("refs", refs)
 	err = r.wrk.Checkout(&git.CheckoutOptions{
 		Branch: plumbing.ReferenceName(refs),
 		Force:  r.force,

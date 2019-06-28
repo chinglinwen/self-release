@@ -27,6 +27,8 @@ type Broker struct {
 	Branch  string
 	Event   *EventInfo
 
+	Retry int
+
 	// Channel into which messages are pushed to be broadcast out
 	// to attahed clients.
 	//
@@ -130,29 +132,59 @@ func New(project, branch string, options ...func(*option)) (b *Broker) {
 
 	brokerMaps.Store(c.key, b)
 
-	// spew.Dump("newbroker", b)
-	// fmt.Fprint(b.PWriter, "starting logs for ", name)
-
-	// b.Messages <- "log started"
-
-	// fmt.Fprint(b.PWriter, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa111aaaaaaend")
-	// b.PWriter.Close()
-
-	// go func() {
-	// 	for i := 0; ; i++ {
-
-	// 		// Create a little message to send to clients,
-	// 		// including the current time.
-	// 		fmt.Fprintf(b.PWriter, "%d - the time is %v", i, time.Now())
-
-	// 		// Print a nice log message and sleep for 5s.
-	// 		// log.Printf("Sent message %d ", i)
-	// 		time.Sleep(5e9)
-
-	// 	}
-	// }()
-
 	return b
+}
+
+func NewExist(b *Broker) (bnew *Broker) {
+	// c := &option{}
+	// for _, op := range options {
+	// 	op(c)
+	// }
+	// if c.key == "" {
+	// 	c.key = strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
+	// }
+
+	// b.Key=b.Key+".retry"
+	pr, pw := io.Pipe()
+
+	key := b.Key
+	project := b.Project
+	branch := b.Branch
+
+	x, ok := brokerMaps.Load(key)
+	if ok {
+		bnew, ok = x.(*Broker)
+		if !ok {
+			log.Println("convert from brockerMaps error for ", key)
+			return
+		}
+	} else {
+		bnew = &Broker{
+			// Key:            fmt.Sprintf("%v-retry%v", key, b.Retry),
+			Key:            key,
+			Project:        project,
+			Branch:         branch,
+			Messages:       make(chan string),
+			PReader:        pr,
+			PWriter:        pw,
+			clients:        make(map[chan string]bool),
+			newClients:     make(chan (chan string)),
+			defunctClients: make(chan (chan string)),
+			CreateTime:     time.Now().Format(TimeLayout),
+			Event:          b.Event,
+			ExistMsg:       []string{fmt.Sprintf("build retried at %v\n", time.Now())},
+			Retry:          b.Retry + 1,
+		}
+	}
+
+	bnew.Start()
+	// Generate a constant stream of events that get pushed
+	// into the Broker's messages channel and are then broadcast
+	// out to any clients that are attached.
+
+	brokerMaps.Store(key, bnew)
+
+	return bnew
 }
 
 func GetBrokers() (bs []*Broker, err error) {
@@ -162,6 +194,10 @@ func GetBrokers() (bs []*Broker, err error) {
 		return
 	}
 	bs = append(bs, dbs...)
+	if bs == nil {
+		err = fmt.Errorf("no anything found")
+		return
+	}
 	return
 }
 
@@ -203,12 +239,25 @@ func GetBrokerFromPerson(name string) (b *Broker, err error) {
 	if err != nil {
 		return
 	}
+	if bs == nil {
+		err = fmt.Errorf("no any project")
+		return
+	}
+	// spew.Dump("bs", bs)
 	for _, v := range bs {
+		if v.Event == nil {
+			continue
+		}
 		if v.Event.UserName == name {
 			b = v
 			return
 		}
 	}
+	if b == nil {
+		err = fmt.Errorf("%v haven't build project yet", name)
+		return
+	}
+
 	return
 }
 
@@ -220,7 +269,10 @@ func (b *Broker) GetExistMsg() (existmsg string) {
 }
 
 func (b *Broker) Close() {
-	b.PWriter.Close()
+	log.Println("closing brocker for ", b.Project, b.Branch)
+	if b.PWriter != nil {
+		b.PWriter.Close()
+	}
 
 	// copy as backup, the name is the same? how to distinguish later
 	// key := b.Project + "." + b.CreateTime

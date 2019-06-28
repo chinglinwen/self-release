@@ -173,13 +173,13 @@ func getUserInfo(c echo.Context) (username, useremail, msg string) {
 	msg = c.FormValue("msg")
 
 	if username == "" {
-		username = "unknownUser"
+		username = "web"
 	}
 	if useremail == "" {
-		username = "unknownUserEmail"
+		useremail = "webmail"
 	}
 	if msg == "" {
-		username = "emptyMessage"
+		msg = "webmsg"
 	}
 	return
 }

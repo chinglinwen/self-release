@@ -71,7 +71,13 @@ func TestBranchIsOnline(t *testing.T) {
 }
 
 func TestFetch(t *testing.T) {
-	repo, err := NewWithPull("wenzhenglin/test", SetBranch("v1.0.1"))
+	// repo, err := NewWithPull("wenzhenglin/project-example", SetBranch("develop"))
+	repo, err := New("wenzhenglin/project-example", SetBranch("develop"))
+	if err != nil {
+		t.Error("new err", err)
+		return
+	}
+	err = repo.CheckoutLocal()
 	if err != nil {
 		t.Error("new err", err)
 		return
