@@ -172,4 +172,45 @@ func retry(dev, args string) (out string, err error) {
 	return
 }
 
-// rollbacks
+// rollbacks, need to get last tag? support online only?
+// rollback to just pre-version or to any specific version
+// kind of redeploy? but auto get the last tag?
+func rollback(dev, args string) (out string, err error) {
+	log.Printf("got rollback from: %v, args: %v\n", dev, args)
+	project, branch, err := parseProject(args)
+	if err != nil {
+		return
+	}
+
+	// booptions := []string{"gen", "build", "deploy"}
+	bo := &buildOption{
+		// gen:      contains(booptions, "gen"),
+		// build:    contains(booptions, "build"),
+		// deploy:   contains(booptions, "deploy"),
+		rollback: true,
+		nonotify: true,
+	}
+	e := &sse.EventInfo{
+		Project: project,
+		Branch:  branch, // get branch automatic here if not specified
+		// Env:       env, // default derive from branch
+		UserName: dev,
+		// UserEmail: useremail,
+		Message: fmt.Sprintf("from %v, args: ", args),
+	}
+
+	b := NewBuilder(project, branch)
+	b.log("starting logs")
+
+	err = b.startBuild(e, bo)
+	if err != nil {
+		err = fmt.Errorf("rollback for project: %v, branch: %v, err: %v", project, branch, err)
+		log.Println(err)
+		return
+	}
+	if err == nil {
+		out = "rollback ok"
+		log.Printf("rollback from %v ok\n", dev)
+	}
+	return
+}

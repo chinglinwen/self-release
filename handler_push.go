@@ -183,12 +183,24 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	// if rollback is set, get previous tag as branch
 	if bo.rollback {
+		argBranch := branch
 		branch, err = p.GetRepo().GetPreviousTag()
 		if err != nil {
 			err = fmt.Errorf("GetPreviousTag err: %v", err)
 			b.log(err)
 			return
 		}
+
+		if argBranch != branch {
+			// re-open the branch
+			p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+			if err != nil {
+				err = fmt.Errorf("project: %v, branch: %v, new(rollback ) err: %v", project, branch, err)
+				b.log(err)
+				return
+			}
+		}
+
 		e.Branch = branch
 
 		// build already, no need to build again?
