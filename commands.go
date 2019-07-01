@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
+	"text/tabwriter"
 	"wen/self-release/pkg/sse"
 
 	"github.com/chinglinwen/log"
@@ -13,24 +15,29 @@ import (
 // 	fn   func(string) (string, error)
 // }
 
-type action func(string, string) (string, error)
+type action struct {
+	name string
+	help string
+	fn   func(string, string) (string, error)
+}
 
 var (
-	funcs = map[string]action{
-		// "help":      help, // can't refer back to help
-		"demo":      demo,
-		"deploy":    deploy,
-		"retry":     retry,
-		"myproject": myproject,
-	}
+	// funcs = map[string]action{
+	// 	// "help":      help, // can't refer back to help
+	// 	"demo":      demo,
+	// 	"deploy":    deploy,
+	// 	"retry":     retry,
+	// 	"myproject": myproject,
+	// }
 
-// funcs = []action{}
-// {name: "help", fn: help},
-// "help":      help,
-// "demo":      demo,
-// "retry":     retry,
-// "myproject": myproject,
-// }
+	funcs = []action{
+		// {name: "help", fn: help},
+		{name: "hi", fn: hi, help: "say hi."},
+		{name: "deploy", fn: deploy, help: "deploy project. (eg: /deploy group/project [branch] )"},
+		{name: "rollback", fn: rollback, help: "rollback project. (eg: /rollback group/project [branch] )"},
+		{name: "retry", fn: retry, help: "retry last time deployed project."},
+		{name: "myproject", fn: myproject, help: "get last time project."},
+	}
 )
 
 func doAction(dev, cmd string) (out string, err error) {
@@ -38,23 +45,51 @@ func doAction(dev, cmd string) (out string, err error) {
 	c := strings.Fields(cmd)[0]
 	args := strings.TrimPrefix(cmd, c)
 
-	fn, ok := funcs[c]
-	if !ok {
-		return help(dev, "")
-	}
-	return fn(dev, args)
-}
+	// fn, ok := funcs[c]
+	// if !ok {
+	// 	return help(dev, "")
+	// }
+	// return fn(dev, args)
 
-func help(dev, args string) (out string, err error) {
-	out = "list of actions:"
-	for k, _ := range funcs {
-		out = fmt.Sprintf("%v\n  %v", out, k)
+	var found bool
+	for _, v := range funcs {
+		if v.name != c {
+			continue
+		}
+		found = true
+		return v.fn(dev, args)
+	}
+	if !found {
+		return help(dev, "")
 	}
 	return
 }
 
-func demo(dev, args string) (out string, err error) {
-	out = fmt.Sprintf("hello %v, you provided cmd: demo, args: %v", dev, args)
+func help(dev, args string) (out string, err error) {
+	out = "list of actions:\n"
+	for _, v := range funcs {
+		out = fmt.Sprintf("%v/%v   -> %v\n", out, v.name, v.help)
+	}
+	// out = fmt.Sprintf("list of actions:\n%v", helplist())
+	return
+}
+
+func helplist() (out string) {
+	w := new(tabwriter.Writer)
+	var b bytes.Buffer
+	w.Init(&b, 5, 0, 0, ' ', tabwriter.AlignRight|tabwriter.Debug)
+
+	for _, v := range funcs {
+		fmt.Fprintf(w, "%v \t %v\n", v.name, v.help)
+		// out = fmt.Sprintf("%v\t%v\n  %v", out, v.name, v.help)
+	}
+	w.Flush()
+	out = b.String()
+	return
+}
+
+func hi(dev, args string) (out string, err error) {
+	out = fmt.Sprintf("hello %v, you provided cmd: hi, args: %v", dev, args)
 	return
 }
 
@@ -177,9 +212,22 @@ func retry(dev, args string) (out string, err error) {
 // kind of redeploy? but auto get the last tag?
 func rollback(dev, args string) (out string, err error) {
 	log.Printf("got rollback from: %v, args: %v\n", dev, args)
-	project, branch, err := parseProject(args)
-	if err != nil {
-		return
+	project, branch, _ := parseProject(args) // ignore no project provide error
+
+	if project == "" {
+		brocker, e := sse.GetBrokerFromPerson(dev)
+		if e != nil {
+			err = fmt.Errorf("cant find previous released project name to rollback, " +
+				"try provide project name for rollback")
+			return
+		}
+		// spew.Dump("retry brocker:", brocker)
+
+		b := &builder{
+			Broker: sse.NewExist(brocker),
+		}
+		project = b.Event.Project
+		log.Println("will try rollback project: ", project)
 	}
 
 	// booptions := []string{"gen", "build", "deploy"}

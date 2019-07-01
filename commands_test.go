@@ -12,3 +12,7 @@ func TestMyproject(t *testing.T) {
 func TestRetry(t *testing.T) {
 	fmt.Println(retry("wenzhenglin", ""))
 }
+
+func TestHelplist(t *testing.T) {
+	fmt.Println(help("", ""))
+}
