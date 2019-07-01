@@ -74,8 +74,9 @@ func (e *EventInfo) GetInfo() (event *EventInfo, err error) {
 const TimeLayout = "2006-1-2_15:04:05"
 
 type option struct {
-	key   string
-	event EventInfo
+	key      string
+	event    EventInfo
+	rollback string
 }
 
 func SetKey(key string) func(*option) {
@@ -83,7 +84,11 @@ func SetKey(key string) func(*option) {
 		o.key = key
 	}
 }
-
+func SetRollback(rollback string) func(*option) {
+	return func(o *option) {
+		o.rollback = rollback
+	}
+}
 func SetEventInfo(event EventInfo) func(*option) {
 	return func(o *option) {
 		o.event = event
@@ -235,7 +240,7 @@ func GetBrokerFromKey(key string) (b *Broker, err error) {
 }
 
 func GetBrokerFromPerson(name string) (b *Broker, err error) {
-	bs, err := GetBrokers()
+	bs, err := GetBrokersFromDisk() // no includes of mem brockers
 	if err != nil {
 		return
 	}
@@ -245,6 +250,7 @@ func GetBrokerFromPerson(name string) (b *Broker, err error) {
 	}
 	// spew.Dump("bs", bs)
 	for _, v := range bs {
+		// spew.Dump("v", v)
 		if v.Event == nil {
 			continue
 		}
@@ -277,7 +283,7 @@ func (b *Broker) Close() {
 	// copy as backup, the name is the same? how to distinguish later
 	// key := b.Project + "." + b.CreateTime
 
-	key := strings.Replace(fmt.Sprintf("%v-%v", b.Project, b.CreateTime), "/", "-", -1)
+	key := strings.Replace(fmt.Sprintf("%v:%v-%v", b.Project, b.Branch, b.CreateTime), "/", "-", -1)
 
 	b1 := deepcopy.Copy(b)
 	newb, _ := b1.(*Broker)

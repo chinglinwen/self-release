@@ -98,17 +98,17 @@ func hookHandler(c echo.Context) (err error) {
 		// spew.Dump("details:", event1.Commits)
 
 		// PathWithNamespace is better, name or namespace maybe chinese chars
-		if event1.Project.Namespace == "wenzhenglin" || event1.Project.Namespace == "donglintong" {
-			err = handlePush(event1)
-			if err != nil {
-				err = fmt.Errorf("push release err: %v", err)
-				log.Println(err)
-				c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-				return
-			}
-		} else {
-			log.Println("ignore non-test projects")
+		// if event1.Project.Namespace == "wenzhenglin" || event1.Project.Namespace == "donglintong" {
+		err = handlePush(event1)
+		if err != nil {
+			err = fmt.Errorf("push release err: %v", err)
+			log.Println(err)
+			c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+			return
 		}
+		// } else {
+		// 	log.Println("ignore non-test projects")
+		// }
 	}
 
 	// tag push event need to remove messge=empty or commitcount=0(except include force keyword? )
@@ -118,7 +118,7 @@ func hookHandler(c echo.Context) (err error) {
 		// 	log.Println("ignore 0 commits event")
 		// 	return c.JSONPretty(http.StatusOK, E(0, "zero commits", "ok"), " ")
 		// }
-		if event2.Message == "" {
+		if event2.Message == "" && event2.TotalCommitsCount == 0 {
 			log.Println("ignore empty message for tag event")
 			return c.JSONPretty(http.StatusOK, E(0, "empty message for tag event", "ok"), " ")
 		}
@@ -130,18 +130,18 @@ func hookHandler(c echo.Context) (err error) {
 		fmt.Printf("commits: %v\n", len(event2.Commits))
 		// spew.Dump("details:", event2.Commits)
 
-		if event1.Project.Namespace == "wenzhenglin" || event1.Project.Namespace == "donglintong" {
-			err = handleRelease(event2)
-			if err != nil {
-				err = fmt.Errorf("tag release err: %v", err)
-				log.Println(err)
-				c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-				return
-			}
-
-		} else {
-			log.Println("ignore non-test projects")
+		// if event2.Project.Namespace == "wenzhenglin" || event2.Project.Namespace == "donglintong" {
+		err = handleRelease(event2)
+		if err != nil {
+			err = fmt.Errorf("tag release err: %v", err)
+			log.Println(err)
+			c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+			return
 		}
+
+		// } else {
+		// 	log.Println("ignore non-test projects")
+		// }
 	}
 
 	// var eventType string

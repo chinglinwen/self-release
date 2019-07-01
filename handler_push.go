@@ -72,10 +72,12 @@ type buildOption struct {
 	rollback bool
 	// no easy way to delete? why need delete?
 	nonotify bool
+	p        *projectpkg.Project // to avoid re-open or git pull
 }
 
 type builder struct {
 	*sse.Broker
+	// p *projectpkg.Project
 	// Event EventInfo // for later modified to restart event
 }
 
@@ -159,8 +161,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			deploy: true,
 		}
 	} else {
-		if bo.gen == false && bo.build == false && bo.deploy == false {
-			err = fmt.Errorf("nothing to do, gen,build and deploy are false for %q, err: %v", e.Project, err)
+		if bo.gen == false && bo.build == false && bo.deploy == false && bo.rollback == false {
+			err = fmt.Errorf("nothing to do, gen,build,deploy and rollback are false for %q, err: %v", e.Project, err)
 			b.log(err)
 			return
 		}
@@ -172,43 +174,31 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	// what to do with master branch as dev?  init by commit text?
 
-	// if not inited, just using default setting?
-	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-	if err != nil {
-		err = fmt.Errorf("project: %v, new err: %v", project, err)
-		b.log(err)
-		return
-	}
-	b.log("clone or open project ok")
+	var p *projectpkg.Project
 
-	// if rollback is set, get previous tag as branch
-	if bo.rollback {
-		argBranch := branch
-		branch, err = p.GetRepo().GetPreviousTag()
+	if bo.p == nil {
+		// if not inited, just using default setting?
+		p, err = getproject(project, branch, bo.rollback)
+		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 		if err != nil {
-			err = fmt.Errorf("GetPreviousTag err: %v", err)
+			err = fmt.Errorf("project: %v, new err: %v", project, err)
 			b.log(err)
 			return
 		}
+		b.log("clone or open project ok")
 
-		if argBranch != branch {
-			// re-open the branch
-			p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-			if err != nil {
-				err = fmt.Errorf("project: %v, branch: %v, new(rollback ) err: %v", project, branch, err)
-				b.log(err)
-				return
-			}
-		}
+	} else {
+		p = bo.p
+	}
 
-		e.Branch = branch
-
+	// if rollback is set, get previous tag as branch
+	if bo.rollback {
+		// e.Branch = b.p.Branch
 		// build already, no need to build again?
 		// TODO: what if no build before? let's just build it?
 		// detect k8s-online.yaml see if exist and what's the tag?
 		bo.gen = true
 		bo.deploy = true
-
 		b.log("this is a rollback operation")
 	}
 
@@ -357,6 +347,32 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 
 	b.logf("<hr>end at %v .", time.Now().Format(TimeLayout))
+	return
+}
+
+func getproject(project, branch string, rollback bool) (p *projectpkg.Project, err error) {
+	p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+	if err != nil {
+		return
+	}
+	if rollback {
+		argBranch := branch
+		branch, err = p.GetRepo().GetPreviousTag() // rollback before specific tag, just redeploy then?
+		if err != nil {
+			err = fmt.Errorf("GetPreviousTag err: %v", err)
+			return
+		}
+
+		if argBranch != branch {
+			// re-open the branch
+			p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+			if err != nil {
+				err = fmt.Errorf("project: %v, branch: %v, new(rollback ) err: %v", project, branch, err)
+				return
+			}
+		}
+		p.Branch = branch
+	}
 	return
 }
 

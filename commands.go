@@ -6,6 +6,7 @@ import (
 	"strings"
 	"text/tabwriter"
 	"wen/self-release/pkg/sse"
+	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
 )
@@ -230,6 +231,17 @@ func rollback(dev, args string) (out string, err error) {
 		log.Println("will try rollback project: ", project)
 	}
 
+	var p *projectpkg.Project
+	if branch == "" {
+		p, err = getproject(project, branch, true)
+		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+		if err != nil {
+			err = fmt.Errorf("project: %v, new err: %v", project, err)
+			return
+		}
+		branch = p.Branch
+	}
+
 	// booptions := []string{"gen", "build", "deploy"}
 	bo := &buildOption{
 		// gen:      contains(booptions, "gen"),
@@ -237,6 +249,7 @@ func rollback(dev, args string) (out string, err error) {
 		// deploy:   contains(booptions, "deploy"),
 		rollback: true,
 		nonotify: true,
+		p:        p,
 	}
 	e := &sse.EventInfo{
 		Project: project,

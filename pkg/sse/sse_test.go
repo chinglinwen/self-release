@@ -34,6 +34,30 @@ func TestGetBrokers(t *testing.T) {
 	}
 }
 
+func TestGetBrokerFromPerson(t *testing.T) {
+	dev := "wenzhenglin"
+	b, err := GetBrokerFromPerson(dev)
+	if err != nil {
+		t.Error("cant find previous released project")
+		return
+	}
+
+	fmt.Printf("project: %v, branch: %v\n", b.Project, b.Branch)
+}
+
+func TestGetGetBrokersFromDisk(t *testing.T) {
+	bs, err := GetBrokersFromDisk()
+	if err != nil {
+		t.Error("GetBrokersFromDisk err", err)
+		return
+	}
+	for _, v := range bs {
+		fmt.Printf("%v, project: %v, branch: %v\n", v.Event.UserName, v.Project, v.Branch)
+
+	}
+
+}
+
 func TestWriteFile(t *testing.T) {
 	b := New("prjoecta", "brancha")
 	fmt.Fprint(b.PWriter, "created ")

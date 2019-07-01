@@ -197,13 +197,9 @@ func rollbackAPIHandler(c echo.Context) (err error) {
 	// r.ParseForm()
 	// booptions := r.Form["booptions"]
 
-	bo := &buildOption{
-		rollback: true,
-	}
-
 	project := c.FormValue("project")
-	tag := c.FormValue("tag") // optional
-	env := c.FormValue("env") // optional
+	branch := c.FormValue("tag") // optional, tag only?
+	env := c.FormValue("env")    // optional
 	// file := c.FormValue("file")
 	// if branch == "" {
 	// 	branch =
@@ -211,25 +207,57 @@ func rollbackAPIHandler(c echo.Context) (err error) {
 
 	username, useremail, msg := getUserInfo(c)
 
+	if project == "" {
+		brocker, e := sse.GetBrokerFromPerson(username)
+		if e != nil {
+			err = fmt.Errorf("cant find previous released project name to rollback, " +
+				"try provide project name for rollback")
+			return
+		}
+		// spew.Dump("retry brocker:", brocker)
+
+		b := &builder{
+			Broker: sse.NewExist(brocker),
+		}
+		project = b.Event.Project
+		log.Println("will try rollback project: ", project)
+	}
+
+	var p *projectpkg.Project
+	if branch == "" {
+		p, err = getproject(project, branch, true)
+		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+		if err != nil {
+			err = fmt.Errorf("project: %v, new err: %v", project, err)
+			return
+		}
+		branch = p.Branch
+	}
+
 	e := &sse.EventInfo{
 		Project:   project,
-		Branch:    tag,
+		Branch:    branch,
 		Env:       env, // default derive from branch
 		UserName:  username,
 		UserEmail: useremail,
 		Message:   msg,
 	}
 
+	bo := &buildOption{
+		rollback: true,
+		p:        p,
+	}
+
 	log.Println("event", e)
 	log.Println("option", bo)
 	return
 
-	b := NewBuilder(project, tag)
+	b := NewBuilder(project, branch)
 	b.log("starting logs")
 
 	err = b.startBuild(e, bo)
 	if err != nil {
-		err = fmt.Errorf("startBuild for project: %v, branch: %v, err: %v", project, tag, err)
+		err = fmt.Errorf("startBuild for project: %v, branch: %v, err: %v", project, branch, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 		return

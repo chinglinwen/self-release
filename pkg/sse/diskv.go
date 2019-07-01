@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/peterbourgon/diskv"
@@ -67,6 +68,9 @@ func readfilenames() (keys []string, err error) {
 	for _, file := range files {
 		keys = append(keys, file.Name())
 	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] > keys[j] // recent first?
+	})
 	return
 }
 
