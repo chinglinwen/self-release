@@ -342,8 +342,9 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			return
 		}
 		// b.logf("apply for %v ok\n<h2>k8s apply output:</h2>%v\n", project, out)
+		b.log("<h2>k8s apply</h2>")
 		b.logf("apply for %v ok\n", project)
-		b.logf("<h2>k8s apply output:</h2>%v\n", out)
+		b.logf("k8s apply output:%v\n", out)
 	}
 
 	b.logf("<hr>end at %v .", time.Now().Format(TimeLayout))

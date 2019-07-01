@@ -38,6 +38,7 @@ var (
 		{name: "rollback", fn: rollback, help: "rollback project. (eg: /rollback group/project [branch] )"},
 		{name: "retry", fn: retry, help: "retry last time deployed project."},
 		{name: "myproject", fn: myproject, help: "get last time project."},
+		{name: "init", fn: projectinit, help: "one time init project(branch: develop) to generate needed files. (eg: /init group/project [force] )"},
 	}
 )
 
@@ -130,6 +131,35 @@ func parseProject(args string) (project, branch string, err error) {
 	if len(s) >= 2 {
 		project = s[0]
 		branch = s[1]
+	}
+	return
+}
+
+func projectinit(dev, args string) (out string, err error) {
+
+	project, _, err := parseProject(args)
+	if err != nil {
+		return
+	}
+
+	var force bool
+	s := strings.Fields(args)
+	if len(s) == 2 {
+		if s[1] == "force" {
+			force = true
+		}
+	}
+	branch := "develop" // TODO: should this be arg?
+
+	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+	if err != nil {
+		err = fmt.Errorf("new project: %v, err: %v", project, err)
+		return
+	}
+	if force {
+		err = p.Init(projectpkg.SetInitForce())
+	} else {
+		err = p.Init()
 	}
 	return
 }
