@@ -130,8 +130,9 @@ func deploy(dev, args string) (out string, err error) {
 		log.Println(err)
 		return
 	}
-	if err != nil {
-		out = "deployed"
+	if err == nil {
+		out = "deployed ok"
+		log.Printf("deploy from %v ok\n", dev)
 	}
 	return
 }
@@ -162,9 +163,11 @@ func retry(dev, args string) (out string, err error) {
 		deploy:   contains(booptions, "deploy"),
 		nonotify: true,
 	}
+	log.Println("start retry build for ", dev)
 	err = b.startBuild(b.Event, bo)
-	if err != nil {
-		out = "retried"
+	if err == nil {
+		out = "retried ok"
+		log.Printf("retry from %v ok\n", dev)
 	}
 	return
 }
