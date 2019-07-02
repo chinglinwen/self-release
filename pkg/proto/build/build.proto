@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+service Buildsvc {
+  rpc Build(Request) returns (stream Response) {}
+}
+
+message Request {
+  string  project =1;
+  string  branch =2;
+  string  env =3;
+}
+
+message Response {
+  string output = 1;
+}
