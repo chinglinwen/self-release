@@ -9,3 +9,4 @@ projectlogs
 *.gz
 test.sh
 cmd/buildsvc/buildsvc
+cmd/buildsvc/client/client

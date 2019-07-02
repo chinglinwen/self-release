@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"reflect"
 	"strings"
-	"sync"
 
 	// "google.golang.org/grpc/credentials"
 	// "google.golang.org/grpc/testdata"
@@ -28,15 +26,40 @@ var (
 )
 
 type buildServer struct {
-	r  *pb.Request
-	mu sync.Mutex // protects routeNotes
+	r     *pb.Request
+	cache map[string]bool
+	// mu map[string]sync.Mutex // protects routeNotes
 }
 
+// // need to cache request to verify?
+// func compareRequest(r1, r2 *pb.Request) bool {
+// 	if r1.Project != r2.Project {
+// 		return false
+// 	}
+// 	if r1.Branch != r2.Branch {
+// 		return false
+// 	}
+// 	if r1.Env != r2.Env {
+// 		return false
+// 	}
+// 	return true
+// }
+
 func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err error) {
-	if s.r != nil && reflect.DeepEqual(s.r, r) {
-		err = fmt.Errorf("already in build")
+	log.Printf("start build %v:%v:%v", r.Project, r.Branch, r.Env)
+
+	key := fmt.Sprintf("%v:%v:%v", r.Project, r.Branch, r.Env)
+	if _, ok := s.cache[key]; ok {
+		err = fmt.Errorf("request is already in build for %v", key)
+		log.Println(err)
 		return
 	}
+	s.cache[key] = true
+
+	// log.Println("in build")
+	// time.Sleep(10 * time.Second)
+	// return
+
 	project, branch, env := r.Project, r.Branch, r.Env
 
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
@@ -66,7 +89,7 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 }
 
 func newServer() *buildServer {
-	s := &buildServer{}
+	s := &buildServer{cache: make(map[string]bool)}
 	return s
 }
 
