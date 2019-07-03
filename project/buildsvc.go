@@ -2,7 +2,6 @@ package project
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -16,10 +15,10 @@ import (
 )
 
 var (
-	// tls                = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
-	// caFile             = flag.String("ca_file", "", "The file containing the CA root cert file")
-	// serverHostOverride = flag.String("server_host_override", "x.test.youtube.com", "The server name use to verify the hostname returned by TLS handshake")
-	buildsvcAddr = flag.String("buildsvc", "buildsvc", "buildsvc address host:port ( or k8s service name )")
+// tls                = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
+// caFile             = flag.String("ca_file", "", "The file containing the CA root cert file")
+// serverHostOverride = flag.String("server_host_override", "x.test.youtube.com", "The server name use to verify the hostname returned by TLS handshake")
+// buildsvcAddr = flag.String("buildsvc", "buildsvc", "buildsvc address host:port ( or k8s service name )")
 )
 
 func build(client pb.BuildsvcClient, r *pb.Request) {
@@ -49,6 +48,7 @@ type Buildsvc struct {
 var defaultBuildsvc *Buildsvc
 
 func NewBuildSVC(addr string) *Buildsvc {
+	log.Printf("connect buildsvc with: %v\n", addr)
 
 	// https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/retry/examples_test.go
 	retryopts := []grpc_retry.CallOption{

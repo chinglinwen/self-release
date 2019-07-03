@@ -15,10 +15,16 @@ import (
 	"github.com/chinglinwen/log"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+
+	projectpkg "wen/self-release/project"
 )
 
 var (
 	port = flag.String("p", "8089", "port")
+
+	defaultConfigRepo = flag.String("config-repo", "wenzhenglin/config-deploy", "default config-repo")
+	buildsvcAddr      = flag.String("buildsvc", "buildsvc", "buildsvc address host:port ( or k8s service name )")
+	defaultHarborKey  = flag.String("harborkey", "eyJhdXRocyI6eyJoYXJib3IuaGFvZGFpLm5ldCI6eyJ1c2VybmFtZSI6ImRldnVzZXIiLCJwYXNzd29yZCI6IkxuMjhvaHlEbiIsImVtYWlsIjoieXVud2VpQGhhb2RhaS5uZXQiLCJhdXRoIjoiWkdWMmRYTmxjanBNYmpJNGIyaDVSRzQ9In19fQ==", "default HarborKey")
 
 // 	conf             *config.Config
 // 	env              = flag.String("env", "qa", "env includes (qa,pre,pro)")
@@ -89,6 +95,7 @@ func main() {
 	log.Debug.Println("debug is on")
 
 	flag.Parse()
+	projectpkg.Init(*defaultHarborKey, *buildsvcAddr, *defaultConfigRepo)
 
 	e := echo.New()
 	//e.Use(middleware.Logger())

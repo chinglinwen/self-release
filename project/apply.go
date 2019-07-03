@@ -1,7 +1,6 @@
 package project
 
 import (
-	"flag"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -28,7 +27,7 @@ func ApplyByKubectl(filebody, fileName string) (out string, err error) {
 	return
 }
 
-var defaultHarborKey = flag.String("harborkey", "eyJhdXRocyI6eyJoYXJib3IuaGFvZGFpLm5ldCI6eyJ1c2VybmFtZSI6ImRldnVzZXIiLCJwYXNzd29yZCI6IkxuMjhvaHlEbiIsImVtYWlsIjoieXVud2VpQGhhb2RhaS5uZXQiLCJhdXRoIjoiWkdWMmRYTmxjanBNYmpJNGIyaDVSRzQ9In19fQ==", "default HarborKey")
+// var defaultHarborKey = flag.String("harborkey", "eyJhdXRocyI6eyJoYXJib3IuaGFvZGFpLm5ldCI6eyJ1c2VybmFtZSI6ImRldnVzZXIiLCJwYXNzd29yZCI6IkxuMjhvaHlEbiIsImVtYWlsIjoieXVud2VpQGhhb2RhaS5uZXQiLCJhdXRoIjoiWkdWMmRYTmxjanBNYmpJNGIyaDVSRzQ9In19fQ==", "default HarborKey")
 
 // make harbor key flag?
 var nstmpl = `
@@ -64,7 +63,7 @@ func CheckOrCreateNamespace(ns string) (out string, err error) {
 }
 
 func getnsyaml(ns string) string {
-	a := fmt.Sprintf(nstmpl, ns, *defaultHarborKey, ns)
+	a := fmt.Sprintf(nstmpl, ns, defaultBase.harborkey, ns)
 	// fmt.Println("yaml:", a)
 	return a
 }

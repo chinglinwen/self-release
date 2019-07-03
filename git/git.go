@@ -43,7 +43,7 @@ func checkflag() {
 	if *defaultPass == "" {
 		log.Fatal("no defaultPass provided")
 	}
-	log.Printf("using default user: %v", *defaultUser)
+	log.Printf("using default notify user: %v", *defaultUser)
 }
 
 func init() {

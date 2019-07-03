@@ -1,13 +1,37 @@
 package project
 
 import (
-	"flag"
+	"fmt"
 	"wen/self-release/git"
+
+	"github.com/chinglinwen/log"
 )
 
-var (
-	defaultConfigRepo = flag.String("config-repo", "wenzhenglin/config-deploy", "default config-repo")
-)
+// var (
+// 	defaultConfigRepo = flag.String("config-repo", "wenzhenglin/config-deploy", "default config-repo")
+// )
+
+type base struct {
+	harborkey    string
+	buildsvcAddr string
+	configRepo   string
+}
+
+var defaultBase *base
+
+// pkg need init default base
+func Init(harborkey, addr, configrepo string) {
+	defaultBase = &base{
+		harborkey:    harborkey,
+		buildsvcAddr: addr,
+		configRepo:   configrepo,
+	}
+	defaultBuildsvc = NewBuildSVC(addr)
+	log.Println("inited project base with:", defaultBase)
+}
+func (b *base) String() string {
+	return fmt.Sprintf("\nharborkey: %v\nbuildsvcAddr:%v\nconfigRepo:%v\n", b.harborkey, b.buildsvcAddr, b.configRepo)
+}
 
 // var configrepo *git.Repo
 
@@ -30,7 +54,7 @@ var (
 
 // let's pull for everytime it uses, so to keep update
 func GetConfigRepo() (configrepo *git.Repo, err error) {
-	return git.NewWithPull(*defaultConfigRepo, git.SetBranch("templateconfig")) //, git.SetNoPull())
+	return git.NewWithPull(defaultBase.configRepo, git.SetBranch("templateconfig")) //, git.SetNoPull())
 }
 
 // func init() {
@@ -43,7 +67,7 @@ func GetDefaultConfigVer() string {
 	return "php.v1"
 }
 
-// should init at main
-func InitBuildSVC(addr string) {
-	defaultBuildsvc = NewBuildSVC(addr)
-}
+// // should init at main
+// func InitBuildSVC(addr string) {
+// 	defaultBuildsvc = NewBuildSVC(addr)
+// }
