@@ -8,9 +8,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
-	"wen/self-release/git"
 	"wen/self-release/pkg/sse"
 
 	rice "github.com/GeertJohan/go.rice"
@@ -85,13 +83,6 @@ var (
 
 // define a global variable
 // add new check, update it, and store the config as file(update config)
-
-func init() {
-	fmt.Println("start test init setting")
-	git.Init("wenzhenglin", "cKGa3eVAF7tZMvCukdsP")
-
-	// projectpkg.Init()
-}
 
 func main() {
 	log.Println("starting...")

@@ -1,9 +1,11 @@
 #!/bin/sh
 # build image
+set -e
+
 suffix="$1"
 suffix=${suffix:=v1}
 
-#go build
+go build
 
 image="buildsvc:$suffix"
 echo -e "building image: $image\n"

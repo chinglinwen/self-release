@@ -8,8 +8,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"wen/self-release/git"
 
 	"github.com/chinglinwen/log"
 	"github.com/labstack/echo"
@@ -19,11 +17,6 @@ import (
 var (
 	port = flag.String("p", "8005", "port")
 )
-
-func init() {
-	fmt.Println("start test init setting")
-	git.Init("wenzhenglin", "cKGa3eVAF7tZMvCukdsP")
-}
 
 func main() {
 	log.Println("starting...")

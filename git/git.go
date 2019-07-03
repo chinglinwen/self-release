@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -24,15 +25,32 @@ var (
 
 	defaultGitlabURL = flag.String("gitlab-url", "http://g.haodai.net", "default gitlab url")
 	defaultUser      = flag.String("gitlab-user", "", "default gitlab user")
-	defaultPass      = flag.String("gitlab-pass", "", "default gitlab pass(personal token is ok")
+	defaultPass      = flag.String("gitlab-pass", "", "default gitlab pass(personal token is ok)")
 
-	defaultRepoDir = flag.String("repoDir", "/home/wen/t/repos", "default path to store cloned projects")
+	defaultRepoDir = flag.String("repoDir", "repos", "default path to store cloned projects")
 )
 
 func Init(user, pass string) {
 	log.Println("inited user setting", user)
 	*defaultUser = user
 	*defaultPass = pass
+}
+
+func checkflag() {
+	if *defaultUser == "" {
+		log.Fatal("no defaultUser provided")
+	}
+	if *defaultPass == "" {
+		log.Fatal("no defaultPass provided")
+	}
+	log.Printf("using default user: %v", *defaultUser)
+}
+
+func init() {
+	go func() {
+		time.Sleep(5 * time.Second) // should now executed flag.parse
+		checkflag()
+	}()
 }
 
 // var (
