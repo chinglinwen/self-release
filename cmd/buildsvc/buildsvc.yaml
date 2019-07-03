@@ -29,6 +29,7 @@ spec:
     protocol: TCP
   selector:
     app: buildsvc
+  sessionAffinity: ClientIP
 
 # Ingress
 ---

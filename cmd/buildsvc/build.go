@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	buildpkg "wen/self-release/cmd/buildsvc/build"
 	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
@@ -34,7 +35,7 @@ func buildAPIHandler(c echo.Context) (err error) {
 	}
 
 	log.Printf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
-	out, e := p.Build(project, branch, env)
+	out, e := buildpkg.Build(p.WorkDir, project, branch, env)
 	// e := p.Build(project, branch, env, out)
 	if e != nil {
 		err = fmt.Errorf("build err: %v", e)

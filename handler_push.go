@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"strings"
@@ -315,11 +314,14 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			return
 		}
 		b.log("<h2>docker build outputs:</h2>")
-		scanner := bufio.NewScanner(strings.NewReader(out))
-		// scanner.Split(bufio.ScanLines)
-		for scanner.Scan() {
-			b.log(scanner.Text())
+		for text := range out {
+			b.log(text)
 		}
+		// scanner := bufio.NewScanner(strings.NewReader(out))
+		// // scanner.Split(bufio.ScanLines)
+		// for scanner.Scan() {
+		// 	b.log(scanner.Text())
+		// }
 
 		// for v := range out {
 		// 	b.log("output:", v)

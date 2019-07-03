@@ -10,6 +10,7 @@ import (
 	// "google.golang.org/grpc/credentials"
 	// "google.golang.org/grpc/testdata"
 
+	buildpkg "wen/self-release/cmd/buildsvc/build"
 	pb "wen/self-release/pkg/proto/build"
 	projectpkg "wen/self-release/project"
 
@@ -69,7 +70,7 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 
 	log.Printf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
 	// out := make(chan string)
-	out, err := p.BuildStreamOutput(project, branch, env)
+	out, err := buildpkg.BuildStreamOutput(p.WorkDir, project, branch, env)
 	// e := p.Build(project, branch, env, out)
 	if err != nil {
 		err = fmt.Errorf("build err: %v", err)

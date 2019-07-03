@@ -52,7 +52,7 @@ type Project struct {
 	// size of replicas?
 
 	repo    *git.Repo
-	workDir string
+	WorkDir string
 	// envMap  map[string]string
 	// autoenv map[string]string // env from hook
 }
@@ -188,7 +188,7 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 		return
 	}
 	p.repo = repo
-	p.workDir = p.repo.GetWorkDir()
+	p.WorkDir = p.repo.GetWorkDir()
 
 	pp, e := readRepoConfig(repo)
 	if e != nil {
@@ -249,7 +249,7 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	// }
 
 	pp.repo = repo
-	pp.workDir = p.repo.GetWorkDir()
+	pp.WorkDir = p.repo.GetWorkDir()
 	log.Printf("create project: %q ok\n", project)
 
 	return pp, nil

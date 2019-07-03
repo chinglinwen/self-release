@@ -42,3 +42,8 @@ func GetConfigRepo() (configrepo *git.Repo, err error) {
 func GetDefaultConfigVer() string {
 	return "php.v1"
 }
+
+// should init at main
+func InitBuildSVC(addr string) {
+	defaultBuildsvc = NewBuildSVC(addr)
+}
