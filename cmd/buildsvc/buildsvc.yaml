@@ -1,4 +1,22 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: buildsvc
+  namespace: yunwei
+data:
+  config.json: |
+    {
+            "auths": {
+                    "harbor.haodai.net": {
+                            "auth": "d2VuemhlbmdsaW46MzYwODYwYUE="
+                    }
+            },
+            "HttpHeaders": {
+                    "User-Agent": "Docker-Client/18.06.2-ce (linux)"
+            }
+    }
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: buildsvc
@@ -63,7 +81,13 @@ spec:
           volumeMounts:
             - name: dockersocket
               mountPath: /var/run/docker.sock
+            - name: config
+              mountPath: /root/.docker/config.json
+              subPath: config.json
       volumes:
+        - name: config
+          configMap:
+            name: buildsvc
         - name: dockersocket
           hostPath:
             path: /var/run/docker.sock
