@@ -21,25 +21,27 @@ var (
 // buildsvcAddr = flag.String("buildsvc", "buildsvc", "buildsvc address host:port ( or k8s service name )")
 )
 
-func build(client pb.BuildsvcClient, r *pb.Request) {
-	log.Printf("reqesting... %v", r)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-	stream, err := client.Build(ctx, r)
-	if err != nil {
-		log.Fatalf("%v.build err %v", client, err)
-	}
-	for {
-		out, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("%v.build output err, %v", client, err)
-		}
-		log.Printf("%v", out.GetOutput())
-	}
-}
+// func build(client pb.BuildsvcClient, r *pb.Request) (err error) {
+// 	log.Printf("reqesting... %v", r)
+// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+// 	defer cancel()
+// 	stream, err := client.Build(ctx, r)
+// 	if err != nil {
+// 		err = fmt.Errorf("build for %v err:", r.Project, err)
+// 		return
+// 	}
+// 	for {
+// 		out, err := stream.Recv()
+// 		if err == io.EOF {
+// 			break
+// 		}
+// 		if err != nil {
+// 			log.Fatalf("%v.build output err, %v", client, err)
+// 		}
+// 		log.Printf("%v", out.GetOutput())
+// 	}
+// 	return
+// }
 
 type Buildsvc struct {
 	client pb.BuildsvcClient
@@ -74,9 +76,9 @@ func NewBuildSVC(addr string) *Buildsvc {
 	// }
 	conn, err := grpc.Dial(addr, opts...)
 	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
+		log.Fatalf("fail to dial buildsvc, err: %v", err)
 	}
-	defer conn.Close()
+	// defer conn.Close() // we don't close, unless program stopped
 	client := pb.NewBuildsvcClient(conn)
 
 	return &Buildsvc{client: client}
@@ -97,15 +99,17 @@ func (b *Buildsvc) Build(project, branch, env string) (out chan string, err erro
 	defer cancel()
 	stream, err := b.client.Build(ctx, r)
 	if err != nil {
-		log.Fatalf("%v.build err %v", b.client, err)
+		err = fmt.Errorf("project: %v, build err: %v", project, err)
+		return
 	}
 	for {
-		output, err := stream.Recv()
-		if err == io.EOF {
+		output, e := stream.Recv()
+		if e == io.EOF {
 			break
 		}
-		if err != nil {
-			log.Fatalf("%v.build output err, %v", b.client, err)
+		if e != nil {
+			err = fmt.Errorf("project: %v, receive output err, %v", project, e)
+			return
 		}
 		// log.Printf("%v", out.GetOutput())
 		out <- output.GetOutput()

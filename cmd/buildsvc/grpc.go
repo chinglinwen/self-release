@@ -51,11 +51,14 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 
 	key := fmt.Sprintf("%v:%v:%v", r.Project, r.Branch, r.Env)
 	if _, ok := s.cache[key]; ok {
-		err = fmt.Errorf("request is already in build for %v", key)
+		err = fmt.Errorf("request is already in build for %v, you may try later", key)
 		log.Println(err)
 		return
 	}
 	s.cache[key] = true
+	defer func() {
+		delete(s.cache, key)
+	}()
 
 	// log.Println("in build")
 	// time.Sleep(10 * time.Second)
