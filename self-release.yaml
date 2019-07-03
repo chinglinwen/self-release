@@ -62,9 +62,17 @@ spec:
           - -gitlab-pass
           - cKGa3eVAF7tZMvCukdsP
           - -wechat-receiver-url 
-          - http://wechat-notify.devops.haodai.net
+          - http://wechat-notify.haodai.net
           ports:
           - containerPort: 8089
+          volumeMounts:
+          - mountPath: /app/projectlogs
+            name: data
+      volumes:
+        - name: data
+          hostPath:
+            path: /data/k8s/self-release/projectlogs
+            type: DirectoryOrCreate
       nodeSelector:
         #kubernetes.io/hostname: 172.31.90.208
         func: monitor

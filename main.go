@@ -23,7 +23,7 @@ var (
 	port = flag.String("p", "8089", "port")
 
 	defaultConfigRepo = flag.String("config-repo", "wenzhenglin/config-deploy", "default config-repo")
-	buildsvcAddr      = flag.String("buildsvc", "buildsvc", "buildsvc address host:port ( or k8s service name )")
+	buildsvcAddr      = flag.String("buildsvc", "buildsvc:10000", "buildsvc address host:port ( or k8s service name )")
 	defaultHarborKey  = flag.String("harborkey", "eyJhdXRocyI6eyJoYXJib3IuaGFvZGFpLm5ldCI6eyJ1c2VybmFtZSI6ImRldnVzZXIiLCJwYXNzd29yZCI6IkxuMjhvaHlEbiIsImVtYWlsIjoieXVud2VpQGhhb2RhaS5uZXQiLCJhdXRoIjoiWkdWMmRYTmxjanBNYmpJNGIyaDVSRzQ9In19fQ==", "default HarborKey")
 
 // 	conf             *config.Config
