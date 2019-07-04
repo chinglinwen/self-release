@@ -11,6 +11,8 @@ import (
 	"github.com/chinglinwen/log"
 )
 
+const InitBranch = "develop"
+
 // type action struct {
 // 	name string
 // 	fn   func(string) (string, error)
@@ -19,6 +21,7 @@ import (
 type action struct {
 	name string
 	help string
+	eg   string
 	fn   func(string, string) (string, error)
 }
 
@@ -34,12 +37,14 @@ var (
 	funcs = []action{
 		// {name: "help", fn: help},
 		{name: "hi", fn: hi, help: "say hi."},
-		{name: "deploy", fn: deploy, help: "deploy project. (eg: /deploy group/project [branch] )"},
-		{name: "deldeploy", fn: deldeploy, help: "deldeploy project. (eg: /deldeploy group/project [branch] )"},
-		{name: "rollback", fn: rollback, help: "rollback project. (eg: /rollback group/project [branch] )"},
+		{name: "deploy", fn: deploy, help: "deploy project.", eg: "/deploy group/project [branch]"},
+		{name: "deldeploy", fn: deldeploy, help: "delete deploy project.", eg: "/deldeploy group/project [branch]"},
+		{name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
 		{name: "retry", fn: retry, help: "retry last time deployed project."},
-		{name: "myproject", fn: myproject, help: "get last time project."},
-		{name: "init", fn: projectinit, help: "one time init project(branch: develop) to generate needed files. (eg: /init group/project [force] )"},
+		{name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
+		{name: "gen", fn: gen, help: "generate files(yaml) only last time deployed project.", eg: "/gen [group/project] [branch]"},
+		{name: "myproject", fn: myproject, help: "show last time project."},
+		{name: "init", fn: projectinit, help: "one time init project(branch: develop) to generate needed files.", eg: "/init group/project [force]"},
 	}
 )
 
@@ -69,9 +74,13 @@ func doAction(dev, cmd string) (out string, err error) {
 }
 
 func help(dev, args string) (out string, err error) {
-	out = "list of actions:\n"
+	out = "list of actions:\n\n"
 	for _, v := range funcs {
-		out = fmt.Sprintf("%v/%v   -> %v\n", out, v.name, v.help)
+		help := v.help
+		if v.eg != "" {
+			help += "\n          eg: " + v.eg
+		}
+		out = fmt.Sprintf("%v/%v  -> %v\n\n", out, v.name, help)
 	}
 	// out = fmt.Sprintf("list of actions:\n%v", helplist())
 	return
@@ -150,7 +159,7 @@ func projectinit(dev, args string) (out string, err error) {
 			force = true
 		}
 	}
-	branch := "develop" // TODO: should this be arg?
+	branch := InitBranch // TODO: should this be arg?
 
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 	if err != nil {
@@ -161,6 +170,10 @@ func projectinit(dev, args string) (out string, err error) {
 		err = p.Init(projectpkg.SetInitForce())
 	} else {
 		err = p.Init()
+	}
+	if err == nil {
+		out = "init ok"
+		log.Printf("init from %v ok\n", dev)
 	}
 	return
 }
@@ -185,7 +198,7 @@ func deploy(dev, args string) (out string, err error) {
 		// Env:       env, // default derive from branch
 		UserName: dev,
 		// UserEmail: useremail,
-		Message: fmt.Sprintf("from %v, args: ", args),
+		Message: fmt.Sprintf("from %v, args: %v ", dev, args),
 	}
 
 	b := NewBuilder(project, branch)
@@ -193,13 +206,51 @@ func deploy(dev, args string) (out string, err error) {
 
 	err = b.startBuild(e, bo)
 	if err != nil {
-		err = fmt.Errorf("startBuild for project: %v, branch: %v, err: %v", project, branch, err)
+		err = fmt.Errorf("startdeploy for project: %v, branch: %v, err: %v", project, branch, err)
 		log.Println(err)
 		return
 	}
 	if err == nil {
 		out = "deployed ok"
 		log.Printf("deploy from %v ok\n", dev)
+	}
+	return
+}
+
+// deploy
+func gen(dev, args string) (out string, err error) {
+	log.Printf("got gen from: %v, args: %v\n", dev, args)
+	project, branch, err := parseProject(args)
+	if err != nil {
+		return
+	}
+	bo := &buildOption{
+		gen:      true,
+		build:    false,
+		deploy:   false,
+		nonotify: true,
+	}
+	e := &sse.EventInfo{
+		Project: project,
+		Branch:  branch,
+		// Env:       env, // default derive from branch
+		UserName: dev,
+		// UserEmail: useremail,
+		Message: fmt.Sprintf("from %v, args: %v ", dev, args),
+	}
+
+	b := NewBuilder(project, branch)
+	b.log("starting logs")
+
+	err = b.startBuild(e, bo)
+	if err != nil {
+		err = fmt.Errorf("startgen for project: %v, branch: %v, err: %v", project, branch, err)
+		log.Println(err)
+		return
+	}
+	if err == nil {
+		out = "gen ok"
+		log.Printf("gen from %v ok\n", dev)
 	}
 	return
 }
@@ -223,6 +274,21 @@ func deldeploy(dev, args string) (out string, err error) {
 	return
 }
 
+func argstoevent(e *sse.EventInfo, args string) {
+	project, branch, err := parseProject(args)
+	if err != nil {
+		return
+	}
+	if project != "" {
+		e.Project = project
+	}
+	if branch != "" {
+		e.Branch = branch
+		// env will auto derive later if empty
+	}
+	log.Printf("convert args info to event for: %v, branch: %v\n", project, branch)
+}
+
 // retry
 func retry(dev, args string) (out string, err error) {
 	log.Println("got retry from ", dev)
@@ -242,18 +308,55 @@ func retry(dev, args string) (out string, err error) {
 		err = fmt.Errorf("pwriter nil, can't write msg")
 		return
 	}
-	booptions := []string{"gen", "build", "deploy"}
 	bo := &buildOption{
-		gen:      contains(booptions, "gen"),
-		build:    contains(booptions, "build"),
-		deploy:   contains(booptions, "deploy"),
+		gen:      true,
+		build:    true,
+		deploy:   true,
 		nonotify: true,
 	}
+	argstoevent(b.Event, args)
+
 	log.Println("start retry build for ", dev)
 	err = b.startBuild(b.Event, bo)
 	if err == nil {
 		out = "retried ok"
 		log.Printf("retry from %v ok\n", dev)
+	}
+	return
+}
+
+// retry
+func reapply(dev, args string) (out string, err error) {
+	log.Println("got reapply from ", dev)
+
+	brocker, err := sse.GetBrokerFromPerson(dev)
+	if err != nil {
+		fmt.Println("cant find previous released project")
+		return
+	}
+
+	b := &builder{
+		Broker: sse.NewExist(brocker),
+	}
+	// spew.Dump(b)
+	if b.PWriter == nil {
+		err = fmt.Errorf("pwriter nil, can't write msg")
+		return
+	}
+
+	bo := &buildOption{
+		gen:      true,
+		build:    false, // no build image again
+		deploy:   true,
+		nonotify: true,
+	}
+	argstoevent(b.Event, args)
+
+	log.Println("start reapply build for ", dev)
+	err = b.startBuild(b.Event, bo)
+	if err == nil {
+		out = "reapply ok"
+		log.Printf("reapply from %v ok\n", dev)
 	}
 	return
 }

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	prettyjson "github.com/hokaccha/go-prettyjson"
@@ -90,6 +91,13 @@ func hookHandler(c echo.Context) (err error) {
 			return c.JSONPretty(http.StatusOK, E(0, "zero commits", "ok"), " ")
 		}
 
+		if len(event1.Commits) >= 1 {
+			if strings.Contains(event1.Commits[0].Message, "init config.yaml") {
+				log.Println("ignore project init commits event")
+				return c.JSONPretty(http.StatusOK, E(0, "project init commits", "ok"), " ")
+			}
+		}
+
 		fmt.Println("got push event")
 		for _, v := range event1.Commits {
 			pp.Print("modified", v.Modified)
@@ -121,6 +129,11 @@ func hookHandler(c echo.Context) (err error) {
 		if event2.Message == "" && event2.TotalCommitsCount == 0 {
 			log.Println("ignore empty message for tag event")
 			return c.JSONPretty(http.StatusOK, E(0, "empty message for tag event", "ok"), " ")
+		}
+
+		if strings.Contains(event2.Message, "init config.yaml") {
+			log.Println("ignore project init commits event")
+			return c.JSONPretty(http.StatusOK, E(0, "project init commits", "ok"), " ")
 		}
 
 		fmt.Println("got tag push event")
