@@ -35,6 +35,7 @@ var (
 		// {name: "help", fn: help},
 		{name: "hi", fn: hi, help: "say hi."},
 		{name: "deploy", fn: deploy, help: "deploy project. (eg: /deploy group/project [branch] )"},
+		{name: "deldeploy", fn: deldeploy, help: "deldeploy project. (eg: /deldeploy group/project [branch] )"},
 		{name: "rollback", fn: rollback, help: "rollback project. (eg: /rollback group/project [branch] )"},
 		{name: "retry", fn: retry, help: "retry last time deployed project."},
 		{name: "myproject", fn: myproject, help: "get last time project."},
@@ -199,6 +200,25 @@ func deploy(dev, args string) (out string, err error) {
 	if err == nil {
 		out = "deployed ok"
 		log.Printf("deploy from %v ok\n", dev)
+	}
+	return
+}
+
+func deldeploy(dev, args string) (out string, err error) {
+	log.Printf("got deldeploy from: %v, args: %v\n", dev, args)
+	project, branch, err := parseProject(args)
+	if err != nil {
+		return
+	}
+	out, err = projectpkg.DeleteByKubectl(project, branch, "")
+	if err != nil {
+		err = fmt.Errorf("deldeploy for project: %v, branch: %v, err: %v", project, branch, err)
+		log.Println(err)
+		return
+	}
+	if err == nil {
+		out = "deldeploy ok"
+		log.Printf("deldeploy from %v ok\n", dev)
 	}
 	return
 }
