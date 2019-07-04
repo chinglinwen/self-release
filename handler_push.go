@@ -329,7 +329,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// for v := range out {
 		// 	b.log("output:", v)
 		// }
-		b.log("build is done.")
+		b.log("build is ok.")
 	}
 	// check if inited or force provide, if not, init first
 

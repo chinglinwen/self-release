@@ -100,6 +100,9 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 	if e.Env == "" {
 		e.Env = projectpkg.GetEnvFromBranch(e.Branch)
 	}
+	if e.Time.IsZero() {
+		e.Time = time.Now()
+	}
 
 	autoenv = make(map[string]string)
 	autoenv["CI_PROJECT_PATH"] = e.Project
