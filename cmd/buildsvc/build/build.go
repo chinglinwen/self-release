@@ -20,7 +20,7 @@ func Build(dir, project, tag, env string) (out string, err error) {
 		log.Printf("build execute build err: %v\noutput: %v\n", err, string(output))
 		return
 	}
-	out = stripansi.Strip(string(output))
+	out = stripansi.Strip(stripansi.Strip(string(output))) // let's strip twice for npm error color code
 	return
 }
 

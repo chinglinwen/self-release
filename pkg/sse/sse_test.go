@@ -52,7 +52,7 @@ func TestGetGetBrokersFromDisk(t *testing.T) {
 		return
 	}
 	for _, v := range bs {
-		fmt.Printf("%v, project: %v, branch: %v\n", v.Event.UserName, v.Project, v.Branch)
+		fmt.Printf("%v, project: %v, branch: %v\n", v.Event.Time, v.Project, v.Branch)
 
 	}
 

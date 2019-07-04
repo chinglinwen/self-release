@@ -80,15 +80,26 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 		return
 	}
 
+	detector := "digest: sha256"
+	var success bool
+
 	// log.Printf("docker build outputs: %v", out)
 	// scanner := bufio.NewScanner(strings.NewReader(out))
 	// scanner.Split(bufio.ScanLines)
 	for text := range out {
+		if strings.Contains(text, detector) {
+			success = true
+		}
 		if err := stream.Send(&pb.Response{Output: text}); err != nil {
 			return err
 		}
 	}
-	log.Println("build done")
+	if !success {
+		err = fmt.Errorf("build image failed, checkout logs")
+		log.Println(err)
+		return
+	}
+	log.Println("build ok")
 	return nil
 }
 

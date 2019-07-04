@@ -317,6 +317,9 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		for text := range out {
 			b.log(text)
 		}
+		// build need to check image to see if it success, or parse log?
+
+		log.Println("done of receiving build outputs")
 		// scanner := bufio.NewScanner(strings.NewReader(out))
 		// // scanner.Split(bufio.ScanLines)
 		// for scanner.Scan() {

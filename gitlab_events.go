@@ -44,7 +44,7 @@ func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 		return
 	}
 	e.Message = event.Commits[0].Message
-	// e.Time = time.Now().Format(TimeLayout)
+	e.Time = time.Now()
 
 	return
 }
@@ -67,7 +67,7 @@ func (event *TagPushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	// }
 	// e.Message = event.Commits[0].Message
 	e.Message = event.Message // release message
-	// e.Time = time.Now().Format(TimeLayout)
+	e.Time = time.Now()
 
 	return
 }
@@ -116,7 +116,7 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 	autoenv["CI_USER_NAME"] = e.UserName
 	autoenv["CI_USER_EMAIL"] = e.UserEmail
 	autoenv["CI_MSG"] = e.Message
-	autoenv["CI_TIME"] = time.Now().Format(TimeLayout)
+	autoenv["CI_TIME"] = e.Time.Format(TimeLayout)
 
 	return
 }

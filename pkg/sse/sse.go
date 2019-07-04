@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -63,7 +64,7 @@ type EventInfo struct {
 	UserName  string
 	UserEmail string
 	Message   string
-	// Time      string
+	Time      time.Time
 }
 
 // GetInfo to satisfy eventer
@@ -120,7 +121,7 @@ func New(project, branch string, options ...func(*option)) (b *Broker) {
 			Key:            c.key,
 			Project:        project,
 			Branch:         branch,
-			Messages:       make(chan string),
+			Messages:       make(chan string, 100),
 			PReader:        pr,
 			PWriter:        pw,
 			clients:        make(map[chan string]bool),
@@ -177,7 +178,7 @@ func NewExist(b *Broker) (bnew *Broker) {
 			defunctClients: make(chan (chan string)),
 			CreateTime:     time.Now().Format(TimeLayout),
 			Event:          b.Event,
-			ExistMsg:       []string{fmt.Sprintf("build retried at %v\n", time.Now())},
+			ExistMsg:       []string{fmt.Sprintf("<h2>retried at %v</h2>\n", time.Now().Format(TimeLayout))},
 			Retry:          b.Retry + 1,
 		}
 	}
@@ -208,7 +209,6 @@ func GetBrokers() (bs []*Broker, err error) {
 
 func GetBrokersFromMem() []*Broker {
 	// spew.Dump("brokerMaps", brokerMaps)
-
 	bs := []*Broker{}
 	brokerMaps.Range(func(k, v interface{}) bool {
 		// spew.Dump("k", k, v)
@@ -220,6 +220,9 @@ func GetBrokersFromMem() []*Broker {
 		}
 
 		return true
+	})
+	sort.Slice(bs, func(i, j int) bool {
+		return bs[i].Event.Time.Before(bs[j].Event.Time) // recent first?
 	})
 	// spew.Dump("bs", bs)
 	return bs
@@ -248,8 +251,13 @@ func GetBrokerFromPerson(name string) (b *Broker, err error) {
 		err = fmt.Errorf("no any project")
 		return
 	}
+
+	for _, v := range bs {
+		fmt.Printf("key: %v\n", v.Key)
+	}
 	// spew.Dump("bs", bs)
 	for _, v := range bs {
+		// fmt.Printf("key: %v\n", v.Key)
 		// spew.Dump("v", v)
 		if v.Event == nil {
 			continue
@@ -275,6 +283,12 @@ func (b *Broker) GetExistMsg() (existmsg string) {
 }
 
 func (b *Broker) Close() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("panic happened", r)
+		}
+	}()
+
 	log.Println("closing brocker for ", b.Project, b.Branch)
 	if b.PWriter != nil {
 		b.PWriter.Close()

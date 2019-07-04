@@ -86,7 +86,6 @@ func NewBuildSVC(addr string) *Buildsvc {
 
 func (b *Buildsvc) Build(project, branch, env string) (out chan string, err error) {
 	out = make(chan string, 100) // increase to 500, will cause later deepcopy panic
-	defer close(out)
 
 	r := &pb.Request{
 		Project: project,
@@ -96,26 +95,29 @@ func (b *Buildsvc) Build(project, branch, env string) (out chan string, err erro
 
 	log.Printf("reqesting... %v", r)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
 	stream, err := b.client.Build(ctx, r)
 	if err != nil {
 		err = fmt.Errorf("rpc call failed: %v", err)
 		return
 	}
+	go func() {
+		defer cancel()
+		defer close(out)
+		for {
+			output, e := stream.Recv()
+			if e == io.EOF {
+				break
+			}
+			if e != nil {
+				err = fmt.Errorf("stream receive output err, %v", e)
+				return
+			}
+			// log.Printf("%v", output.GetOutput())
+			out <- output.GetOutput()
+		}
+		log.Printf("done of rpc call for %v\n", project)
+	}()
 	log.Printf("made rpc call for %v, receiving output now...\n", project)
-	for {
-		output, e := stream.Recv()
-		if e == io.EOF {
-			break
-		}
-		if e != nil {
-			err = fmt.Errorf("stream receive output err, %v", e)
-			return
-		}
-		// log.Printf("%v", output.GetOutput())
-		out <- output.GetOutput()
-	}
-	log.Printf("done of rpc call for %v\n", project)
 	return
 }
 
