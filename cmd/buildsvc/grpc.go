@@ -100,14 +100,13 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 			return err
 		}
 	}
+	wg.Wait()
 	if !success {
 		err = fmt.Errorf("build image failed, checkout logs")
 		log.Println(err)
 		return
 	}
 	log.Println("build ok")
-	wg.Wait()
-	log.Println("end of handle build output")
 	return nil
 }
 

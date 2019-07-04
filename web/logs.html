@@ -19,6 +19,44 @@
     {{else}} Project: <b>{{.Project}}</b> Branch: <b>{{.Branch}} {{if .Note}}(default){{end}}</b> logs:
     <hr> {{if .Stored}}
     <pre>{{.ExistMsg}}</pre>{{else}}
+    <script>
+        let lastScrollTop = 0;
+        let scroll = true;
+        let cancel = false;
+        window.addEventListener('scroll', function(e) {
+            // last_known_scroll_position = window.scrollY;
+            // console.log("got ", window);
+            // if (window.scrollY < last_known_scroll_position) {
+            //     scroll = false;
+            // }
+
+            // Credits: "https://github.com/qeremy/so/blob/master/so.dom.js#L426"
+            var st = window.pageYOffset || document.documentElement.scrollTop;
+            if (st > lastScrollTop) {
+                scroll = true;
+            } else {
+                scroll = false;
+                cancel = true; // we just cancel for all
+            }
+            lastScrollTop = st <= 0 ? 0 : st;
+        });
+
+        function doscroll() {
+            if (cancel) {
+                console.log("scroll canceled");
+                return;
+            }
+            if (scroll == true) {
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+        }
+
+        setTimeout(() => {
+            cancel = true;
+        }, 300000); // one minutes
+
+        setInterval(doscroll, 300);
+    </script>
     <script type="text/javascript">
         // Create a new HTML5 EventSource
         var url = encodeURI("/events?{{if .Key}}key={{.Key}}{{else}}project={{.Project}}&branch={{.Branch}}{{end}}");
@@ -35,4 +73,4 @@
     {{end}} {{end}}
 </body>
 
-</html>
+</html
