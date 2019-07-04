@@ -62,7 +62,7 @@ spec:
           - -gitlab-pass
           - cKGa3eVAF7tZMvCukdsP
           - -wechat-receiver-url 
-          - http://wechat-notify.haodai.net
+          - http://wechat.haodai.net
           ports:
           - containerPort: 8089
           volumeMounts:

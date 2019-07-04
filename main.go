@@ -22,7 +22,9 @@ import (
 var (
 	port = flag.String("p", "8089", "port")
 
-	defaultConfigRepo = flag.String("config-repo", "wenzhenglin/config-deploy", "default config-repo")
+	defaultWebDir = flag.String("webdir", "web", "default web template dir")
+
+	defaultConfigRepo = flag.String("configrepo", "wenzhenglin/config-deploy", "default config-repo")
 	buildsvcAddr      = flag.String("buildsvc", "buildsvc:10000", "buildsvc address host:port ( or k8s service name )")
 	defaultHarborKey  = flag.String("harborkey", "eyJhdXRocyI6eyJoYXJib3IuaGFvZGFpLm5ldCI6eyJ1c2VybmFtZSI6ImRldnVzZXIiLCJwYXNzd29yZCI6IkxuMjhvaHlEbiIsImVtYWlsIjoieXVud2VpQGhhb2RhaS5uZXQiLCJhdXRoIjoiWkdWMmRYTmxjanBNYmpJNGIyaDVSRzQ9In19fQ==", "default HarborKey")
 
@@ -90,15 +92,18 @@ var (
 // define a global variable
 // add new check, update it, and store the config as file(update config)
 
+var box *rice.Box
+
 func main() {
 	log.Println("starting...")
 	log.Debug.Println("debug is on")
 
 	flag.Parse()
 	projectpkg.Init(*defaultHarborKey, *buildsvcAddr, *defaultConfigRepo)
+	box = rice.MustFindBox(*defaultWebDir)
 
 	e := echo.New()
-	//e.Use(middleware.Logger())
+	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	// e.Use(middleware.Logger())
 	//e.Use(middleware.Static("/data"))
@@ -126,7 +131,7 @@ func main() {
 	// e.File("/init", "init.html")
 	// e.File("/gen", "gen.html")
 
-	assetHandler := http.FileServer(rice.MustFindBox("web").HTTPBox())
+	assetHandler := http.FileServer(box.HTTPBox())
 	e.GET("/ui/*", echo.WrapHandler(http.StripPrefix("/ui/", assetHandler)))
 	// e.GET("/", homeHandler)
 

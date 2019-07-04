@@ -49,6 +49,7 @@ func logsHandler(c echo.Context) (err error) {
 
 	// if project and key both not specified, list all keys
 	if project == "" && key == "" {
+		log.Println("getting logs list")
 		// list existing build logs
 		// brokers := sse.GetBrokers()
 		brokers, e := sse.GetBrokers()
@@ -112,7 +113,8 @@ func logsHandler(c echo.Context) (err error) {
 	}
 
 	// Read in the template with our SSE JavaScript code.
-	t, err := template.ParseFiles("web/logs.html")
+	t, err := template.New("logs").Parse(box.MustString("logs.html"))
+	// t, err := template.ParseFiles("web/logs.html")
 	if err != nil {
 		log.Fatal("WTF dude, error parsing your template.")
 	}

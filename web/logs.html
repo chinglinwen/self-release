@@ -3,6 +3,11 @@
 
 <head>
     <title>Project build logs</title>
+    <style>
+        * {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+    </style>
 </head>
 
 <body>
@@ -12,7 +17,8 @@
     <a href="/logs?key={{.Key}}">{{.Key}}</a><br> {{end}}
     <!-- Yo {{.}}, here are some facinating messages about the current time:<br> -->
     {{else}} Project: <b>{{.Project}}</b> Branch: <b>{{.Branch}} {{if .Note}}(default){{end}}</b> logs:
-    <hr> {{if .Stored}} <pre>{{.ExistMsg}}</pre>{{else}}
+    <hr> {{if .Stored}}
+    <pre>{{.ExistMsg}}</pre>{{else}}
     <script type="text/javascript">
         // Create a new HTML5 EventSource
         var url = encodeURI("/events?{{if .Key}}key={{.Key}}{{else}}project={{.Project}}&branch={{.Branch}}{{end}}");

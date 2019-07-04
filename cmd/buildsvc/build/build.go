@@ -4,7 +4,6 @@ package project
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os/exec"
 
 	"github.com/acarl005/stripansi"
@@ -26,8 +25,7 @@ func Build(dir, project, tag, env string) (out string, err error) {
 }
 
 func BuildStreamOutput(dir, project, tag, env string) (out chan string, err error) {
-	out = make(chan string)
-	defer close(out)
+	out = make(chan string, 100)
 
 	image := GetImage(project, tag)
 	log.Printf("building for image: %v, env: %v\n", image, env)
@@ -35,11 +33,11 @@ func BuildStreamOutput(dir, project, tag, env string) (out chan string, err erro
 	cmd.Dir = dir
 
 	stdout, _ := cmd.StdoutPipe()
-	stderr, _ := cmd.StderrPipe()
+	// stderr, _ := cmd.StderrPipe()
 	cmd.Start()
 
-	scanner := bufio.NewScanner(io.MultiReader(stdout, stderr))
-	// scanner := bufio.NewScanner(stdout)
+	// scanner := bufio.NewScanner(io.MultiReader(stdout, stderr))
+	scanner := bufio.NewScanner(stdout)
 	// scanner.Split(bufio.ScanWords)
 
 	go func() {
@@ -47,11 +45,12 @@ func BuildStreamOutput(dir, project, tag, env string) (out chan string, err erro
 		for scanner.Scan() {
 			out <- scanner.Text()
 		}
-	}()
-	go func() {
-		cmd.Wait()
 		close(out)
 	}()
+	// go func() {
+	cmd.Wait()
+	// close(out)
+	// }()
 	log.Println("end of build cmd")
 	return
 }
