@@ -5,9 +5,9 @@ import (
 	"bufio"
 	"fmt"
 	"os/exec"
-	"sync"
 
-	"github.com/acarl005/stripansi"
+	"github.com/pborman/ansi"
+	// "github.com/acarl005/stripansi"
 	"github.com/chinglinwen/log"
 )
 
@@ -21,12 +21,15 @@ func Build(dir, project, tag, env string) (out string, err error) {
 		log.Printf("build execute build err: %v\noutput: %v\n", err, string(output))
 		return
 	}
-	out = stripansi.Strip(stripansi.Strip(string(output))) // let's strip twice for npm error color code
+	// out = stripansi.Strip(stripansi.Strip(string(output))) // let's strip twice for npm error color code
+	b, err := ansi.Strip(output)
+	out = string(b)
 	return
 }
 
-func BuildStreamOutput(dir, project, tag, env string, out chan string, wg sync.WaitGroup) (err error) {
+func BuildStreamOutput(dir, project, tag, env string, out chan string) (err error) {
 	// out = make(chan string, 100)
+	// wg.Add(1)
 
 	image := GetImage(project, tag)
 	log.Printf("building for image: %v, env: %v\n", image, env)
@@ -46,7 +49,9 @@ func BuildStreamOutput(dir, project, tag, env string, out chan string, wg sync.W
 		for scanner.Scan() {
 			out <- scanner.Text()
 		}
-		wg.Done()
+		log.Println("end of build output, wg.done")
+		// wg.Done()
+		close(out)
 	}()
 	go func() {
 		cmd.Wait()

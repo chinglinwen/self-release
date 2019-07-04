@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	// "google.golang.org/grpc/credentials"
 	// "google.golang.org/grpc/testdata"
@@ -74,12 +75,11 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 
 	log.Printf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	// var wg sync.WaitGroup
 
 	out := make(chan string, 100)
-	defer close(out)
-	err = buildpkg.BuildStreamOutput(p.WorkDir, project, branch, env, out, wg)
+	// defer close(out)
+	err = buildpkg.BuildStreamOutput(p.WorkDir, project, branch, env, out)
 	// e := p.Build(project, branch, env, out)
 	if err != nil {
 		err = fmt.Errorf("build err: %v", err)
@@ -100,14 +100,38 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 			return err
 		}
 	}
-	wg.Wait()
 	if !success {
 		err = fmt.Errorf("build image failed, checkout logs")
 		log.Println(err)
 		return
 	}
 	log.Println("build ok")
+	// wg.Wait()
+
+	// if waitTimeout(&wg, 5*time.Minute) {
+	// 	fmt.Println("Timed out waiting for wait group")
+	// } else {
+	// 	fmt.Println("Wait group finished")
+	// }
+	// log.Println("done of build")
 	return nil
+}
+
+// https://stackoverflow.com/questions/32840687/timeout-for-waitgroup-wait
+// waitTimeout waits for the waitgroup for the specified max timeout.
+// Returns true if waiting timed out.
+func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false // completed normally
+	case <-time.After(timeout):
+		return true // timed out
+	}
 }
 
 func newServer() *buildServer {
