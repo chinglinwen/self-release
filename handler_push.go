@@ -105,6 +105,13 @@ func (b *builder) log(msgs ...interface{}) {
 	// b.Messages <- msg
 }
 
+func (b *builder) logerr(msgs ...interface{}) {
+	msg := fmt.Sprint(msgs...)
+	log.Println(msg)
+	fmt.Fprint(b.PWriter, msg)
+	// b.Messages <- msg
+}
+
 func (b *builder) notify(msg, username string) {
 	if username == "" {
 		log.Printf("username is empty for %v, ignore notify msg: %v\n", b.Project, msg)
@@ -162,7 +169,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	} else {
 		if bo.gen == false && bo.build == false && bo.deploy == false && bo.rollback == false {
 			err = fmt.Errorf("nothing to do, gen,build,deploy and rollback are false for %q, err: %v", e.Project, err)
-			b.log(err)
+			b.logerr(err)
 			return
 		}
 	}
@@ -181,7 +188,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 		if err != nil {
 			err = fmt.Errorf("project: %v, new err: %v", project, err)
-			b.log(err)
+			b.logerr(err)
 			return
 		}
 		b.log("clone or open project ok")
@@ -204,7 +211,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	autoenv, err := EventInfoToMap(e)
 	if err != nil {
 		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
-		b.log(err)
+		b.logerr(err)
 		return
 	}
 
@@ -224,13 +231,13 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// if I were them, I just do release, let the system figure out when to init?
 	// release to test? it's better to init by tag msg?
 
-	// skip init push event
-	if strings.Contains(e.Message, "init config.yaml") {
-		a := fmt.Sprintf("ignore build for project: %v, branch: %v, it's a init project config event", project, branch)
-		// log.Println(a)
-		b.log(a)
-		return
-	}
+	// // skip init push event
+	// if strings.Contains(e.Message, "init config.yaml") {
+	// 	a := fmt.Sprintf("ignore build for project: %v, branch: %v, it's a init project config event", project, branch)
+	// 	// log.Println(a)
+	// 	b.log(a)
+	// 	return
+	// }
 
 	if !projectpkg.BranchIsTag(branch) {
 		if branch != p.DevBranch { // tag should be release, not build?
@@ -263,20 +270,22 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			err = p.Init()
 			if err != nil {
 				err = fmt.Errorf("project: %v, init err: %v", project, err)
-				b.log(err)
+				b.logerr(err)
 				return
 			}
 			// log.Printf("inited for project: %v", project)
 			b.logf("inited for project: %v", project)
+			// return // return for init operation?
 		}
 		if reinit {
 			err = p.Init(projectpkg.SetInitForce())
 			if err != nil {
 				err = fmt.Errorf("project: %v, reinit err: %v", project, err)
-				b.log(err)
+				b.logerr(err)
 				return
 			}
 			b.logf("reinited for project: %v", project)
+			// return // return for init operation?
 		}
 	}
 	// do gen if deploy is needed
@@ -291,7 +300,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
 		if err != nil {
 			err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
-			b.log(err)
+			b.logerr(err)
 			return
 		}
 		b.logf("done generate for project: %v", project)
@@ -310,7 +319,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// e := p.Build(project, branch, env, out)
 		if e != nil {
 			err = fmt.Errorf("build err: %v", e)
-			b.log(err)
+			b.logerr(err)
 			return
 		}
 		b.log("<h2>docker build outputs:</h2>")
@@ -343,7 +352,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		out, e := apply(ns, finalyaml)
 		if e != nil {
 			err = fmt.Errorf("apply for project: %v, err: %v", project, e)
-			b.log(err)
+			b.logerr(err)
 			return
 		}
 		// b.logf("apply for %v ok\n<h2>k8s apply output:</h2>%v\n", project, out)

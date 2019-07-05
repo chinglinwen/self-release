@@ -37,7 +37,7 @@ func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 		return
 	}
 	// e.Env = projectpkg.GetEnvFromBranch(e.Branch)
-	e.UserName = event.UserName
+	e.UserName = event.UserUsername
 	e.UserEmail = event.UserEmail
 	if len(event.Commits) == 0 {
 		err = fmt.Errorf("commit message is empty from event")
@@ -59,7 +59,7 @@ func (event *TagPushEvent) GetInfo() (e *sse.EventInfo, err error) {
 		return
 	}
 	// e.Env = projectpkg.GetEnvFromBranch(branch) ?
-	e.UserName = event.UserName
+	e.UserName = event.UserUsername
 	e.UserEmail = event.UserEmail
 	// if len(event.commits) == 0 {
 	// 	err = fmt.Errorf("commit message is empty from event")
