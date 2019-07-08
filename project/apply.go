@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/chinglinwen/log"
 )
 
 /*
@@ -14,15 +16,29 @@ this error does not helpful?
 // apply contents by generate? or let generate apply directly?
 //
 // how to apply
+// func ApplyByKubectl(filebody string) (out string, err error) {
+// 	s := fmt.Sprintf("kubectl apply -f -")
+// 	cmd := exec.Command("sh", "-c", s)
+// 	cmd.Stdin = strings.NewReader(filebody)
+// 	output, err := cmd.CombinedOutput()
+// 	if err != nil {
+// 		err = fmt.Errorf("k8s apply err: %v, \noutput: %v", err, string(output))
+// 		return
+// 	}
+// 	out = string(output)
+// 	return
+// }
+
 func ApplyByKubectl(filebody, fileName string) (out string, err error) {
 	s := fmt.Sprintf("kubectl apply -f %v", fileName)
 	cmd := exec.Command("sh", "-c", s)
 	// cmd.Stdin = strings.NewReader(filebody)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		err = fmt.Errorf("apply file: %v err: %v, \noutput: %v", fileName, err, string(output))
+		err = fmt.Errorf("apply file: %v err: %v, \ncmd: %v\noutput: %v", fileName, err, s, string(output))
 		return
 	}
+	log.Printf("applied cmd: %v", s)
 	out = string(output)
 	return
 }

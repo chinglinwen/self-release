@@ -34,6 +34,7 @@ const (
 type genOption struct {
 	singleName string
 	autoenv    map[string]string
+	env        string
 }
 
 func SetGenerateName(name string) func(*genOption) {
@@ -45,6 +46,11 @@ func SetGenerateName(name string) func(*genOption) {
 func SetGenAutoEnv(autoenv map[string]string) func(*genOption) {
 	return func(o *genOption) {
 		o.autoenv = autoenv
+	}
+}
+func SetGenEnv(env string) func(*genOption) {
+	return func(o *genOption) {
+		o.env = env
 	}
 }
 
@@ -84,19 +90,19 @@ func GetProjectName(project string) (namespace, name string, err error) {
 }
 
 func (p *Project) Generate(options ...func(*genOption)) (target string, err error) {
-	if !p.Inited() {
-		err = fmt.Errorf("project %v have not init", p.Project)
-		return
-	}
-	c := &genOption{}
-	for _, op := range options {
-		op(c)
-	}
-	envMap, err := p.readEnvs(c.autoenv)
-	if err != nil {
-		err = fmt.Errorf("readenvs err: %v", err)
-	}
-	err = p.genK8s(envMap)
+	// if !p.Inited() {
+	// 	err = fmt.Errorf("project %v have not init", p.Project)
+	// 	return
+	// }
+	// c := &genOption{}
+	// for _, op := range options {
+	// 	op(c)
+	// }
+	// envMap, err := p.readEnvs(c.autoenv)
+	// if err != nil {
+	// 	err = fmt.Errorf("readenvs err: %v", err)
+	// }
+	target, err = p.genK8s(options...)
 	return
 }
 
@@ -446,6 +452,7 @@ func (p *Project) readEnvs(autoenv map[string]string) (envMap map[string]string,
 	if !isExist(f) {
 		// envFiles = append(envFiles, f)
 		log.Printf("env file: %v not exist, ignore env\n", f)
+		envMap = autoenv
 		return
 	}
 	// }

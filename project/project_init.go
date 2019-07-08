@@ -15,6 +15,7 @@ type initOption struct {
 	singleName string
 	force      bool
 	configVer  string
+	branch     string // do we need this?
 }
 
 // force is used to re-init config.yaml
@@ -33,6 +34,13 @@ func SetInitName(name string) func(*initOption) {
 func SetInitVersion(ver string) func(*initOption) {
 	return func(o *initOption) {
 		o.configVer = ver
+	}
+}
+
+// mostly branch is develop
+func SetInitBranch(branch string) func(*initOption) {
+	return func(o *initOption) {
+		o.branch = branch
 	}
 }
 
@@ -68,22 +76,23 @@ func (errs *errlist) Nochange() bool {
 //
 // init template file, config.yaml and repotemplate files
 // if repo config.yaml exist, it will affect init process?
-func ProjectInit(project string, options ...func(*initOption)) (p *Project, err error) {
-	p, err = NewProject(project, SetBranch("develop"), SetNoReadConfig()) // init put files on develop branch
-	if err != nil {
-		return
-	}
-	c := &initOption{}
+func (p *Project) Init(options ...func(*initOption)) (err error) {
+	c := initOption{branch: "develop"}
 	for _, op := range options {
-		op(c)
+		op(&c)
 	}
+
+	// p, err = NewProject(project, SetBranch(c.branch), SetNoReadConfig()) // init put files on develop branch
+	// if err != nil {
+	// 	return
+	// }
 
 	if p.Inited() && !c.force {
 		// it should be by tag? text to force
 		err = fmt.Errorf("project %v already inited, you can try force init", p.Project)
 		return
 	}
-	p.init = c
+	// p.init = c // seems no use?
 
 	// can we fix first init issue? need two times of init?
 	// let's read env config first, it seems we read config first, no need two time of read?
@@ -93,13 +102,7 @@ func ProjectInit(project string, options ...func(*initOption)) (p *Project, err 
 	// init file using template cause re-init much problem? changes maybe lost?
 	// say build-docker should not using env, as init(static config.env) have no projects info?
 
-	// we currently ignore autoenv, only config env is working for init
-	envMap, err := p.readEnvs(nil) // only re-init is working, otherwise it's just not exist
-	if err != nil {
-		err = fmt.Errorf("readenvs err: %v", err)
-	}
-
-	err = p.initAll(envMap)
+	err = p.initAll(c)
 	return
 
 	// errs := make(errlist)
@@ -263,31 +266,26 @@ func ProjectInit(project string, options ...func(*initOption)) (p *Project, err 
 // copy to config
 // copy to repo
 
-func (p *Project) initAll(envMap map[string]string) (err error) {
+// separate initall for easier operate, init docker only ( aka project repo only )
+// human can easily intercept and fix if there's error ( since it's only about docker image )
+//
+// we still do init k8s relate, but it's optional, it can skip
+func (p *Project) initAll(c initOption) (err error) {
 
-	changed1, err := p.initDocker(envMap)
+	// we currently ignore autoenv, only config env is working for init
+	envMap, err := p.readEnvs(nil)
+	if err != nil {
+		err = fmt.Errorf("readenvs err: %v", err)
+	}
+	changed1, err := p.initDocker(envMap, c)
 	if err != nil {
 		err = fmt.Errorf("initDocker err: %v", err)
 		return
 	}
-	if changed1 {
-		// 'by self-release' is used to filter out init webhook later
-		err = commitandpush(p.repo, "init docker files by self-release")
-		if err != nil {
-			return
-		}
-	}
-	changed2, err := p.initK8s(envMap)
+	changed2, err := p.initK8s(envMap, c)
 	if err != nil {
 		err = fmt.Errorf("initK8s err: %v", err)
 		return
-	}
-	if changed2 {
-		// 'by self-release' is used to filter out init webhook later
-		err = commitandpush(p.configrepo, "init docker and k8s by self-release")
-		if err != nil {
-			return
-		}
 	}
 	if !changed1 && !changed2 {
 		log.Println("both repo and configrepo have no change")
@@ -295,7 +293,7 @@ func (p *Project) initAll(envMap map[string]string) (err error) {
 	}
 	return
 }
-func (p *Project) initDocker(envMap map[string]string) (update bool, err error) {
+func (p *Project) initDocker(envMap map[string]string, c initOption) (update bool, err error) {
 	items := []struct {
 		src, dst string
 	}{
@@ -320,6 +318,7 @@ func (p *Project) initDocker(envMap map[string]string) (update bool, err error) 
 		log.Println("docker init have no change")
 		return
 	}
+	err = commitandpush(p.repo, "init docker files by self-release")
 	return
 }
 
@@ -340,18 +339,20 @@ func (p *Project) initDocker(envMap map[string]string) (update bool, err error) 
     final: config:self-release/k8s-test.yaml
 	validatefinalyaml: true
 */
-func (p *Project) initK8s(envMap map[string]string) (update bool, err error) {
+func (p *Project) initK8s(envMap map[string]string, c initOption) (update bool, err error) {
 	items := []struct {
 		src, dst string
 	}{
 		{src: "k8s/template-online.yaml", dst: "self-release/template/template-online.yaml"},
 		{src: "k8s/template-pre.yaml", dst: "self-release/template/template-pre.yaml"},
 		{src: "k8s/template-test.yaml", dst: "self-release/template/template-test.yaml"},
+		{src: "config.env", dst: "self-release/config.env"},
 	}
 	var changed bool
 	for _, v := range items {
 		src := filepath.Join("template", p.ConfigVer, v.src)
-		changed, err = p.CopyToConfigNoGen(src, v.dst, envMap)
+		dst := filepath.Join(p.Project, v.dst)
+		changed, err = p.CopyToConfigNoGen(src, dst, envMap)
 		if err != nil {
 			err = fmt.Errorf("copytoconfig err: %v", err)
 			return
@@ -364,34 +365,87 @@ func (p *Project) initK8s(envMap map[string]string) (update bool, err error) {
 		log.Println("init k8s yaml have no change")
 		return
 	}
+
+	// 'by self-release' is used to filter out init webhook later
+	err = commitandpush(p.configrepo, fmt.Sprintf("init for project %v:%v", p.Project, p.Branch))
 	return
 }
 
-func (p *Project) genK8s(envMap map[string]string) (err error) {
-	items := []struct {
-		src, dst string
-	}{
-		{src: "self-release/template/template-online.yaml", dst: "self-release/k8s-online.yaml"},
-		{src: "self-release/template/template-pre.yaml", dst: "self-release/k8s-pre.yaml"},
-		{src: "self-release/template/template-test.yaml", dst: "self-release/k8s-test.yaml"},
+// let gen k8s, to decide if it need init again?
+// can we make this optional?
+//
+func (p *Project) genK8s(options ...func(*genOption)) (target string, err error) {
+	c := &genOption{}
+	for _, op := range options {
+		op(c)
 	}
+	if c.autoenv == nil {
+		err = fmt.Errorf("autoenv is empty")
+		return
+	}
+
+	// var envMap map[string]string
+	envMap, err := p.readEnvs(c.autoenv)
+	if err != nil {
+		// err = fmt.Errorf("readenvs err: %v", err)
+		log.Printf("readenvs err: %v, will ignore\n", err)
+		// envMap = make(map[string]string)
+	}
+
+	items := []struct {
+		src, dst, env string
+	}{
+		{src: "self-release/template/template-online.yaml", dst: "self-release/k8s-online.yaml", env: ONLINE},
+		{src: "self-release/template/template-pre.yaml", dst: "self-release/k8s-pre.yaml", env: PRE},
+		{src: "self-release/template/template-test.yaml", dst: "self-release/k8s-test.yaml", env: TEST},
+	}
+	needinit := true
+	for _, v := range items {
+		if c.singleName != "" && !strings.Contains(v.src, c.singleName) {
+			continue
+		}
+		src := filepath.Join(p.Project, v.src)
+		if p.configrepo.IsExist(src) {
+			needinit = false
+			break
+		}
+	}
+
+	if needinit {
+		log.Printf("doing initk8s...")
+		c := initOption{force: true} // try generate everytime, no need to check force?
+		_, e := p.initK8s(envMap, c)
+		if e != nil {
+			err = fmt.Errorf("initK8s err: %v", e)
+			return
+		}
+	}
+
+	var updatedst string
 	var update, changed bool
 	for _, v := range items {
-		src := filepath.Join(p.Project, v.src)
-		changed, err = p.CopyToConfigWithVerify(src, v.dst, envMap)
+		if v.env != c.env {
+			continue
+		}
+		src := filepath.Join(p.Project, v.src) // template is in project-path/ template in config repo
+		dst := filepath.Join(p.Project, v.dst)
+		changed, err = p.CopyToConfigWithVerify(src, dst, envMap)
 		if err != nil {
 			err = fmt.Errorf("copytoconfig err: %v", err)
 			return
 		}
+		target = filepath.Join(p.configrepo.GetWorkDir(), p.Project, v.dst)
 		if changed {
 			update = true
 		}
+		updatedst = dst
 	}
 	if !update {
 		log.Println("generated k8s yaml have no change")
 		return
 	}
-	return commitandpush(p.configrepo, "gen k8s yaml")
+	err = commitandpush(p.configrepo, fmt.Sprintf("generated %v for %v", updatedst, p.Project))
+	return
 }
 
 func commitandpush(repo *git.Repo, text string) (err error) {
@@ -436,8 +490,10 @@ func (p *Project) CopyToRepo(src, dst string, envMap map[string]string) (changed
 var ErrNoChange = errors.New("have no change")
 
 type copyto struct {
-	verify bool
-	nogen  bool
+	verify    bool
+	nogen     bool
+	force     bool
+	finalbody *string
 }
 
 type copytOption func(c *copyto)
@@ -452,6 +508,19 @@ func SetNoGen() copytOption {
 		c.nogen = true
 	}
 }
+
+func SetForce() copytOption {
+	return func(c *copyto) {
+		c.nogen = true
+	}
+}
+
+func SetFinalBody(body *string) copytOption {
+	return func(c *copyto) {
+		c.finalbody = body
+	}
+}
+
 func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, options ...copytOption) (changed bool, err error) {
 	o := &copyto{}
 	for _, op := range options {
@@ -463,13 +532,23 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 	}
 	var body string
 	if !o.nogen {
+		// fmt.Println("convert", convertToSubst(c))  // for test
+		// return
 		body, err = generateByMap(convertToSubst(c), envMap)
 		if err != nil {
 			err = fmt.Errorf("generate with map err: %v", err)
 			return
 		}
+	} else {
+		body = c
 	}
-	changed, err = checkChanged(torepo, dst, body)
+	if body == "" {
+		err = fmt.Errorf("try to write empty content")
+		return
+	}
+
+	var exist bool
+	exist, changed, err = checkChanged(torepo, dst, body)
 	if err != nil {
 		err = fmt.Errorf("check if changed err: %v", err)
 		return
@@ -478,19 +557,32 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 		// err = ErrNoChange
 		return
 	}
+	var note string
+	if exist {
+		if !o.force {
+			return
+		} else {
+			note = "(force)"
+		}
+	}
 	if o.verify {
 		_, err = ValidateByKubectl(body, dst)
 		if err != nil {
+			log.Printf("validate body: %v\n", body)
 			err = fmt.Errorf("validate by kubectl err: %v", err)
 			return
 		}
 	}
+	// if o.finalbody != nil {
+	// 	target := filepath.Join(repo.GetWorkDir(), dst)
+	// 	o.finalbody = &target
+	// }
 	err = putcontent(torepo, dst, body)
 	if err != nil {
 		err = fmt.Errorf("putcontent err: %v", err)
 		return
 	}
-	log.Printf("write file: %v to %v:%v\n", dst, torepo.Project, torepo.Branch)
+	log.Printf("write file: %v %v to %v:%v\n", dst, note, torepo.Project, torepo.Branch)
 	changed = true
 	return
 }
@@ -509,19 +601,21 @@ func getcontent(repo *git.Repo, path string) (content string, err error) {
 
 // we just overwrite it
 func putcontent(repo *git.Repo, path, content string) (err error) {
-	exist := repo.IsExist(path)
-	if exist {
-		log.Printf("file: %v exist, will be overwrite", path)
-	}
+	// exist := repo.IsExist(path)
+	// if exist {
+	// 	log.Printf("file: %v exist, will be overwrite", path)
+	// }
 	err = repo.Add(path, content)
 	return
 }
-func checkChanged(repo *git.Repo, path, content string) (changed bool, err error) {
+func checkChanged(repo *git.Repo, path, content string) (exist, changed bool, err error) {
 	oldfinal, err := repo.GetFile(path)
 	if err != nil {
 		changed = true // take it as no file exist
 		err = nil      // we don't need this err
 		return
+	} else {
+		exist = true
 	}
 	sum1, err := getHash(string(oldfinal))
 	if err != nil {

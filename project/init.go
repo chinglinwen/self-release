@@ -20,7 +20,7 @@ type base struct {
 var defaultBase *base
 
 // pkg need init default base
-func Init(harborkey, addr, configrepo string) {
+func Setting(harborkey, addr, configrepo string) {
 	defaultBase = &base{
 		harborkey:    harborkey,
 		buildsvcAddr: addr,

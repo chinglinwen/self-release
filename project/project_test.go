@@ -13,7 +13,7 @@ import (
 // }
 
 func init() {
-	Init("", "", "wenzhenglin/config-deploy")
+	Setting("", "", "wenzhenglin/config-deploy")
 }
 
 var pyaml = `
@@ -192,17 +192,18 @@ func TestNoPull(t *testing.T) {
 
 func TestProjectInit(t *testing.T) {
 
-	// p, err := NewProject(exampleproject, SetBranch("develop"))
-	// if err != nil {
-	// 	t.Error("newproject err", err)
-	// 	return
-	// }
+	p, err := NewProject(exampleproject, SetBranch("develop"))
+	if err != nil {
+		t.Error("newproject err", err)
+		return
+	}
 	// for _, v := range p.Files {
 	// 	fmt.Printf("file: %#v\n", v)
 	// }
 	// err = p.Init()
 	// err = p.Init(SetInitForce(), SetInitName("build-docker.sh"))
-	_, err := ProjectInit(exampleproject, SetInitForce())
+	err = p.Init(SetInitForce())
+	// _, err := ProjectInit(exampleproject)
 	if err != nil {
 		t.Error("newproject init err", err)
 		return

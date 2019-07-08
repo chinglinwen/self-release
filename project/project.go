@@ -15,7 +15,7 @@ var (
 	defaultConfigBase = "yunwei/config-deploy"
 	defaultAppName    = "self-release"
 
-	defaultConfigName = "config.yaml" // later will prefix with default or customize version
+	defaultConfigName = "config.env" // later will prefix with default or customize version
 	// opsDir         = "_ops"
 	defaultRepoConfigPath = "_ops" // configpath becomes project path in config-deploy
 )
@@ -57,9 +57,10 @@ type Project struct {
 	// envMap  map[string]string
 	// autoenv map[string]string // env from hook
 
-	op               *projectOption
-	init             *initOption
+	op *projectOption
+	// init             *initOption
 	configConfigPath string // configpath in config-deploy
+	// env              map[string]string // store config.env values, only init need this
 }
 
 // // let template store inside repo( rather than config-deploy? )
@@ -107,7 +108,7 @@ func BranchIsTag(branch string) bool {
 // }
 func (p *Project) Inited() bool {
 	if p != nil {
-		config := filepath.Join(p.Project, defaultConfigName)
+		config := filepath.Join(p.Project, "self-release", defaultConfigName) // relate to initk8s path
 		return p.configrepo.IsExist(config)
 	} // p nil should not happen
 	return false
@@ -222,36 +223,41 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		return
 	}
 
-	if !c.noreadconfig {
-		p, err = readProjectConfig(configrepo, project)
-		if err != nil {
-			// // not inited, using template config? or just return error,since it not inited?
-			// tp, e := readTemplateConfig(configVer)
-			// if e != nil {
-			// 	err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", project, e, configVer)
-			// 	return
-			// }
-			// p = tp
-
-			// // only except we don't write files to git?
-
-			// // it can't be, project name have issues too?
-			// // what others setting will be overwrite by template?
-			// p.Project = project
-			// p.Branch = branch
-
-			// log.Printf("set to default config for project %q\n", project)
-			// err = fmt.Errorf("project %v not inited, for branch: %v", project, branch)
-			log.Printf("project %v not inited, for branch: %v", project, c.branch)
-			return
-		}
-
-		log.Printf("reading project config for repo: %v, branch: %v ok\n", project, c.branch)
-	} else {
-		p = &Project{
-			Project: project,
-		}
+	p = &Project{
+		Project: project,
 	}
+
+	// we don't need config.yaml anymore
+	// if !c.noreadconfig {
+	// 	p, err = readProjectConfig(configrepo, project)
+	// 	if err != nil {
+	// 		// // not inited, using template config? or just return error,since it not inited?
+	// 		// tp, e := readTemplateConfig(configVer)
+	// 		// if e != nil {
+	// 		// 	err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", project, e, configVer)
+	// 		// 	return
+	// 		// }
+	// 		// p = tp
+
+	// 		// // only except we don't write files to git?
+
+	// 		// // it can't be, project name have issues too?
+	// 		// // what others setting will be overwrite by template?
+	// 		// p.Project = project
+	// 		// p.Branch = branch
+
+	// 		// log.Printf("set to default config for project %q\n", project)
+	// 		// err = fmt.Errorf("project %v not inited, for branch: %v", project, branch)
+	// 		log.Printf("project %v not inited, for branch: %v", project, c.branch)
+	// 		return
+	// 	}
+
+	// 	log.Printf("reading project config for repo: %v, branch: %v ok\n", project, c.branch)
+	// } else {
+	// 	p = &Project{
+	// 		Project: project,
+	// 	}
+	// }
 
 	// var tp *Project
 

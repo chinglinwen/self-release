@@ -297,7 +297,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	if bo.gen {
 
 		// almost generate everytime, except config
-		finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+		finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenEnv(env))
 		if err != nil {
 			err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
 			b.logerr(err)
@@ -358,7 +358,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// b.logf("apply for %v ok\n<h2>k8s apply output:</h2>%v\n", project, out)
 		b.log("<h2>k8s apply</h2>")
 		b.logf("apply for %v ok\n", project)
-		b.logf("k8s apply output:%v\n", out)
+		b.logf("k8s apply output:\n")
+		b.logf("%v\n", out)
 	}
 
 	b.logf("<hr>end at %v .", time.Now().Format(TimeLayout))

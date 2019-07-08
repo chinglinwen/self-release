@@ -99,7 +99,7 @@ func main() {
 	log.Debug.Println("debug is on")
 
 	flag.Parse()
-	projectpkg.Init(*defaultHarborKey, *buildsvcAddr, *defaultConfigRepo)
+	projectpkg.Setting(*defaultHarborKey, *buildsvcAddr, *defaultConfigRepo)
 	box = rice.MustFindBox(*defaultWebDir)
 
 	e := echo.New()
