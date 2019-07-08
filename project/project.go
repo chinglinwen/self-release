@@ -13,10 +13,11 @@ import (
 
 var (
 	defaultConfigBase = "yunwei/config-deploy"
+	defaultAppName    = "self-release"
 
 	defaultConfigName = "config.yaml" // later will prefix with default or customize version
 	// opsDir         = "_ops"
-	defaultRepoConfigPath = "_ops"
+	defaultRepoConfigPath = "_ops" // configpath becomes project path in config-deploy
 )
 
 type File struct {
@@ -41,20 +42,24 @@ type Project struct {
 	ConfigVer string // specify different version
 
 	// ConfigFile string // _ops/config.yaml  //set for every env? what's the difference
-	Files    []File
-	EnvFiles []string // for setting of template, env.sh ?  no need export
+	// Files []File
+	// EnvFiles []string // for setting of template, env.sh ?  no need export
 
 	// GitForce  bool   // git pull force  default is force
 	// InitForce bool   // init project config force, force for re-init, file setting, we often setting it by tag msg
-	NoPull bool // `yaml:"nopull"`
+	// NoPull bool // `yaml:"nopull"`
 
 	// image ?
 	// size of replicas?
-
-	repo    *git.Repo
-	WorkDir string
+	configrepo *git.Repo
+	repo       *git.Repo
+	WorkDir    string // git local path
 	// envMap  map[string]string
 	// autoenv map[string]string // env from hook
+
+	op               *projectOption
+	init             *initOption
+	configConfigPath string // configpath in config-deploy
 }
 
 // // let template store inside repo( rather than config-deploy? )
@@ -92,12 +97,19 @@ func BranchIsTag(branch string) bool {
 	return git.BranchIsTag(branch)
 }
 
+// func (p *Project) Inited() bool {
+// 	if p != nil {
+// 		if p.repo != nil {
+// 	return p.repo.IsExist("_ops/config.yaml")
+// 		}
+// 	}
+// 	return false
+// }
 func (p *Project) Inited() bool {
 	if p != nil {
-		if p.repo != nil {
-			return p.repo.IsExist("_ops/config.yaml")
-		}
-	}
+		config := filepath.Join(p.Project, defaultConfigName)
+		return p.configrepo.IsExist(config)
+	} // p nil should not happen
 	return false
 }
 
@@ -111,16 +123,32 @@ func (p *Project) GetRepo() *git.Repo {
 // 	}
 // }
 
-func SetBranch(branch string) func(*Project) {
-	return func(p *Project) {
-		p.Branch = branch
+func SetBranch(branch string) func(*projectOption) {
+	return func(p *projectOption) {
+		p.branch = branch
 	}
 }
 
-func SetNoPull() func(*Project) {
-	return func(p *Project) {
-		p.NoPull = true
+func SetNoPull() func(*projectOption) {
+	return func(p *projectOption) {
+		p.nopull = true
 	}
+}
+
+func SetNoReadConfig() func(*projectOption) {
+	return func(p *projectOption) {
+		p.noreadconfig = true
+	}
+}
+
+type projectOption struct {
+	nopull bool
+	branch string
+
+	devBranch string
+	configVer string
+
+	noreadconfig bool
 }
 
 // type initOption struct {
@@ -144,75 +172,85 @@ func SetNoPull() func(*Project) {
 // template: php.v1/docker/pre.yaml
 // config: _ops/config/templatename.config
 // config: _ops/config/config.yaml  //specify which template and which config file?
-func NewProject(project string, options ...func(*Project)) (p *Project, err error) {
+func NewProject(project string, options ...func(*projectOption)) (p *Project, err error) {
 	// not inited repo, just return
-	// configrepo, err := GetConfigRepo()
-	// if err != nil {
-	// 	err = fmt.Errorf("get configrepo err: %v", err)
-	// 	return
+	configrepo, err := GetConfigRepo()
+	if err != nil {
+		err = fmt.Errorf("get configrepo err: %v", err)
+		return
+	}
+
+	// p = &Project{
+	// 	Project: project, // "template-before-create",
+	// 	// Branch:    "master", // TODO: default to master?
+	// 	// ConfigVer: GetDefaultConfigVer(),
+	// 	// DevBranch: "develop", // default dev branch
+	// }
+	// // log.Printf("before options apply for repo: %q ok\n", p.Project)
+
+	c := &projectOption{
+		branch:    "master",
+		devBranch: "develop",
+		configVer: GetDefaultConfigVer(),
+	}
+	for _, op := range options {
+		op(c)
+	}
+	// if p.Branch == "" {
+	// 	p.Branch = "master"
+	// }
+	// if p.ConfigVer == "" {
+	// 	p.ConfigVer = GetDefaultConfigVer()
+	// }
+	// if p.DevBranch == "" {
+	// 	p.DevBranch = "develop"
 	// }
 
-	p = &Project{
-		Project: project, // "template-before-create",
-		// Branch:    "master", // TODO: default to master?
-		// ConfigVer: GetDefaultConfigVer(),
-		// DevBranch: "develop", // default dev branch
-	}
-	// log.Printf("before options apply for repo: %q ok\n", p.Project)
-	for _, op := range options {
-		op(p)
-	}
-	if p.Branch == "" {
-		p.Branch = "master"
-	}
-	if p.ConfigVer == "" {
-		p.ConfigVer = GetDefaultConfigVer()
-	}
-	if p.DevBranch == "" {
-		p.DevBranch = "develop"
-	}
+	// // // p variable will change multiple times, save the variable here
+	// // autoenv := p.autoenv
 
-	// // p variable will change multiple times, save the variable here
-	// autoenv := p.autoenv
+	// // log.Printf("after options apply for repo: %q ok\n", p.Project)
 
-	// log.Printf("after options apply for repo: %q ok\n", p.Project)
+	// branch := p.Branch
+	// configVer := p.ConfigVer
+	// // force := p.InitForce
 
-	branch := p.Branch
-	configVer := p.ConfigVer
-	// force := p.InitForce
-
-	// normal repo config take first
-	repo, e := getRepo(project, p.Branch, p.NoPull)
+	// // normal repo config take first
+	repo, e := getRepo(project, c.branch, c.nopull)
 	if e != nil {
-		err = fmt.Errorf("clone or open project: %v, err: %v, configver: %v", project, e, configVer)
+		err = fmt.Errorf("clone or open project: %v, err: %v, configver: %v", project, e, c.configVer)
 		return
 	}
-	p.repo = repo
-	p.WorkDir = p.repo.GetWorkDir()
 
-	pp, e := readRepoConfig(repo)
-	if e != nil {
-		// // not inited, using template config? or just return error,since it not inited?
-		// tp, e := readTemplateConfig(configVer)
-		// if e != nil {
-		// 	err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", project, e, configVer)
-		// 	return
-		// }
-		// p = tp
+	if !c.noreadconfig {
+		p, err = readProjectConfig(configrepo, project)
+		if err != nil {
+			// // not inited, using template config? or just return error,since it not inited?
+			// tp, e := readTemplateConfig(configVer)
+			// if e != nil {
+			// 	err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", project, e, configVer)
+			// 	return
+			// }
+			// p = tp
 
-		// // only except we don't write files to git?
+			// // only except we don't write files to git?
 
-		// // it can't be, project name have issues too?
-		// // what others setting will be overwrite by template?
-		// p.Project = project
-		// p.Branch = branch
+			// // it can't be, project name have issues too?
+			// // what others setting will be overwrite by template?
+			// p.Project = project
+			// p.Branch = branch
 
-		// log.Printf("set to default config for project %q\n", project)
-		// err = fmt.Errorf("project %v not inited, for branch: %v", project, branch)
-		log.Printf("project %v not inited, for branch: %v", project, branch)
-		return
+			// log.Printf("set to default config for project %q\n", project)
+			// err = fmt.Errorf("project %v not inited, for branch: %v", project, branch)
+			log.Printf("project %v not inited, for branch: %v", project, c.branch)
+			return
+		}
+
+		log.Printf("reading project config for repo: %v, branch: %v ok\n", project, c.branch)
 	} else {
-		log.Printf("try read repoconfig for repo: %v, branch: %v ok\n", project, branch)
+		p = &Project{
+			Project: project,
+		}
 	}
 
 	// var tp *Project
@@ -248,11 +286,19 @@ func NewProject(project string, options ...func(*Project)) (p *Project, err erro
 	// 	return
 	// }
 
-	pp.repo = repo
-	pp.WorkDir = p.repo.GetWorkDir()
+	p.op = c
+	p.ConfigVer = c.configVer
+	p.DevBranch = c.devBranch
+
+	p.configrepo = configrepo
+	p.repo = repo
+	p.WorkDir = p.repo.GetWorkDir()
+
+	p.configConfigPath = filepath.Join(defaultAppName, p.Project)
+
 	log.Printf("create project: %q ok\n", project)
 
-	return pp, nil
+	return
 }
 
 func readTemplateConfig(configrepo *git.Repo, configVer string) (p *Project, err error) {
@@ -286,19 +332,35 @@ func getRepo(project, branch string, nopull bool) (repo *git.Repo, err error) {
 	return
 }
 
-func readRepoConfig(repo *git.Repo) (p *Project, err error) {
-	if repo == nil {
-		err = fmt.Errorf("read config for err: repo not clone or open yet")
-		return
-	}
-	f := filepath.Join(defaultRepoConfigPath, defaultConfigName)
-	cyaml, err := repo.GetFile(f)
+// let's pass configrepo?
+func readProjectConfig(configrepo *git.Repo, project string) (p *Project, err error) {
+	// configrepo, err := GetConfigRepo()
+	// if err != nil || configrepo == nil {
+	// 	err = fmt.Errorf("read config from configrepo err: %v", err)
+	// 	return
+	// }
+	f := filepath.Join(project, defaultConfigName)
+	cyaml, err := configrepo.GetFile(f)
 	if err != nil {
 		err = fmt.Errorf("read config file: %v, err: %v", f, err)
 		return
 	}
 	return parseConfig(cyaml)
 }
+
+// func readRepoConfig(repo *git.Repo) (p *Project, err error) {
+// 	if repo == nil {
+// 		err = fmt.Errorf("read config for err: repo not clone or open yet")
+// 		return
+// 	}
+// 	f := filepath.Join(defaultRepoConfigPath, defaultConfigName)
+// 	cyaml, err := repo.GetFile(f)
+// 	if err != nil {
+// 		err = fmt.Errorf("read config file: %v, err: %v", f, err)
+// 		return
+// 	}
+// 	return parseConfig(cyaml)
+// }
 
 // unmarshal template config
 func parseConfig(cyaml []byte) (p *Project, err error) {

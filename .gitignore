@@ -10,3 +10,4 @@ projectlogs
 test.sh
 cmd/buildsvc/buildsvc
 cmd/buildsvc/client/client
+repos

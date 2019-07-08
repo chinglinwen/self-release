@@ -48,6 +48,9 @@ func (r *Repo) GetFile(filename string) ([]byte, error) {
 }
 
 func (r *Repo) IsExist(filename string) bool {
+	if r == nil {
+		return false
+	}
 	f := filepath.Join(r.Local, filename)
 	if _, err := os.Stat(f); !os.IsNotExist(err) {
 		return true

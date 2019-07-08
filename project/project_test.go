@@ -12,6 +12,10 @@ import (
 // 	os.Exit(code)
 // }
 
+func init() {
+	Init("", "", "wenzhenglin/config-deploy")
+}
+
 var pyaml = `
 project: wenzhenglin/project-example
 env: master
@@ -188,17 +192,17 @@ func TestNoPull(t *testing.T) {
 
 func TestProjectInit(t *testing.T) {
 
-	p, err := NewProject(exampleproject, SetBranch("develop"))
-	if err != nil {
-		t.Error("newproject err", err)
-		return
-	}
+	// p, err := NewProject(exampleproject, SetBranch("develop"))
+	// if err != nil {
+	// 	t.Error("newproject err", err)
+	// 	return
+	// }
 	// for _, v := range p.Files {
 	// 	fmt.Printf("file: %#v\n", v)
 	// }
 	// err = p.Init()
 	// err = p.Init(SetInitForce(), SetInitName("build-docker.sh"))
-	err = p.Init(SetInitForce())
+	_, err := ProjectInit(exampleproject, SetInitForce())
 	if err != nil {
 		t.Error("newproject init err", err)
 		return

@@ -92,7 +92,7 @@ func hookHandler(c echo.Context) (err error) {
 		}
 
 		if len(event1.Commits) >= 1 {
-			if strings.Contains(event1.Commits[0].Message, "init config.yaml") {
+			if strings.Contains(event1.Commits[0].Message, "by self-release") {
 				log.Println("ignore project init commits event")
 				return c.JSONPretty(http.StatusOK, E(0, "project init commits", "ok"), " ")
 			}
@@ -131,7 +131,7 @@ func hookHandler(c echo.Context) (err error) {
 			return c.JSONPretty(http.StatusOK, E(0, "empty message for tag event", "ok"), " ")
 		}
 
-		if strings.Contains(event2.Message, "init config.yaml") {
+		if strings.Contains(event2.Message, "by self-release") {
 			log.Println("ignore project init commits event")
 			return c.JSONPretty(http.StatusOK, E(0, "project init commits", "ok"), " ")
 		}
