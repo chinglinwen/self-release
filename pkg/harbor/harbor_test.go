@@ -2,6 +2,8 @@ package harbor
 
 import (
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestListProject(t *testing.T) {
@@ -57,4 +59,73 @@ func TestCheckProject(t *testing.T) {
 		return
 	}
 
+}
+
+/*
+([]harbor.TagResp) (len=5 cap=6) {
+ (harbor.TagResp) {
+  tagDetail: (harbor.tagDetail) {
+   Digest: (string) (len=71) "sha256:5eb84c1d5dcefe528d6e78e474cb2039c72f4a731d4606e7da1f1223186996e1",
+   Name: (string) (len=7) "develop",
+   Size: (int64) 99919313,
+   Architecture: (string) (len=5) "amd64",
+   OS: (string) (len=5) "linux",
+   DockerVersion: (string) (len=10) "18.06.2-ce",
+   Author: (string) "",
+   Created: (time.Time) 2019-07-08 07:43:20.317842853 +0000 UTC,
+   Config: (*harbor.cfg)(0xc000146180)({
+    Labels: (map[string]string) <nil>
+   })
+  },
+  Signature: (*harbor.Signature)(<nil>),
+  ScanOverview: (*harbor.ImgScanOverview)(<nil>)
+ },
+ (harbor.TagResp) {
+  tagDetail: (harbor.tagDetail) {
+   Digest: (string) (len=71) "sha256:f2bd2483c7067737f3240b06e23c13b8c8027f523baec292704070dfc670b6be",
+   Name: (string) (len=11) "v1.0.3-pre3",
+   Size: (int64) 99918186,
+   Architecture: (string) (len=5) "amd64",
+   OS: (string) (len=5) "linux",
+   DockerVersion: (string) (len=10) "18.06.1-ce",
+   Author: (string) "",
+   Created: (time.Time) 2019-05-28 10:23:23.165133328 +0000 UTC,
+   Config: (*harbor.cfg)(0xc000146188)({
+    Labels: (map[string]string) <nil>
+   })
+  },
+  Signature: (*harbor.Signature)(<nil>),
+  ScanOverview: (*harbor.ImgScanOverview)(<nil>)
+ },
+*/
+func TestA(t *testing.T) {
+	// defaultClient.Repositories.ListRepositoryTags("project-example")
+	// a, r, err := defaultClient.Repositories.ListRepository(&harbor.ListRepositoriesOption{Q: "example"})
+	// fmt.Println(a, r, err)
+
+	// spew.Dump(defaultClient.Search())
+
+	spew.Dump(defaultClient.Repositories.ListRepositoryTags("wenzhenglin/project-example"))
+}
+
+func TestRepoTagIsExist(t *testing.T) {
+	cases := []struct {
+		repo, tag string
+		exist     bool
+	}{
+		{repo: "wenzhenglin/project-example", tag: "v1.0.3-pre5.4dev", exist: true},
+		{repo: "wenzhenglin/project-example", tag: "v1.0.3-pre5.4dev1", exist: false},
+	}
+	for _, v := range cases {
+		exist, err := RepoTagIsExist(v.repo, v.tag)
+		if err != nil {
+			t.Error("check tag err", err)
+			return
+		}
+		if exist != v.exist {
+			t.Errorf("%v:%v it should exist: %v, got: %v", v.repo, v.tag, v.exist, exist)
+			return
+		}
+	}
+	return
 }

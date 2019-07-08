@@ -11,13 +11,8 @@ import (
 
 var defaultClient *harbor.Client
 
-func init() {
-	// defaultClient = New("http://harbor.haodai.net", "wenzhengnlin", "360860aA")
-	defaultClient = New("http://harbor.haodai.net", "devuser", "Ln28ohyDn")
-
-}
-func New(url, user, pass string) *harbor.Client {
-	return harbor.NewClient(nil, "http://harbor.haodai.net", "wenzhengnlin", "360860aA")
+func Setting(url, user, pass string) {
+	defaultClient = harbor.NewClient(nil, url, user, pass)
 }
 
 func ListProjects() (ps []harbor.Project, err error) {
@@ -29,6 +24,30 @@ func ListProjects() (ps []harbor.Project, err error) {
 		return nil, err
 	}
 	return projects, nil
+}
+
+// repo is kind like "flow_center/8-yun"
+func ListRepoTags(repo string) (tags []harbor.TagResp, err error) {
+	tags, _, e := defaultClient.Repositories.ListRepositoryTags(repo)
+	if len(e) != 0 {
+		err = fmt.Errorf("ListRepositoryTags err: %v", e)
+		return
+	}
+	return
+}
+
+func RepoTagIsExist(repo, tag string) (exist bool, err error) {
+	tags, err := ListRepoTags(repo)
+	if err != nil {
+		return
+	}
+	for _, v := range tags {
+		if v.Name == tag {
+			exist = true
+			return
+		}
+	}
+	return
 }
 
 func CheckProject(name string) (ok bool, err error) {
