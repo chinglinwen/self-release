@@ -2,7 +2,7 @@ package project
 
 import "fmt"
 
-// build only build develop branch?
+// Build only build develop branch?
 func (p *Project) Build(project, tag, env string) (out chan string, err error) {
 
 	// clone first
@@ -95,6 +95,7 @@ func (p *Project) Build(project, tag, env string) (out chan string, err error) {
 // 	return
 // }
 
+// GetImage generate fixed image name and tag.
 func GetImage(project, tag string) string {
 	return fmt.Sprintf("harbor.haodai.net/%v:%v", project, tag)
 }

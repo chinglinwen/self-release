@@ -29,6 +29,7 @@ this error does not helpful?
 // 	return
 // }
 
+// ApplyByKubectl apply k8s yaml.
 func ApplyByKubectl(filebody, fileName string) (out string, err error) {
 	s := fmt.Sprintf("kubectl apply -f %v", fileName)
 	cmd := exec.Command("sh", "-c", s)
@@ -64,7 +65,7 @@ metadata:
 type: kubernetes.io/dockerconfigjson
 `
 
-// create ns if not exist
+// CheckOrCreateNamespace create ns if not exist.
 func CheckOrCreateNamespace(ns string) (out string, err error) {
 	s := fmt.Sprintf("kubectl get ns %v || kubectl apply -f -", ns)
 	cmd := exec.Command("sh", "-c", s)

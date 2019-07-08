@@ -255,6 +255,7 @@ func gen(dev, args string) (out string, err error) {
 	return
 }
 
+// automatic support specify env(no need specific tag) as second args
 func deldeploy(dev, args string) (out string, err error) {
 	log.Printf("got deldeploy from: %v, args: %v\n", dev, args)
 	project, branch, err := parseProject(args)
