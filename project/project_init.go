@@ -408,7 +408,7 @@ func (p *Project) genK8s(c genOption) (target string, err error) {
 	var updatedst string
 	var update, changed bool
 	for _, v := range items {
-		if v.env != p.genOption.env {
+		if v.env != c.env {
 			continue
 		}
 		src := filepath.Join(p.Project, v.src) // template is in project-path/ template in config repo
