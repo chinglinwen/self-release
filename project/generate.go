@@ -94,15 +94,27 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 	// 	err = fmt.Errorf("project %v have not init", p.Project)
 	// 	return
 	// }
-	// c := &genOption{}
-	// for _, op := range options {
-	// 	op(c)
-	// }
-	// envMap, err := p.readEnvs(c.autoenv)
-	// if err != nil {
-	// 	err = fmt.Errorf("readenvs err: %v", err)
-	// }
-	target, err = p.genK8s(options...)
+
+	c := &genOption{}
+	for _, op := range options {
+		op(c)
+	}
+	if c.autoenv == nil {
+		err = fmt.Errorf("autoenv is empty")
+		return
+	}
+
+	// var envMap map[string]string
+	envMap, err := p.readEnvs(c.autoenv)
+	if err != nil {
+		// err = fmt.Errorf("readenvs err: %v", err)
+		log.Printf("readenvs err: %v, will ignore\n", err)
+		// envMap = make(map[string]string)
+	}
+	p.envMap = envMap
+	p.genOption = c
+
+	target, err = p.genK8s()
 	return
 }
 
@@ -463,6 +475,15 @@ func (p *Project) readEnvs(autoenv map[string]string) (envMap map[string]string,
 		err = fmt.Errorf("readenvfiles err: %v", err)
 		return // TODO: need ignore?
 	}
+
+	// for k, v := range envMap {
+	// 	if k == "devBranch" {
+	// 		p.DevBranch = v
+	// 	}
+	// 	if k == "buildMode" {
+	// 		p.BuildMode = v // read this before build is ok, no need to read for every newproject
+	// 	}
+	// }
 
 	if autoenv == nil {
 		return

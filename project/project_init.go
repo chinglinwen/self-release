@@ -305,7 +305,7 @@ func (p *Project) initDocker(envMap map[string]string, c initOption) (update boo
 	}
 	var changed bool
 	for _, v := range items {
-		src := filepath.Join("template", p.ConfigVer, v.src)
+		src := filepath.Join("template", p.Config.ConfigVer, v.src)
 		changed, err = p.CopyToRepo(src, v.dst, envMap)
 		if err != nil {
 			err = fmt.Errorf("copytoconfig err: %v", err)
@@ -347,10 +347,11 @@ func (p *Project) initK8s(envMap map[string]string, c initOption) (update bool, 
 		{src: "k8s/template-pre.yaml", dst: "self-release/template/template-pre.yaml"},
 		{src: "k8s/template-test.yaml", dst: "self-release/template/template-test.yaml"},
 		{src: "config.env", dst: "self-release/config.env"},
+		{src: "config.yaml", dst: "self-release/config.yaml"}, // should we add this?
 	}
 	var changed bool
 	for _, v := range items {
-		src := filepath.Join("template", p.ConfigVer, v.src)
+		src := filepath.Join("template", p.Config.ConfigVer, v.src)
 		dst := filepath.Join(p.Project, v.dst)
 		changed, err = p.CopyToConfigNoGen(src, dst, envMap)
 		if err != nil {
@@ -374,24 +375,11 @@ func (p *Project) initK8s(envMap map[string]string, c initOption) (update bool, 
 // let gen k8s, to decide if it need init again?
 // can we make this optional?
 //
-func (p *Project) genK8s(options ...func(*genOption)) (target string, err error) {
-	c := &genOption{}
-	for _, op := range options {
-		op(c)
-	}
-	if c.autoenv == nil {
-		err = fmt.Errorf("autoenv is empty")
+func (p *Project) genK8s() (target string, err error) {
+	if p.envMap == nil {
+		err = fmt.Errorf("no any env specified, likely can't generate yaml")
 		return
 	}
-
-	// var envMap map[string]string
-	envMap, err := p.readEnvs(c.autoenv)
-	if err != nil {
-		// err = fmt.Errorf("readenvs err: %v", err)
-		log.Printf("readenvs err: %v, will ignore\n", err)
-		// envMap = make(map[string]string)
-	}
-
 	items := []struct {
 		src, dst, env string
 	}{
@@ -401,9 +389,9 @@ func (p *Project) genK8s(options ...func(*genOption)) (target string, err error)
 	}
 	needinit := true
 	for _, v := range items {
-		if c.singleName != "" && !strings.Contains(v.src, c.singleName) {
-			continue
-		}
+		// if c.singleName != "" && !strings.Contains(v.src, c.singleName) {
+		// 	continue
+		// }
 		src := filepath.Join(p.Project, v.src)
 		if p.configrepo.IsExist(src) {
 			needinit = false
@@ -414,7 +402,7 @@ func (p *Project) genK8s(options ...func(*genOption)) (target string, err error)
 	if needinit {
 		log.Printf("doing initk8s...")
 		c := initOption{force: true} // try generate everytime, no need to check force?
-		_, e := p.initK8s(envMap, c)
+		_, e := p.initK8s(p.envMap, c)
 		if e != nil {
 			err = fmt.Errorf("initK8s err: %v", e)
 			return
@@ -424,12 +412,12 @@ func (p *Project) genK8s(options ...func(*genOption)) (target string, err error)
 	var updatedst string
 	var update, changed bool
 	for _, v := range items {
-		if v.env != c.env {
+		if v.env != p.genOption.env {
 			continue
 		}
 		src := filepath.Join(p.Project, v.src) // template is in project-path/ template in config repo
 		dst := filepath.Join(p.Project, v.dst)
-		changed, err = p.CopyToConfigWithVerify(src, dst, envMap)
+		changed, err = p.CopyToConfigWithVerify(src, dst, p.envMap)
 		if err != nil {
 			err = fmt.Errorf("copytoconfig err: %v", err)
 			return

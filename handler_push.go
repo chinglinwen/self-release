@@ -240,8 +240,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// }
 
 	if !projectpkg.BranchIsTag(branch) {
-		if branch != p.DevBranch { // tag should be release, not build?
-			a := fmt.Sprintf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.DevBranch, project)
+		if branch != p.Config.DevBranch { // tag should be release, not build?
+			a := fmt.Sprintf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.DevBranch, project)
 			// log.Println(a)
 			b.log(a)
 			return

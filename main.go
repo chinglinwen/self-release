@@ -103,7 +103,7 @@ func main() {
 	box = rice.MustFindBox(*defaultWebDir)
 
 	e := echo.New()
-	e.Use(middleware.Logger())
+	// e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	// e.Use(middleware.Logger())
 	//e.Use(middleware.Static("/data"))

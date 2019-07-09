@@ -16,6 +16,7 @@ var (
 	defaultAppName    = "self-release"
 
 	defaultConfigName = "config.env" // later will prefix with default or customize version
+	defaultConfigYAML = "config.yaml"
 	// opsDir         = "_ops"
 	defaultRepoConfigPath = "_ops" // configpath becomes project path in config-deploy
 )
@@ -37,9 +38,7 @@ type Project struct {
 	Branch  string // build branch
 	// Env     string // branch, may derive from event's branch as env
 	// not able to get branch? we can, but if it's a tag? init for develop branch only no tags
-	DevBranch string // default dev branch name
-	// disableBuild bool  // if drone or manual push image?
-	ConfigVer string // specify different version
+	Config ProjectConfig
 
 	// ConfigFile string // _ops/config.yaml  //set for every env? what's the difference
 	// Files []File
@@ -54,13 +53,21 @@ type Project struct {
 	configrepo *git.Repo
 	repo       *git.Repo
 	WorkDir    string // git local path
-	// envMap  map[string]string
+	envMap     map[string]string
 	// autoenv map[string]string // env from hook
 
 	op *projectOption
 	// init             *initOption
+	genOption        *genOption
 	configConfigPath string // configpath in config-deploy
 	// env              map[string]string // store config.env values, only init need this
+}
+
+type ProjectConfig struct {
+	DevBranch string // default dev branch name
+	BuildMode string // used to disable auto build [default, auto, disabled]
+	// disableBuild bool  // if drone or manual push image?
+	ConfigVer string // specify different version
 }
 
 // // let template store inside repo( rather than config-deploy? )
@@ -148,6 +155,7 @@ type projectOption struct {
 
 	devBranch string
 	configVer string
+	buildMode string
 
 	noreadconfig bool
 }
@@ -180,7 +188,22 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		err = fmt.Errorf("get configrepo err: %v", err)
 		return
 	}
+	c := &projectOption{
+		// branch:    "master",
+		// devBranch: "develop",
+		// buildMode: "default",
+		configVer: GetDefaultConfigVer(),
+	}
+	for _, op := range options {
+		op(c)
+	}
+	log.Printf("project options: %#v\n", c)
 
+	defaultConfig, err := readTemplateConfig(configrepo, c.configVer) // using default config, can we get configver now?
+	if err != nil {
+		err = fmt.Errorf("get defaultConfig from config-repo err: %v", err)
+		return
+	}
 	// p = &Project{
 	// 	Project: project, // "template-before-create",
 	// 	// Branch:    "master", // TODO: default to master?
@@ -189,14 +212,6 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	// }
 	// // log.Printf("before options apply for repo: %q ok\n", p.Project)
 
-	c := &projectOption{
-		branch:    "master",
-		devBranch: "develop",
-		configVer: GetDefaultConfigVer(),
-	}
-	for _, op := range options {
-		op(c)
-	}
 	// if p.Branch == "" {
 	// 	p.Branch = "master"
 	// }
@@ -223,8 +238,22 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		return
 	}
 
+	// try get config, to overwrite default config
+	config, err := readProjectConfig(configrepo, project)
+	if err != nil {
+		log.Println("read project config err, will using default config for ", project)
+		config = defaultConfig
+		err = nil
+	}
+	// two way to provide config
+	// by option setting
+	// by project config.yaml
+	log.Printf("using configver: %v, devbranch: %v, buildmode: %v", config.ConfigVer, config.DevBranch, config.BuildMode)
+
 	p = &Project{
 		Project: project,
+		Branch:  c.branch,
+		Config:  config,
 	}
 
 	// we don't need config.yaml anymore
@@ -293,8 +322,8 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	// }
 
 	p.op = c
-	p.ConfigVer = c.configVer
-	p.DevBranch = c.devBranch
+	// p.ConfigVer = c.configVer
+	// p.DevBranch = c.devBranch
 
 	p.configrepo = configrepo
 	p.repo = repo
@@ -305,19 +334,6 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	log.Printf("create project: %q ok\n", project)
 
 	return
-}
-
-func readTemplateConfig(configrepo *git.Repo, configVer string) (p *Project, err error) {
-	if configVer == "" {
-		configVer = GetDefaultConfigVer()
-	}
-	f := filepath.Join("template", configVer, defaultConfigName)
-	tyaml, err := configrepo.GetFile(f)
-	if err != nil {
-		err = fmt.Errorf("read configrepo templateconfig: %v, err: %v", f, err)
-		return
-	}
-	return parseConfig(tyaml)
 }
 
 func getRepo(project, branch string, nopull bool) (repo *git.Repo, err error) {
@@ -338,14 +354,39 @@ func getRepo(project, branch string, nopull bool) (repo *git.Repo, err error) {
 	return
 }
 
-// let's pass configrepo?
-func readProjectConfig(configrepo *git.Repo, project string) (p *Project, err error) {
+func readTemplateConfig(configrepo *git.Repo, configVer string) (p ProjectConfig, err error) {
+	if configVer == "" {
+		configVer = GetDefaultConfigVer()
+	}
+	f := filepath.Join("template", configVer, defaultConfigYAML)
+	tyaml, err := configrepo.GetFile(f)
+	if err != nil {
+		err = fmt.Errorf("read configrepo templateconfig: %v, err: %v", f, err)
+		return
+	}
+	return parseConfig(tyaml)
+}
+
+// func readTemplateConfig(configrepo *git.Repo, configVer string) (p ProjectConfig, err error) {
+// 	if configVer == "" {
+// 		configVer = GetDefaultConfigVer()
+// 	}
+// 	f := filepath.Join("template", configVer, defaultConfigName)
+// 	tyaml, err := configrepo.GetFile(f)
+// 	if err != nil {
+// 		err = fmt.Errorf("read configrepo templateconfig: %v, err: %v", f, err)
+// 		return
+// 	}
+// 	return parseConfig(tyaml)
+// }
+
+func readProjectConfig(configrepo *git.Repo, project string) (c ProjectConfig, err error) {
 	// configrepo, err := GetConfigRepo()
 	// if err != nil || configrepo == nil {
 	// 	err = fmt.Errorf("read config from configrepo err: %v", err)
 	// 	return
 	// }
-	f := filepath.Join(project, defaultConfigName)
+	f := filepath.Join(project, defaultAppName, defaultConfigYAML)
 	cyaml, err := configrepo.GetFile(f)
 	if err != nil {
 		err = fmt.Errorf("read config file: %v, err: %v", f, err)
@@ -353,6 +394,22 @@ func readProjectConfig(configrepo *git.Repo, project string) (p *Project, err er
 	}
 	return parseConfig(cyaml)
 }
+
+// let's pass configrepo?
+// func readProjectConfig(configrepo *git.Repo, project string) (p *Project, err error) {
+// 	// configrepo, err := GetConfigRepo()
+// 	// if err != nil || configrepo == nil {
+// 	// 	err = fmt.Errorf("read config from configrepo err: %v", err)
+// 	// 	return
+// 	// }
+// 	f := filepath.Join(project, defaultConfigName)
+// 	cyaml, err := configrepo.GetFile(f)
+// 	if err != nil {
+// 		err = fmt.Errorf("read config file: %v, err: %v", f, err)
+// 		return
+// 	}
+// 	return parseConfig(cyaml)
+// }
 
 // func readRepoConfig(repo *git.Repo) (p *Project, err error) {
 // 	if repo == nil {
@@ -369,9 +426,9 @@ func readProjectConfig(configrepo *git.Repo, project string) (p *Project, err er
 // }
 
 // unmarshal template config
-func parseConfig(cyaml []byte) (p *Project, err error) {
-	p = &Project{}
-	err = yaml.Unmarshal(cyaml, p)
+func parseConfig(cyaml []byte) (c ProjectConfig, err error) {
+	c = ProjectConfig{}
+	err = yaml.Unmarshal(cyaml, &c)
 	if err != nil {
 		err = fmt.Errorf("unmarshal config yaml: %v, err: %v", string(cyaml), err)
 		return
