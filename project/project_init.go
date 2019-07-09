@@ -81,6 +81,7 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 	for _, op := range options {
 		op(&c)
 	}
+	log.Printf("got init option: %#v", c)
 
 	// p, err = NewProject(project, SetBranch(c.branch), SetNoReadConfig()) // init put files on develop branch
 	// if err != nil {
@@ -293,6 +294,9 @@ func (p *Project) initAll(c initOption) (err error) {
 	}
 	return
 }
+
+// init docker just an optional steps
+// require build-docker.sh exist, if using self-release to build image
 func (p *Project) initDocker(envMap map[string]string, c initOption) (update bool, err error) {
 	items := []struct {
 		src, dst string
@@ -311,6 +315,7 @@ func (p *Project) initDocker(envMap map[string]string, c initOption) (update boo
 			err = fmt.Errorf("copytoconfig err: %v", err)
 		}
 		if changed {
+			log.Printf("file: %v will be updated", v.dst)
 			update = true
 		}
 	}
@@ -353,12 +358,17 @@ func (p *Project) initK8s(envMap map[string]string, c initOption) (update bool, 
 	for _, v := range items {
 		src := filepath.Join("template", p.Config.ConfigVer, v.src)
 		dst := filepath.Join(p.Project, v.dst)
-		changed, err = p.CopyToConfigNoGen(src, dst, envMap)
+		if c.force {
+			changed, err = p.CopyToConfigNoGenForce(src, dst, envMap)
+		} else {
+			changed, err = p.CopyToConfigNoGen(src, dst, envMap)
+		}
 		if err != nil {
 			err = fmt.Errorf("copytoconfig err: %v", err)
 			return
 		}
 		if changed {
+			log.Printf("file: %v will be updated", v.dst)
 			update = true
 		}
 	}
@@ -387,6 +397,7 @@ func (p *Project) genK8s() (target string, err error) {
 		{src: "self-release/template/template-pre.yaml", dst: "self-release/k8s-pre.yaml", env: PRE},
 		{src: "self-release/template/template-test.yaml", dst: "self-release/k8s-test.yaml", env: TEST},
 	}
+	// should we use p.Init()? using config.yaml to detect?
 	needinit := true
 	for _, v := range items {
 		// if c.singleName != "" && !strings.Contains(v.src, c.singleName) {
@@ -424,6 +435,7 @@ func (p *Project) genK8s() (target string, err error) {
 		}
 		target = filepath.Join(p.configrepo.GetWorkDir(), p.Project, v.dst)
 		if changed {
+			log.Printf("file: %v will be updated", v.dst)
 			update = true
 		}
 		updatedst = dst
@@ -466,6 +478,9 @@ func (p *Project) CopyToConfigWithVerify(src, dst string, envMap map[string]stri
 func (p *Project) CopyToConfigNoGen(src, dst string, envMap map[string]string) (changed bool, err error) {
 	return CopyTo(p.configrepo, p.configrepo, src, dst, envMap, SetNoGen())
 }
+func (p *Project) CopyToConfigNoGenForce(src, dst string, envMap map[string]string) (changed bool, err error) {
+	return CopyTo(p.configrepo, p.configrepo, src, dst, envMap, SetNoGen(), SetForce())
+}
 
 func (p *Project) CopyToConfig(src, dst string, envMap map[string]string) (changed bool, err error) {
 	return CopyTo(p.configrepo, p.configrepo, src, dst, envMap)
@@ -499,7 +514,7 @@ func SetNoGen() copytOption {
 
 func SetForce() copytOption {
 	return func(c *copyto) {
-		c.nogen = true
+		c.force = true
 	}
 }
 
@@ -548,6 +563,7 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 	var note string
 	if exist {
 		if !o.force {
+			log.Printf("%v should changed, it's already exist and no force provided, skip", dst)
 			return
 		} else {
 			note = "(force)"
@@ -565,12 +581,13 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 	// 	target := filepath.Join(repo.GetWorkDir(), dst)
 	// 	o.finalbody = &target
 	// }
+	log.Printf("writing file: %v %v to %v:%v\n", dst, note, torepo.Project, torepo.Branch)
 	err = putcontent(torepo, dst, body)
 	if err != nil {
 		err = fmt.Errorf("putcontent err: %v", err)
 		return
 	}
-	log.Printf("write file: %v %v to %v:%v\n", dst, note, torepo.Project, torepo.Branch)
+
 	changed = true
 	return
 }
@@ -589,10 +606,10 @@ func getcontent(repo *git.Repo, path string) (content string, err error) {
 
 // we just overwrite it
 func putcontent(repo *git.Repo, path, content string) (err error) {
-	// exist := repo.IsExist(path)
-	// if exist {
-	// 	log.Printf("file: %v exist, will be overwrite", path)
-	// }
+	exist := repo.IsExist(path)
+	if exist {
+		log.Printf("file: %v exist, will be overwrite", path)
+	}
 	err = repo.Add(path, content)
 	return
 }
