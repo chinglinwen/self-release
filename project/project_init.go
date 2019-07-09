@@ -446,7 +446,7 @@ func commitandpush(repo *git.Repo, text string) (err error) {
 //
 // assume all src come from config-repo
 func (p *Project) CopyToConfigWithVerify(src, dst string, envMap map[string]string) (changed bool, err error) {
-	return CopyTo(p.configrepo, p.configrepo, src, dst, envMap, SetVerify())
+	return CopyTo(p.configrepo, p.configrepo, src, dst, envMap, SetVerify(), SetForce())
 }
 
 func (p *Project) CopyToConfigNoGen(src, dst string, envMap map[string]string) (changed bool, err error) {

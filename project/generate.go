@@ -356,34 +356,34 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 // 	return
 // }
 
-func (p *Project) readRepoTemplate(configrepo *git.Repo, v File) (tbody []byte, err error) {
-	// store repotemplate to configrepo if prefixed with config:
-	var (
-		repo = p.repo // for repotemplate only?
-		// updateprojectrepo bool  // we always update project repo for init phase
-		// updateconfigrepo bool
-		rtmplfile string
-		// rtmplconfig       bool // repotemplate flag store to config
-	)
-	projectName := p.Project
-	rtmpl := strings.Split(v.RepoTemplate, ":")
-	if len(rtmpl) == 1 {
-		// rrepo = p.repo
-		// updateprojectrepo = true
-		rtmplfile = rtmpl[0] // store to project repo
-	} else if len(rtmpl) == 2 {
-		repo = configrepo
-		// updateconfigrepo = true
-		rtmplfile = filepath.Join(projectName, rtmpl[1])
-		// log.Printf("will read repotemplate from config for %v\n", v.Name)
-		// rtmplconfig = true // will store to config repo
-	} else {
-		err = fmt.Errorf("repotemplate value incorrect, should be \"path\" or \"config:path\" for %v", v.Name)
-		return
-	}
+// func (p *Project) readRepoTemplate(configrepo *git.Repo, v File) (tbody []byte, err error) {
+// 	// store repotemplate to configrepo if prefixed with config:
+// 	var (
+// 		repo = p.repo // for repotemplate only?
+// 		// updateprojectrepo bool  // we always update project repo for init phase
+// 		// updateconfigrepo bool
+// 		rtmplfile string
+// 		// rtmplconfig       bool // repotemplate flag store to config
+// 	)
+// 	projectName := p.Project
+// 	rtmpl := strings.Split(v.RepoTemplate, ":")
+// 	if len(rtmpl) == 1 {
+// 		// rrepo = p.repo
+// 		// updateprojectrepo = true
+// 		rtmplfile = rtmpl[0] // store to project repo
+// 	} else if len(rtmpl) == 2 {
+// 		repo = configrepo
+// 		// updateconfigrepo = true
+// 		rtmplfile = filepath.Join(projectName, rtmpl[1])
+// 		// log.Printf("will read repotemplate from config for %v\n", v.Name)
+// 		// rtmplconfig = true // will store to config repo
+// 	} else {
+// 		err = fmt.Errorf("repotemplate value incorrect, should be \"path\" or \"config:path\" for %v", v.Name)
+// 		return
+// 	}
 
-	return repo.GetFile(rtmplfile)
-}
+// 	return repo.GetFile(rtmplfile)
+// }
 
 func (p *Project) CommitAndPush(commitText string) (err error) {
 	return p.repo.CommitAndPush(commitText)

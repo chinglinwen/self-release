@@ -107,9 +107,9 @@ func genAPIHandler(c echo.Context) (err error) {
 	booptions := r.Form["booptions"]
 
 	bo := &buildOption{
-		gen:    contains(booptions, "gen"),
-		build:  contains(booptions, "build"),
-		deploy: contains(booptions, "deploy"),
+		gen:     contains(booptions, "gen"),
+		nobuild: contains(booptions, "nobuild"),
+		deploy:  contains(booptions, "deploy"),
 	}
 
 	project := c.FormValue("project")

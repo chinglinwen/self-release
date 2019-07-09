@@ -4,9 +4,9 @@ package project
 import (
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"wen/self-release/git"
+	"wen/self-release/pkg/harbor"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -21,16 +21,16 @@ var (
 	defaultRepoConfigPath = "_ops" // configpath becomes project path in config-deploy
 )
 
-type File struct {
-	Name         string
-	Template     string
-	Final        string // generated yaml final put into config-deploy?
-	RepoTemplate string
+// type File struct {
+// 	Name         string
+// 	Template     string
+// 	Final        string // generated yaml final put into config-deploy?
+// 	RepoTemplate string
 
-	Overwrite         bool
-	Perm              os.FileMode // set final file perm
-	ValidateFinalYaml bool        // `yaml:'validateFinalYaml'`
-}
+// 	Overwrite         bool
+// 	Perm              os.FileMode // set final file perm
+// 	ValidateFinalYaml bool        // `yaml:'validateFinalYaml'`
+// }
 
 // this will be the project config for customizing
 type Project struct {
@@ -64,10 +64,40 @@ type Project struct {
 }
 
 type ProjectConfig struct {
-	DevBranch string // default dev branch name
-	BuildMode string // used to disable auto build [default, auto, disabled]
+	DevBranch string `yaml:"devbranch"` // default dev branch name
+	BuildMode string `yaml:"buildmode"` // used to disable auto build [default, auto, disabled]
 	// disableBuild bool  // if drone or manual push image?
-	ConfigVer string // specify different version
+	ConfigVer string `yaml:"configver"` // specify different version
+}
+
+type buildmode string
+
+const (
+	buildmodeOn       = buildmode("on")
+	buildmodeAuto     = buildmode("auto")
+	buildmodeDisabled = buildmode("disabled")
+)
+
+func (p *Project) NeedBuild() bool {
+	switch p.Config.BuildMode {
+	case "auto":
+		if p.Branch == p.Config.DevBranch {
+			return true
+		}
+		return !p.ImageIsExist()
+	case "disabled":
+		return false
+	default:
+		return true
+	}
+}
+func (p *Project) ImageIsExist() bool {
+	exist, err := harbor.RepoTagIsExist(p.Project, p.Branch)
+	if err != nil {
+		log.Printf("check if image: %v:%v exist err: %v", p.Project, p.Branch, err)
+		return false
+	}
+	return exist
 }
 
 // // let template store inside repo( rather than config-deploy? )
@@ -92,14 +122,14 @@ type ProjectConfig struct {
 // 	},
 // }
 
-func configed(files []File, name string) bool {
-	for _, v := range files {
-		if v.Name == name {
-			return true
-		}
-	}
-	return false
-}
+// func configed(files []File, name string) bool {
+// 	for _, v := range files {
+// 		if v.Name == name {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
 func BranchIsTag(branch string) bool {
 	return git.BranchIsTag(branch)

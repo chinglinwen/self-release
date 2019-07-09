@@ -38,8 +38,13 @@ $
 func handlePush(event *PushEvent) (err error) {
 	project := event.Project.PathWithNamespace
 	branch := parseBranch(event.Ref)
-
 	log.Printf("got push for project %v to build for test env\n", project)
+
+	err = sse.Lock(project, branch)
+	if err != nil {
+		return
+	}
+	defer sse.UnLock(project, branch)
 
 	b := NewBuilder(project, branch)
 	b.log("starting logs")
@@ -59,6 +64,12 @@ func handleRelease(event *TagPushEvent) (err error) {
 	branch := parseBranch(event.Ref)
 	log.Printf("got release project %v to build for pre or online env\n", project)
 
+	err = sse.Lock(project, branch)
+	if err != nil {
+		return
+	}
+	defer sse.UnLock(project, branch)
+
 	b := NewBuilder(project, branch)
 	b.log("starting logs")
 	return b.startBuild(event, nil)
@@ -66,7 +77,7 @@ func handleRelease(event *TagPushEvent) (err error) {
 
 type buildOption struct {
 	gen      bool
-	build    bool
+	nobuild  bool
 	deploy   bool
 	rollback bool
 	// no easy way to delete? why need delete?
@@ -162,12 +173,12 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	if bo == nil {
 		bo = &buildOption{
-			gen:    true,
-			build:  true,
+			gen: true,
+			// build:  true,
 			deploy: true,
 		}
 	} else {
-		if bo.gen == false && bo.build == false && bo.deploy == false && bo.rollback == false {
+		if bo.gen == false && bo.deploy == false && bo.rollback == false {
 			err = fmt.Errorf("nothing to do, gen,build,deploy and rollback are false for %q, err: %v", e.Project, err)
 			b.logerr(err)
 			return
@@ -311,7 +322,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// write to a auto.env? or
 	//envsubst.Eval()
 
-	if bo.build {
+	if (!bo.nobuild) && p.NeedBuild() {
 		// out := make(chan string, 10)
 
 		b.logf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)

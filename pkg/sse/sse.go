@@ -106,6 +106,7 @@ func New(project, branch string, options ...func(*option)) (b *Broker) {
 	if c.key == "" {
 		c.key = strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
 	}
+	log.Printf("created new logs key: %v", c.key)
 
 	pr, pw := io.Pipe()
 
@@ -182,6 +183,9 @@ func NewExist(b *Broker) (bnew *Broker) {
 			Retry:          b.Retry + 1,
 		}
 	}
+	if bnew.Project == "" {
+		log.Printf("got empty prjoect for broker, should not happen\nbroker: %#v\n", bnew)
+	}
 
 	bnew.Start()
 	// Generate a constant stream of events that get pushed
@@ -200,7 +204,7 @@ func GetBrokers() (bs []*Broker, err error) {
 		return
 	}
 	bs = append(bs, dbs...)
-	if bs == nil {
+	if bs == nil || len(bs) == 0 {
 		err = fmt.Errorf("no anything found")
 		return
 	}
@@ -221,7 +225,21 @@ func GetBrokersFromMem() []*Broker {
 
 		return true
 	})
+	if bs == nil {
+		return nil
+	}
+	// spew.Dump("bs", bs)
+	log.Printf("got %v brokers from mem", len(bs))
+
+	// for _, v := range bs {
+	// 	log.Printf("ev: %v", v.Event)
+	// }
 	sort.Slice(bs, func(i, j int) bool {
+		if bs[i].Event == nil || bs[j].Event == nil {
+			log.Printf("got nil event broker, should not happen")
+			return false
+		}
+		// spew.Dump("i-ev: %v,j-ev: %v", bs[i], bs[j])
 		return bs[i].Event.Time.Before(bs[j].Event.Time) // recent first?
 	})
 	// spew.Dump("bs", bs)
@@ -282,11 +300,37 @@ func (b *Broker) GetExistMsg() (existmsg string) {
 	return
 }
 
+var builderLock map[string]bool // mutex for operation
+
+func Lock(project, branch string) (err error) {
+	if builderLock == nil {
+		builderLock = make(map[string]bool)
+	}
+	k := fmt.Sprintf("%v:%", project, branch)
+	if v, ok := builderLock[k]; ok && v {
+		err = fmt.Errorf("operation is in running, try later")
+		return
+	}
+	builderLock[k] = true
+	return
+}
+
+func UnLock(project, branch string) (err error) {
+	k := fmt.Sprintf("%v:%", project, branch)
+	if v, ok := builderLock[k]; !ok || !v {
+		err = fmt.Errorf("there's no lock")
+		return
+	}
+	builderLock[k] = false
+	return
+}
+
 func (b *Broker) Close() {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("panic happened", r)
 		}
+
 	}()
 
 	log.Println("closing brocker for ", b.Project, b.Branch)
@@ -438,7 +482,7 @@ func SSEHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	log.Printf("got project: %v for eventsources\n", project)
+	log.Printf("got project: %v, key: %v for eventsources\n", project, key)
 
 	if branch == "" {
 		branch = "develop"

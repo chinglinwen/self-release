@@ -53,6 +53,15 @@ func doAction(dev, cmd string) (out string, err error) {
 	c := strings.Fields(cmd)[0]
 	args := strings.TrimPrefix(cmd, c)
 
+	project, branch, _ := parseProject(args)
+	if project != "" {
+		err = sse.Lock(project, branch)
+		if err != nil {
+			return
+		}
+		defer sse.UnLock(project, branch)
+	}
+
 	// fn, ok := funcs[c]
 	// if !ok {
 	// 	return help(dev, "")
@@ -128,6 +137,22 @@ func myproject(dev, args string) (out string, err error) {
 // 	return name
 // }
 
+type flagOption struct {
+	force   bool
+	nobuild bool
+}
+
+func parseFlag(args string) (f flagOption) {
+	f = flagOption{}
+	if strings.Contains(args, "force") {
+		f.force = true
+	}
+	if strings.Contains(args, "nobuild") {
+		f.nobuild = true
+	}
+	return
+}
+
 func parseProject(args string) (project, branch string, err error) {
 	s := strings.Fields(args)
 	if len(s) < 1 {
@@ -141,6 +166,9 @@ func parseProject(args string) (project, branch string, err error) {
 	if len(s) >= 2 {
 		project = s[0]
 		branch = s[1]
+		if branch == "force" || branch == "nobuild" {
+			branch = "develop"
+		}
 	}
 	return
 }
@@ -185,11 +213,11 @@ func deploy(dev, args string) (out string, err error) {
 	if err != nil {
 		return
 	}
-	booptions := []string{"gen", "build", "deploy"}
+	f := parseFlag(args)
 	bo := &buildOption{
-		gen:      contains(booptions, "gen"),
-		build:    contains(booptions, "build"),
-		deploy:   contains(booptions, "deploy"),
+		gen:      true,
+		nobuild:  f.nobuild,
+		deploy:   true,
 		nonotify: true,
 	}
 	e := &sse.EventInfo{
@@ -226,7 +254,7 @@ func gen(dev, args string) (out string, err error) {
 	}
 	bo := &buildOption{
 		gen:      true,
-		build:    false,
+		nobuild:  true,
 		deploy:   false,
 		nonotify: true,
 	}
@@ -293,7 +321,7 @@ func argstoevent(e *sse.EventInfo, args string) {
 // retry
 func retry(dev, args string) (out string, err error) {
 	log.Println("got retry from ", dev)
-
+	f := parseFlag(args)
 	brocker, err := sse.GetBrokerFromPerson(dev)
 	if err != nil {
 		fmt.Println("cant find previous released project")
@@ -310,8 +338,9 @@ func retry(dev, args string) (out string, err error) {
 		return
 	}
 	bo := &buildOption{
-		gen:      true,
-		build:    true,
+		gen: true,
+		// build:    true, // default to configs
+		nobuild:  f.nobuild,
 		deploy:   true,
 		nonotify: true,
 	}
@@ -347,7 +376,7 @@ func reapply(dev, args string) (out string, err error) {
 
 	bo := &buildOption{
 		gen:      true,
-		build:    false, // no build image again
+		nobuild:  true, // no build image again?
 		deploy:   true,
 		nonotify: true,
 	}

@@ -63,6 +63,10 @@ spec:
           - cKGa3eVAF7tZMvCukdsP
           - -wechat-receiver-url 
           - http://wechat.haodai.net
+          - -harbor-user
+          - devuser
+          - -harbor-pass
+          - Ln28ohyDn
           ports:
           - containerPort: 8089
           volumeMounts:
