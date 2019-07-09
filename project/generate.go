@@ -95,9 +95,9 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 	// 	return
 	// }
 
-	c := &genOption{}
+	c := genOption{}
 	for _, op := range options {
-		op(c)
+		op(&c)
 	}
 	if c.autoenv == nil {
 		err = fmt.Errorf("autoenv is empty")
@@ -112,9 +112,9 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 		// envMap = make(map[string]string)
 	}
 	p.envMap = envMap
-	p.genOption = c
+	// p.genOption = c
 
-	target, err = p.genK8s()
+	target, err = p.genK8s(c)
 	return
 }
 

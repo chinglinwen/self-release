@@ -58,7 +58,7 @@ type Project struct {
 
 	op *projectOption
 	// init             *initOption
-	genOption        *genOption
+	// genOption        *genOption
 	configConfigPath string // configpath in config-deploy
 	// env              map[string]string // store config.env values, only init need this
 }

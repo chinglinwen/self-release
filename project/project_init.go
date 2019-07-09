@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strings"
 	"wen/self-release/git"
 
 	"github.com/chinglinwen/log"
@@ -83,161 +82,147 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 	}
 	log.Printf("got init option: %#v", c)
 
-	// p, err = NewProject(project, SetBranch(c.branch), SetNoReadConfig()) // init put files on develop branch
-	// if err != nil {
-	// 	return
-	// }
-
 	if p.Inited() && !c.force {
 		// it should be by tag? text to force
 		err = fmt.Errorf("project %v already inited, you can try force init", p.Project)
 		return
 	}
-	// p.init = c // seems no use?
-
-	// can we fix first init issue? need two times of init?
-	// let's read env config first, it seems we read config first, no need two time of read?
-	// only if there have no config before init
-
-	// set envs
-	// init file using template cause re-init much problem? changes maybe lost?
-	// say build-docker should not using env, as init(static config.env) have no projects info?
-
 	err = p.initAll(c)
 	return
-
-	// errs := make(errlist)
-	// found := false
-
-	// var updateconfigrepo bool
-
-	// // not inited, using template config
-	// tp, e := readTemplateConfig(p.configrepo, c.configVer)
-	// if e != nil {
-	// 	err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", p.Project, e, c.configVer)
-	// 	return
-	// }
-
-	// log.Printf("read template main config to init project %q\n", p.Project)
-
-	// /*
-	//   - name: config.yaml
-	//     template: php.v1/config.yaml
-	//     final: config:self-release/config.yaml
-	//   - name: config.env
-	//     template: php.v1/config.env
-	//     final: config:self-release/config.env
-	// */
-
-	// // we add item here, so remove two config items, to simplify
-	// files := []File{
-	// 	{Name: "config.yaml", Template: GetDefaultConfigVer() + "/config.yaml", Final: "config:self-release/config.yaml"},
-	// 	{Name: "config.env", Template: GetDefaultConfigVer() + "/config.env", Final: "config:self-release/config.env"},
-	// }
-	// files = append(files, tp.Files...)
-
-	// // copy from template to project repo, later to customize it? generate final by setting
-	// for _, v := range files {
-
-	// 	// // init should only concern with config.yaml? init need includes repotemplate
-	// 	// if v.Name != "config.yaml" {
-	// 	// 	continue
-	// 	// }
-
-	// 	if c.singleName != "" {
-	// 		if c.singleName != v.Name { // try support filename match?
-	// 			// mostly specify file to init single file, so continue
-	// 			continue
-	// 		}
-	// 	}
-
-	// 	if v.RepoTemplate == "" && v.Final == "" {
-	// 		err = fmt.Errorf("repotemplate and final file not specified for %v", v.Name)
-	// 		errs[v.Name] = err
-	// 		continue
-	// 	}
-	// 	found = true
-
-	// 	// init only init final or repotemplate, not both
-
-	// 	// === generate repo template parts( if not ovewwrite, custom setting will be keeped)
-	// 	updateconfig, e := p.initRepoTemplateOrFinal(p.configrepo, c.force, v, envMap)
-	// 	if e != nil {
-	// 		err = fmt.Errorf("initRepoTemplateOrFinal project: %v file: %v err: %v", p.Project, v.RepoTemplate, e)
-	// 		errs[v.Name] = err
-	// 		continue
-	// 	}
-	// 	if updateconfig {
-	// 		// if one item update exist, commit it
-	// 		updateconfigrepo = true
-	// 	}
-	// 	// if p.repo.IsExist(v.Final) && !v.Overwrite && !p.Force {
-	// 	// 	err = fmt.Errorf("final file: %v exist and force or overwrite not set, skip", v.Final)
-	// 	// 	errs[v.Name] = err
-	// 	// 	continue
-	// 	// }
-
-	// 	// // check file setting format is valid? say v.template is empty
-	// 	// if v.Template == "" {
-	// 	// 	err = fmt.Errorf("template file not specified for %v", v.Name)
-	// 	// 	errs[v.Name] = err
-	// 	// 	continue
-	// 	// }
-
-	// 	// f := filepath.Join("template", v.Template) // prefix template for template
-	// 	// tfile, e := configrepo.GetFile(f)
-	// 	// if e != nil {
-	// 	// 	err = fmt.Errorf("get template file: %v err: %v", f, e)
-	// 	// 	errs[v.Name] = err
-	// 	// 	continue
-	// 	// }
-
-	// 	// // if no variable to replace or no custom setting, no need to init repotemplate?
-	// 	// if v.RepoTemplate == "" {
-	// 	// 	// no need init empty template, repo template is for customize
-	// 	// 	// nontheless, put one there? put _ops/template/
-	// 	// 	log.Println("RepoTemplate is empty, skip init for file:", v.Name)
-	// 	// 	continue
-	// 	// }
-
-	// 	// log.Println("creating init file:", v.Name)
-	// 	// if v.Perm == 0 {
-	// 	// 	err = p.repo.Add(v.RepoTemplate, string(tfile))
-	// 	// } else {
-	// 	// 	err = p.repo.Add(v.RepoTemplate, string(tfile), git.SetPerm(v.Perm))
-	// 	// }
-
-	// 	// if v.perm == 0 {
-	// 	// 	err = p.repo.AddAndPush(v.RepoTemplate, string(tfile), "init "+v.RepoTemplate)
-	// 	// } else {
-	// 	// 	err = p.repo.AddAndPush(v.RepoTemplate, string(tfile), "init "+v.RepoTemplate, git.SetPerm(v.perm))
-	// 	// }
-
-	// 	// // how to init final?, we don't init final, we generate final in later steps
-	// }
-	// if !found {
-	// 	err = fmt.Errorf("init for %v, err: not found item for the init in config", p.Project)
-	// 	return
-	// }
-	// if len(errs) != 0 {
-	// 	err = &errs
-	// 	return
-	// }
-	// err = p.CommitAndPush("init config.yaml for " + p.Project)
-	// if err != nil {
-	// 	err = fmt.Errorf("init push err: %v, project: %v", err, p.Project)
-	// 	return
-	// }
-	// if updateconfigrepo {
-	// 	p.configrepo.CommitAndPush("init config.yaml for " + p.Project)
-	// 	if err != nil {
-	// 		err = fmt.Errorf("init push err: %v, project: %v", err, p.Project)
-	// 		return
-	// 	}
-	// }
-
-	// return
 }
+
+// errs := make(errlist)
+// found := false
+
+// var updateconfigrepo bool
+
+// // not inited, using template config
+// tp, e := readTemplateConfig(p.configrepo, c.configVer)
+// if e != nil {
+// 	err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", p.Project, e, c.configVer)
+// 	return
+// }
+
+// log.Printf("read template main config to init project %q\n", p.Project)
+
+// /*
+//   - name: config.yaml
+//     template: php.v1/config.yaml
+//     final: config:self-release/config.yaml
+//   - name: config.env
+//     template: php.v1/config.env
+//     final: config:self-release/config.env
+// */
+
+// // we add item here, so remove two config items, to simplify
+// files := []File{
+// 	{Name: "config.yaml", Template: GetDefaultConfigVer() + "/config.yaml", Final: "config:self-release/config.yaml"},
+// 	{Name: "config.env", Template: GetDefaultConfigVer() + "/config.env", Final: "config:self-release/config.env"},
+// }
+// files = append(files, tp.Files...)
+
+// // copy from template to project repo, later to customize it? generate final by setting
+// for _, v := range files {
+
+// 	// // init should only concern with config.yaml? init need includes repotemplate
+// 	// if v.Name != "config.yaml" {
+// 	// 	continue
+// 	// }
+
+// 	if c.singleName != "" {
+// 		if c.singleName != v.Name { // try support filename match?
+// 			// mostly specify file to init single file, so continue
+// 			continue
+// 		}
+// 	}
+
+// 	if v.RepoTemplate == "" && v.Final == "" {
+// 		err = fmt.Errorf("repotemplate and final file not specified for %v", v.Name)
+// 		errs[v.Name] = err
+// 		continue
+// 	}
+// 	found = true
+
+// 	// init only init final or repotemplate, not both
+
+// 	// === generate repo template parts( if not ovewwrite, custom setting will be keeped)
+// 	updateconfig, e := p.initRepoTemplateOrFinal(p.configrepo, c.force, v, envMap)
+// 	if e != nil {
+// 		err = fmt.Errorf("initRepoTemplateOrFinal project: %v file: %v err: %v", p.Project, v.RepoTemplate, e)
+// 		errs[v.Name] = err
+// 		continue
+// 	}
+// 	if updateconfig {
+// 		// if one item update exist, commit it
+// 		updateconfigrepo = true
+// 	}
+// 	// if p.repo.IsExist(v.Final) && !v.Overwrite && !p.Force {
+// 	// 	err = fmt.Errorf("final file: %v exist and force or overwrite not set, skip", v.Final)
+// 	// 	errs[v.Name] = err
+// 	// 	continue
+// 	// }
+
+// 	// // check file setting format is valid? say v.template is empty
+// 	// if v.Template == "" {
+// 	// 	err = fmt.Errorf("template file not specified for %v", v.Name)
+// 	// 	errs[v.Name] = err
+// 	// 	continue
+// 	// }
+
+// 	// f := filepath.Join("template", v.Template) // prefix template for template
+// 	// tfile, e := configrepo.GetFile(f)
+// 	// if e != nil {
+// 	// 	err = fmt.Errorf("get template file: %v err: %v", f, e)
+// 	// 	errs[v.Name] = err
+// 	// 	continue
+// 	// }
+
+// 	// // if no variable to replace or no custom setting, no need to init repotemplate?
+// 	// if v.RepoTemplate == "" {
+// 	// 	// no need init empty template, repo template is for customize
+// 	// 	// nontheless, put one there? put _ops/template/
+// 	// 	log.Println("RepoTemplate is empty, skip init for file:", v.Name)
+// 	// 	continue
+// 	// }
+
+// 	// log.Println("creating init file:", v.Name)
+// 	// if v.Perm == 0 {
+// 	// 	err = p.repo.Add(v.RepoTemplate, string(tfile))
+// 	// } else {
+// 	// 	err = p.repo.Add(v.RepoTemplate, string(tfile), git.SetPerm(v.Perm))
+// 	// }
+
+// 	// if v.perm == 0 {
+// 	// 	err = p.repo.AddAndPush(v.RepoTemplate, string(tfile), "init "+v.RepoTemplate)
+// 	// } else {
+// 	// 	err = p.repo.AddAndPush(v.RepoTemplate, string(tfile), "init "+v.RepoTemplate, git.SetPerm(v.perm))
+// 	// }
+
+// 	// // how to init final?, we don't init final, we generate final in later steps
+// }
+// if !found {
+// 	err = fmt.Errorf("init for %v, err: not found item for the init in config", p.Project)
+// 	return
+// }
+// if len(errs) != 0 {
+// 	err = &errs
+// 	return
+// }
+// err = p.CommitAndPush("init config.yaml for " + p.Project)
+// if err != nil {
+// 	err = fmt.Errorf("init push err: %v, project: %v", err, p.Project)
+// 	return
+// }
+// if updateconfigrepo {
+// 	p.configrepo.CommitAndPush("init config.yaml for " + p.Project)
+// 	if err != nil {
+// 		err = fmt.Errorf("init push err: %v, project: %v", err, p.Project)
+// 		return
+// 	}
+// }
+
+// return
+// }
 
 /*
   # php
@@ -385,7 +370,7 @@ func (p *Project) initK8s(envMap map[string]string, c initOption) (update bool, 
 // let gen k8s, to decide if it need init again?
 // can we make this optional?
 //
-func (p *Project) genK8s() (target string, err error) {
+func (p *Project) genK8s(c genOption) (target string, err error) {
 	if p.envMap == nil {
 		err = fmt.Errorf("no any env specified, likely can't generate yaml")
 		return
@@ -412,8 +397,8 @@ func (p *Project) genK8s() (target string, err error) {
 
 	if needinit {
 		log.Printf("doing initk8s...")
-		c := initOption{force: true} // try generate everytime, no need to check force?
-		_, e := p.initK8s(p.envMap, c)
+		co := initOption{force: true} // try generate everytime, no need to check force?
+		_, e := p.initK8s(p.envMap, co)
 		if e != nil {
 			err = fmt.Errorf("initK8s err: %v", e)
 			return
@@ -455,17 +440,6 @@ func commitandpush(repo *git.Repo, text string) (err error) {
 	}
 	return
 }
-
-/*
-
-_, e := ValidateByKubectl(finalbody, file)
-			if err != nil {
-				log.Printf("validate finalbody for: %v, err: %v", file, e)
-				// err = fmt.Errorf("validate finalbody for: %v, err: %v", file, e)
-				// continue or just logs
-			}
-			log.Printf("validate finalbody for: %v ok", file)
-*/
 
 // copy content to any repo
 // copytoconfig is init? init to two repos?
@@ -566,7 +540,7 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 			log.Printf("%v should changed, it's already exist and no force provided, skip", dst)
 			return
 		} else {
-			note = "(force)"
+			note = "(overwrite)"
 		}
 	}
 	if o.verify {
@@ -606,10 +580,10 @@ func getcontent(repo *git.Repo, path string) (content string, err error) {
 
 // we just overwrite it
 func putcontent(repo *git.Repo, path, content string) (err error) {
-	exist := repo.IsExist(path)
-	if exist {
-		log.Printf("file: %v exist, will be overwrite", path)
-	}
+	// exist := repo.IsExist(path)
+	// if exist {
+	// 	log.Printf("file: %v exist, will be overwrite", path)
+	// }
 	err = repo.Add(path, content)
 	return
 }
@@ -639,98 +613,98 @@ func checkChanged(repo *git.Repo, path, content string) (exist, changed bool, er
 	return
 }
 
-// if no variable to replace or no custom setting, no need to init repotemplate?
-// we generate for init, so it will easier to custom later
-// gen or add to git?  // why not generate once
-func (p *Project) initRepoTemplateOrFinal(configrepo *git.Repo, force bool, v File, envMap map[string]string) (updateconfigrepo bool, err error) {
-	if v.RepoTemplate == "" && v.Final == "" {
-		err = fmt.Errorf("nothing toinit for project: %v, file: %v, skip", p.Project, v.Name)
-		return
-	}
-	// store repotemplate to configrepo if prefixed with config:
-	var (
-		repo = p.repo // for repotemplate only?
-		// updateprojectrepo bool  // we always update project repo for init phase
-		// updateconfigrepo bool
-		rtmplfile string
-		// rtmplconfig       bool // repotemplate flag store to config
-	)
+// // if no variable to replace or no custom setting, no need to init repotemplate?
+// // we generate for init, so it will easier to custom later
+// // gen or add to git?  // why not generate once
+// func (p *Project) initRepoTemplateOrFinal(configrepo *git.Repo, force bool, v File, envMap map[string]string) (updateconfigrepo bool, err error) {
+// 	if v.RepoTemplate == "" && v.Final == "" {
+// 		err = fmt.Errorf("nothing toinit for project: %v, file: %v, skip", p.Project, v.Name)
+// 		return
+// 	}
+// 	// store repotemplate to configrepo if prefixed with config:
+// 	var (
+// 		repo = p.repo // for repotemplate only?
+// 		// updateprojectrepo bool  // we always update project repo for init phase
+// 		// updateconfigrepo bool
+// 		rtmplfile string
+// 		// rtmplconfig       bool // repotemplate flag store to config
+// 	)
 
-	projectName := p.Project
+// 	projectName := p.Project
 
-	if v.RepoTemplate != "" {
-		rtmpl := strings.Split(v.RepoTemplate, ":")
-		if len(rtmpl) == 1 {
-			// rrepo = p.repo
-			// updateprojectrepo = true
-			rtmplfile = rtmpl[0] // store to project repo
-		} else if len(rtmpl) == 2 {
-			repo = configrepo
-			updateconfigrepo = true
-			rtmplfile = filepath.Join(projectName, rtmpl[1])
-			log.Printf("will update config for %v\n", v.Name)
-			// rtmplconfig = true // will store to config repo
-		} else {
-			err = fmt.Errorf("repotemplate value incorrect, should be \"path\" or \"config:path\" for %v", v.Name)
-			return
-		}
-	}
+// 	if v.RepoTemplate != "" {
+// 		rtmpl := strings.Split(v.RepoTemplate, ":")
+// 		if len(rtmpl) == 1 {
+// 			// rrepo = p.repo
+// 			// updateprojectrepo = true
+// 			rtmplfile = rtmpl[0] // store to project repo
+// 		} else if len(rtmpl) == 2 {
+// 			repo = configrepo
+// 			updateconfigrepo = true
+// 			rtmplfile = filepath.Join(projectName, rtmpl[1])
+// 			log.Printf("will update config for %v\n", v.Name)
+// 			// rtmplconfig = true // will store to config repo
+// 		} else {
+// 			err = fmt.Errorf("repotemplate value incorrect, should be \"path\" or \"config:path\" for %v", v.Name)
+// 			return
+// 		}
+// 	}
 
-	var initfile string
-	var evaltemplate bool
-	var exist bool
-	if v.RepoTemplate != "" {
-		initfile = rtmplfile // init repotemplate, later generate final
-	} else {
-		initfile = v.Final
-		evaltemplate = true
-	}
+// 	var initfile string
+// 	var evaltemplate bool
+// 	var exist bool
+// 	if v.RepoTemplate != "" {
+// 		initfile = rtmplfile // init repotemplate, later generate final
+// 	} else {
+// 		initfile = v.Final
+// 		evaltemplate = true
+// 	}
 
-	exist = repo.IsExist(initfile)
+// 	exist = repo.IsExist(initfile)
 
-	// force should only for config.yaml and repo, force for redo of  init
-	// if exist && v.Name == "config.yaml" && !p.InitForce {
-	// 	log.Printf("init file: %v exist and force have not set, skip", v.Final)
-	// 	return
-	// }
-	if exist && !v.Overwrite && !force {
-		log.Printf("init file: %v exist and force or overwrite have not set, skip", v.Final)
-		return
-	}
+// 	// force should only for config.yaml and repo, force for redo of  init
+// 	// if exist && v.Name == "config.yaml" && !p.InitForce {
+// 	// 	log.Printf("init file: %v exist and force have not set, skip", v.Final)
+// 	// 	return
+// 	// }
+// 	if exist && !v.Overwrite && !force {
+// 		log.Printf("init file: %v exist and force or overwrite have not set, skip", v.Final)
+// 		return
+// 	}
 
-	// get config template
-	f := filepath.Join("template", v.Template) // prefix template for template
-	tfile, e := configrepo.GetFile(f)
-	if e != nil {
-		err = fmt.Errorf("get configtemplate file: %v err: %v", f, e)
-		return
-	}
-	var tbody string
-	var note string
-	if evaltemplate {
-		tbody, err = generateByMap(string(tfile), envMap)
-		if err != nil {
-			err = fmt.Errorf("get configtemplate file: %v err: %v", f, err)
-			return
-		}
-		note = "(generated)"
-	} else {
-		tbody = string(tfile)
-	}
-	if updateconfigrepo {
-		note += "(init in configrepo)"
-	}
+// 	// get config template
+// 	f := filepath.Join("template", v.Template) // prefix template for template
+// 	tfile, e := configrepo.GetFile(f)
+// 	if e != nil {
+// 		err = fmt.Errorf("get configtemplate file: %v err: %v", f, e)
+// 		return
+// 	}
+// 	var tbody string
+// 	var note string
+// 	if evaltemplate {
+// 		tbody, err = generateByMap(string(tfile), envMap)
+// 		if err != nil {
+// 			err = fmt.Errorf("get configtemplate file: %v err: %v", f, err)
+// 			return
+// 		}
+// 		note = "(generated)"
+// 	} else {
+// 		tbody = string(tfile)
+// 	}
+// 	if updateconfigrepo {
+// 		note += "(init in configrepo)"
+// 	}
 
-	if v.Perm == 0 {
-		err = repo.Add(initfile, string(tbody))
-	} else {
-		err = repo.Add(initfile, string(tbody), git.SetPerm(v.Perm))
-	}
+// 	if v.Perm == 0 {
+// 		err = repo.Add(initfile, string(tbody))
+// 	} else {
+// 		err = repo.Add(initfile, string(tbody), git.SetPerm(v.Perm))
+// 	}
 
-	log.Printf("inited file: %v%v, project: %v\n", initfile, note, p.Project)
+// 	log.Printf("inited file: %v%v, project: %v\n", initfile, note, p.Project)
 
-	return
-}
+// 	return
+// }
 
 // func (p *Project) initFinal(v File) (err error) {
 
