@@ -70,23 +70,16 @@ func TestGetProject(t *testing.T) {
 
 func TestCheckPerm(t *testing.T) {
 	p, u, env := "flow_center/tangguo", "robot", "online"
-	ok, err := CheckPerm(p, u, env)
+	err := CheckPerm(p, u, env)
 	if err != nil {
 		t.Error("CheckPerm err", err)
 		return
 	}
-	if !ok {
-		t.Error("CheckPerm failed, should be allow")
-		return
-	}
 	p, u, env = "flow_center/tangguo", "robot", "online1"
-	ok, err = CheckPerm(p, u, env)
+	err = CheckPerm(p, u, env)
 	if err == nil {
 		t.Error("CheckPerm err, shoud not allow", err)
 		return
 	}
-	if ok {
-		t.Error("CheckPerm failed, should not allow")
-		return
-	}
+
 }

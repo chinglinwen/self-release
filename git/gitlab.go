@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
@@ -140,24 +141,31 @@ func GetProjectMembers(pathname string) (err error) {
 	return
 }
 
-func CheckPerm(projectPath, user, env string) (allow bool, err error) {
+func CheckPerm(projectPath, user, env string) (err error) {
+	u, err := GetUser(user)
+	if err != nil {
+		err = fmt.Errorf("get user err: %v", err)
+		return
+	}
+	if u.IsAdmin {
+		log.Printf("%v is admin, allowed\n", u.Name)
+		return nil
+	}
+	group, _ := getGroupAndName(projectPath)
+	if group == user {
+		return nil
+	}
 	g, err := GetGroup(projectPath)
 	if err != nil {
 		err = fmt.Errorf("get group err: %v", err)
 		return
 	}
-
 	p, err := GetProject(projectPath)
 	if err != nil {
 		err = fmt.Errorf("get project err: %v", err)
 		return
 	}
 	// spew.Dump("p:", p)
-	u, err := GetUser(user)
-	if err != nil {
-		err = fmt.Errorf("get user err: %v", err)
-		return
-	}
 	// spew.Dump("u:", u)
 	al, err := getAccessLevel(p.ID, g.ID, u.ID)
 	if err != nil {
@@ -165,8 +173,7 @@ func CheckPerm(projectPath, user, env string) (allow bool, err error) {
 		return
 	}
 	envs := getAllowedEnv(al)
-	allow = isEnvOk(env, envs)
-	if !allow {
+	if !isEnvOk(env, envs) {
 		err = fmt.Errorf("permission denied, allowed envs: %v", envs)
 		return
 	}
