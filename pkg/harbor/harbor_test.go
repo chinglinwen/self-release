@@ -25,27 +25,18 @@ func TestCreateProject(t *testing.T) {
 }
 
 func TestCreateProjectIfNotExist(t *testing.T) {
-	created, err := CreateProjectIfNotExist("wenzhenglin")
+	err := CreateProjectIfNotExist("wenzhenglin")
 	if err != nil {
 		t.Error("CreateProjectIfNotExist project err", err)
-		return
-	}
-	if created != false {
-		t.Error("project wenzhenglin exist, shoult not create")
 		return
 	}
 	// log.Println("created", created)
 
-	created, err = CreateProjectIfNotExist("aaa")
+	err = CreateProjectIfNotExist("aaa1")
 	if err != nil {
 		t.Error("CreateProjectIfNotExist project err", err)
 		return
 	}
-	if created != true {
-		t.Error("project aaa exist, shoult not create")
-		return
-	}
-
 }
 
 func TestCheckProject(t *testing.T) {

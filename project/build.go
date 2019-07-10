@@ -1,6 +1,10 @@
 package project
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+	"wen/self-release/pkg/harbor"
+)
 
 // Build only build develop branch?
 func (p *Project) Build(project, tag, env string) (out chan string, err error) {
@@ -22,8 +26,21 @@ func (p *Project) Build(project, tag, env string) (out chan string, err error) {
 	// }
 
 	// consider this? https://github.com/go-cmd/cmd
-
+	err = p.CreateHarborProjectIfNotExist()
+	if err != nil {
+		err = fmt.Errorf("try create harbor project err: %v", err)
+		return
+	}
 	return Build(project, tag, env)
+}
+
+func (p *Project) CreateHarborProjectIfNotExist() (err error) {
+	s := strings.Split(p.Project, "/")
+	if len(s) == 0 {
+		err = fmt.Errorf("project: %v, format invalid, should be group/repo", p.Project)
+		return
+	}
+	return harbor.CreateProjectIfNotExist(s[0])
 }
 
 // func Build(dir, project, tag, env string) (out string, err error) {

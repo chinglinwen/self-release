@@ -76,19 +76,24 @@ func CreateProject(name string) (err error) {
 	}
 	// fmt.Printf("respcode", resp.StatusCode)
 	// spew.Dump("resp", **resp)
-	return ParseResp(resp)
-}
-
-func CreateProjectIfNotExist(name string) (created bool, err error) {
-	exist, err := CheckProject(name)
+	err = ParseResp(resp)
 	if err != nil {
+		err = fmt.Errorf("create project failed %v", e)
 		return
 	}
-	if !exist {
-		created = true
-		return false, CreateProject(name)
-	}
 	return
+}
+
+func CreateProjectIfNotExist(name string) (err error) {
+	exist, err := CheckProject(name)
+	if err != nil {
+		err = fmt.Errorf("check if project exist err: %v", err)
+		return
+	}
+	if exist {
+		return
+	}
+	return CreateProject(name)
 }
 
 // func CheckProject(name string) bool {
@@ -109,11 +114,12 @@ func pretty(t string, a interface{}) {
 // *gorequest.Response *http.Response
 func ParseResp(resp *gorequest.Response) (err error) {
 	if resp == nil {
-		return fmt.Errorf("request failed, empty response")
+		return fmt.Errorf("empty response")
 	}
 	r := *resp
-	if r.StatusCode > 200 {
-		return fmt.Errorf("request failed, status: %v", r.Status)
+	c := r.StatusCode
+	if c == 200 || c == 201 {
+		return fmt.Errorf("status code: %v", c)
 	}
 	return nil
 }

@@ -347,6 +347,9 @@ func (repo *Repo) Fetch() (err error) {
 		Tags:  git.AllTags,
 		Force: true,
 	})
+	if err == git.NoErrAlreadyUpToDate {
+		err = nil
+	}
 	if err != nil {
 		err = fmt.Errorf("fetch err: %v", err)
 	}

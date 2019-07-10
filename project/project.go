@@ -91,6 +91,7 @@ func (p *Project) NeedBuild() bool {
 		return true
 	}
 }
+
 func (p *Project) ImageIsExist() bool {
 	exist, err := harbor.RepoTagIsExist(p.Project, p.Branch)
 	if err != nil {
