@@ -53,6 +53,7 @@ func doAction(dev, cmd string) (out string, err error) {
 	c := strings.Fields(cmd)[0]
 	args := strings.TrimPrefix(cmd, c)
 
+	// tolerate other args too
 	project, branch, _ := parseProject(args)
 	if project != "" {
 		err = sse.Lock(project, branch)

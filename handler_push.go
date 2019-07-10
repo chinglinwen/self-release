@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"time"
+	"wen/self-release/git"
 	"wen/self-release/pkg/notify"
 	"wen/self-release/pkg/sse"
 
@@ -160,6 +161,13 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	project := e.Project
 	branch := e.Branch
 	env := projectpkg.GetEnvFromBranch(e.Branch)
+
+	// check permission
+	err = git.CheckPerm(project, e.UserName, env)
+	if err != nil {
+		err = fmt.Errorf("check permission for %q, user: %v, err: %v", project, e.UserName, err)
+		return
+	}
 
 	// bname := strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
 	// b := NewBuilder(bname)

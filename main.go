@@ -61,9 +61,12 @@ func main() {
 	}))
 
 	g := e.Group("/api")
-	g.GET("/init", initAPIHandler)
-	g.GET("/gen", genAPIHandler)
-	g.GET("/rollback", rollbackAPIHandler)
+
+	// no where to handle auth?
+	// g.GET("/init", initAPIHandler)
+	// g.GET("/gen", genAPIHandler)
+	// g.GET("/rollback", rollbackAPIHandler)
+
 	g.GET("/wechat", wechatHandler)
 
 	e.POST("/hook", hookHandler)
