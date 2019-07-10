@@ -50,23 +50,28 @@ func RepoTagIsExist(repo, tag string) (exist bool, err error) {
 	return
 }
 
-func CheckProject(name string) (ok bool, err error) {
+func CheckProject(name string) (pid int64, err error) {
 	// list non-exist project will list all projects, so we find out ourself
 	projects, err := ListProjects()
 	if err != nil {
 		err = fmt.Errorf("list project err %v", err)
 		return
 	}
+	// fmt.Printf("got %v project\n", len(projects))
 	for _, v := range projects {
+		// fmt.Printf("project id: %v, name: %v\n", v.ProjectID, v.Name)
 		if v.Name == name {
-			ok = true
+			pid = v.ProjectID
+			// fmt.Printf("got project %#v\n", v)
 			return
 		}
+	}
+	if pid == 0 {
+		err = fmt.Errorf("project not found")
 	}
 	return
 }
 
-// not working for now
 func CreateProject(name string) (err error) {
 	log.Printf("creating harbor project %v", name)
 	resp, e := defaultClient.Projects.CreateProject(harbor.ProjectRequest{Name: name})
@@ -78,19 +83,40 @@ func CreateProject(name string) (err error) {
 	// spew.Dump("resp", **resp)
 	err = ParseResp(resp)
 	if err != nil {
-		err = fmt.Errorf("create project failed %v", e)
+		err = fmt.Errorf("create project: %v, failed %v", name, err)
+		return
+	}
+	return
+}
+
+func DeleteProject(name string) (err error) {
+	log.Printf("deleting harbor project %v", name)
+
+	pid, err := CheckProject(name)
+	if err != nil {
+		err = fmt.Errorf("check if project exist err: %v", err)
+		return
+	}
+
+	resp, e := defaultClient.Projects.DeleteProject(pid)
+	if e != nil {
+		err = fmt.Errorf("create project err %v", e)
+		return
+	}
+	// fmt.Printf("respcode", resp.StatusCode)
+	// spew.Dump("resp", **resp)
+	err = ParseResp(resp)
+	if err != nil {
+		err = fmt.Errorf("delete project: %v, failed %v", name, err)
 		return
 	}
 	return
 }
 
 func CreateProjectIfNotExist(name string) (err error) {
-	exist, err := CheckProject(name)
-	if err != nil {
-		err = fmt.Errorf("check if project exist err: %v", err)
-		return
-	}
-	if exist {
+	_, err = CheckProject(name)
+	if err == nil {
+		log.Println("project exist")
 		return
 	}
 	return CreateProject(name)
@@ -119,7 +145,7 @@ func ParseResp(resp *gorequest.Response) (err error) {
 	r := *resp
 	c := r.StatusCode
 	if c == 200 || c == 201 {
-		return fmt.Errorf("status code: %v", c)
+		return
 	}
-	return nil
+	return fmt.Errorf("status code: %v", c)
 }

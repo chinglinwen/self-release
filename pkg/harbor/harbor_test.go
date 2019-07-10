@@ -17,7 +17,7 @@ func TestListProject(t *testing.T) {
 
 // create project err request failed, status: 401 Unauthorized
 func TestCreateProject(t *testing.T) {
-	err := CreateProject("aaa")
+	err := CreateProject("aaa1")
 	if err != nil {
 		t.Error("create project err", err)
 		return
@@ -25,11 +25,12 @@ func TestCreateProject(t *testing.T) {
 }
 
 func TestCreateProjectIfNotExist(t *testing.T) {
-	err := CreateProjectIfNotExist("wenzhenglin")
-	if err != nil {
-		t.Error("CreateProjectIfNotExist project err", err)
-		return
-	}
+	var err error
+	// err := CreateProjectIfNotExist("wenzhenglin")
+	// if err != nil {
+	// 	t.Error("CreateProjectIfNotExist project err", err)
+	// 	return
+	// }
 	// log.Println("created", created)
 
 	err = CreateProjectIfNotExist("aaa1")
@@ -38,14 +39,25 @@ func TestCreateProjectIfNotExist(t *testing.T) {
 		return
 	}
 }
-
+func TestDeleteProject(t *testing.T) {
+	err := DeleteProject("aaa1")
+	if err != nil {
+		t.Error("DeleteProject err", err)
+		return
+	}
+}
 func TestCheckProject(t *testing.T) {
-	if ok, _ := CheckProject("wenzhenglin"); !ok {
-		t.Error("project wenzhenglin should exist")
+	if _, err := CheckProject("wenzhenglin"); err != nil {
+		t.Error("check project wenzhenglin err", err)
 		return
 	}
 
-	if ok, _ := CheckProject("a"); ok {
+	// if _, err := CheckProject("aaa1"); err != nil {
+	// 	t.Error("check project aaa1 err", err)
+	// 	return
+	// }
+
+	if _, err := CheckProject("a"); err == nil {
 		t.Error("project a should not exist")
 		return
 	}
