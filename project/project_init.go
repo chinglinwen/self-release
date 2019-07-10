@@ -283,6 +283,10 @@ func (p *Project) initAll(c initOption) (err error) {
 // init docker just an optional steps
 // require build-docker.sh exist, if using self-release to build image
 func (p *Project) initDocker(envMap map[string]string, c initOption) (update bool, err error) {
+	repo, err := p.GetRepo()
+	if err != nil {
+		return
+	}
 	items := []struct {
 		src, dst string
 	}{
@@ -295,7 +299,7 @@ func (p *Project) initDocker(envMap map[string]string, c initOption) (update boo
 	var changed bool
 	for _, v := range items {
 		src := filepath.Join("template", p.Config.ConfigVer, v.src)
-		changed, err = p.CopyToRepo(src, v.dst, envMap)
+		changed, err = p.CopyToRepo(repo, src, v.dst, envMap)
 		if err != nil {
 			err = fmt.Errorf("copytoconfig err: %v", err)
 		}
@@ -308,7 +312,7 @@ func (p *Project) initDocker(envMap map[string]string, c initOption) (update boo
 		log.Println("docker init have no change")
 		return
 	}
-	err = commitandpush(p.repo, "init docker files by self-release")
+	err = commitandpush(repo, "init docker files by self-release")
 	return
 }
 
@@ -460,8 +464,8 @@ func (p *Project) CopyToConfig(src, dst string, envMap map[string]string) (chang
 	return CopyTo(p.configrepo, p.configrepo, src, dst, envMap)
 }
 
-func (p *Project) CopyToRepo(src, dst string, envMap map[string]string) (changed bool, err error) {
-	return CopyTo(p.configrepo, p.repo, src, dst, envMap)
+func (p *Project) CopyToRepo(torepo *git.Repo, src, dst string, envMap map[string]string) (changed bool, err error) {
+	return CopyTo(p.configrepo, torepo, src, dst, envMap)
 }
 
 var ErrNoChange = errors.New("have no change")

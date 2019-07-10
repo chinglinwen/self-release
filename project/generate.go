@@ -55,13 +55,13 @@ func SetGenEnv(env string) func(*genOption) {
 }
 
 // for init
-func (p *Project) GenerateAndPush(options ...func(*genOption)) (err error) {
-	_, err = p.Generate(options...)
-	if err != nil {
-		return
-	}
-	return p.CommitAndPush(fmt.Sprintf("generate for %v", p.Project))
-}
+// func (p *Project) GenerateAndPush(options ...func(*genOption)) (err error) {
+// 	_, err = p.Generate(options...)
+// 	if err != nil {
+// 		return
+// 	}
+// 	return p.CommitAndPush(fmt.Sprintf("generate for %v", p.Project))
+// }
 
 // get env by parse tag?
 // default is test env
@@ -385,9 +385,9 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 // 	return repo.GetFile(rtmplfile)
 // }
 
-func (p *Project) CommitAndPush(commitText string) (err error) {
-	return p.repo.CommitAndPush(commitText)
-}
+// func (p *Project) CommitAndPush(commitText string) (err error) {
+// 	return p.repo.CommitAndPush(commitText)
+// }
 
 func getHashByFile(file string) (sum string, err error) {
 	s, err := ioutil.ReadFile(file)

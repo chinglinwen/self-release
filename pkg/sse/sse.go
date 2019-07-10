@@ -302,6 +302,7 @@ func (b *Broker) GetExistMsg() (existmsg string) {
 
 var builderLock map[string]bool // mutex for operation
 
+// is this need to base on project only?
 func Lock(project, branch string) (err error) {
 	if builderLock == nil {
 		builderLock = make(map[string]bool)

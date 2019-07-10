@@ -384,7 +384,7 @@ func getproject(project, branch string, rollback bool) (p *projectpkg.Project, e
 	}
 	if rollback {
 		argBranch := branch
-		branch, err = p.GetRepo().GetPreviousTag() // rollback before specific tag, just redeploy then?
+		branch, err = p.GetPreviousTag() // rollback before specific tag, just redeploy then?
 		if err != nil {
 			err = fmt.Errorf("GetPreviousTag err: %v", err)
 			return

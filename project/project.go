@@ -51,14 +51,14 @@ type Project struct {
 	// image ?
 	// size of replicas?
 	configrepo *git.Repo
-	repo       *git.Repo
-	WorkDir    string // git local path
-	envMap     map[string]string
+	repo_      *git.Repo // not for directly use, used for avoid re-clone for same project and branch?
+	// WorkDir    string // git local path
+	envMap map[string]string
 	// autoenv map[string]string // env from hook
 
-	op *projectOption
-	// init             *initOption
-	// genOption        *genOption
+	op projectOption
+	// init            initOption
+	// genOption        genOption
 	configConfigPath string // configpath in config-deploy
 	// env              map[string]string // store config.env values, only init need this
 }
@@ -151,9 +151,9 @@ func (p *Project) Inited() bool {
 	return false
 }
 
-func (p *Project) GetRepo() *git.Repo {
-	return p.repo
-}
+// func (p *Project) GetRepo() *git.Repo {
+// 	return p.repo
+// }
 
 // func SetGitForce() func(*Project) {
 // 	return func(p *Project) {
@@ -262,11 +262,11 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	// // force := p.InitForce
 
 	// // normal repo config take first
-	repo, e := getRepo(project, c.branch, c.nopull)
-	if e != nil {
-		err = fmt.Errorf("clone or open project: %v, err: %v, configver: %v", project, e, c.configVer)
-		return
-	}
+	// repo, e := getRepo(project, c.branch, c.nopull)
+	// if e != nil {
+	// 	err = fmt.Errorf("clone or open project: %v, err: %v, configver: %v", project, e, c.configVer)
+	// 	return
+	// }
 
 	// try get config, to overwrite default config
 	config, err := readProjectConfig(configrepo, project)
@@ -351,18 +351,51 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	// 	return
 	// }
 
-	p.op = c
+	p.op = *c
 	// p.ConfigVer = c.configVer
 	// p.DevBranch = c.devBranch
 
 	p.configrepo = configrepo
-	p.repo = repo
-	p.WorkDir = p.repo.GetWorkDir()
+	// p.repo = repo
+	// p.WorkDir = p.repo.GetWorkDir()
 
 	p.configConfigPath = filepath.Join(defaultAppName, p.Project)
 
 	log.Printf("create project: %q ok\n", project)
 
+	return
+}
+
+func (p *Project) GetRepo() (repo *git.Repo, err error) {
+	if p.repo_ != nil {
+		repo = p.repo_
+		return
+	}
+	c := p.op
+	repo, err = getRepo(p.Project, p.Branch, c.nopull)
+	if err != nil {
+		err = fmt.Errorf("clone or open project: %v, err: %v, configver: %v", p.Project, err, c.configVer)
+		return
+	}
+	p.repo_ = repo
+	return
+}
+
+func (p *Project) GetWorkDir() (workdir string, err error) {
+	repo, err := p.GetRepo()
+	if err != nil {
+		return
+	}
+	workdir = repo.GetWorkDir()
+	return
+}
+
+func (p *Project) GetPreviousTag() (tag string, err error) {
+	repo, err := p.GetRepo()
+	if err != nil {
+		return
+	}
+	tag, err = repo.GetPreviousTag()
 	return
 }
 

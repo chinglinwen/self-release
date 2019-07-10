@@ -33,9 +33,13 @@ func buildAPIHandler(c echo.Context) (err error) {
 	if err != nil {
 		return
 	}
+	workdir, err := p.GetWorkDir()
+	if err != nil {
+		return
+	}
 
 	log.Printf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
-	out, e := buildpkg.Build(p.WorkDir, project, branch, env)
+	out, e := buildpkg.Build(workdir, project, branch, env)
 	// e := p.Build(project, branch, env, out)
 	if e != nil {
 		err = fmt.Errorf("build err: %v", e)

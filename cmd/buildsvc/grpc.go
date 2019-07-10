@@ -72,14 +72,17 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 	if err != nil {
 		return
 	}
-
+	workdir, err := p.GetWorkDir()
+	if err != nil {
+		return
+	}
 	log.Printf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
 
 	// var wg sync.WaitGroup
 
 	out := make(chan string, 100)
 	// defer close(out)
-	err = buildpkg.BuildStreamOutput(p.WorkDir, project, branch, env, out)
+	err = buildpkg.BuildStreamOutput(workdir, project, branch, env, out)
 	// e := p.Build(project, branch, env, out)
 	if err != nil {
 		err = fmt.Errorf("build err: %v", err)
