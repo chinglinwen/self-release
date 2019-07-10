@@ -8,6 +8,8 @@ package main
 
 import (
 	"flag"
+	"wen/self-release/pkg/harbor"
+	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
 	"github.com/labstack/echo"
@@ -16,6 +18,14 @@ import (
 
 var (
 	port = flag.String("p", "8005", "port")
+
+	defaultConfigRepo = flag.String("configrepo", "wenzhenglin/config-deploy", "default config-repo")
+	buildsvcAddr      = flag.String("buildsvc", "buildsvc:10000", "buildsvc address host:port ( or k8s service name )")
+	defaultHarborKey  = flag.String("harborkey", "eyJhdXRocyI6eyJoYXJib3IuaGFvZGFpLm5ldCI6eyJ1c2VybmFtZSI6ImRldnVzZXIiLCJwYXNzd29yZCI6IkxuMjhvaHlEbiIsImVtYWlsIjoieXVud2VpQGhhb2RhaS5uZXQiLCJhdXRoIjoiWkdWMmRYTmxjanBNYmpJNGIyaDVSRzQ9In19fQ==", "default HarborKey to pull image")
+
+	harborURL  = flag.String("harbor-url", "http://harbor.haodai.net", "harbor URL for harbor auth")
+	harborUser = flag.String("harbor-user", "", "harbor user for harbor auth")
+	harborPass = flag.String("harbor-pass", "", "harbor pass for harbor auth")
 )
 
 func main() {
@@ -23,6 +33,9 @@ func main() {
 	log.Debug.Println("debug is on")
 
 	flag.Parse()
+
+	projectpkg.Setting(*defaultHarborKey, *buildsvcAddr, *defaultConfigRepo)
+	harbor.Setting(*harborURL, *harborUser, *harborPass)
 
 	e := echo.New()
 	//e.Use(middleware.Logger())

@@ -54,6 +54,10 @@ func (b *base) String() string {
 
 // let's pull for everytime it uses, so to keep update
 func GetConfigRepo() (configrepo *git.Repo, err error) {
+	if defaultBase == nil {
+		err = fmt.Errorf("base not initialized")
+		return
+	}
 	return git.NewWithPull(defaultBase.configRepo, git.SetBranch("templateconfig")) //, git.SetNoPull())
 }
 
