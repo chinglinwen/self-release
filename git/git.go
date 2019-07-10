@@ -204,7 +204,8 @@ func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
 
 	err = repo.CLone()
 	if err != nil {
-
+		err = fmt.Errorf("clone err: %v", err)
+		return
 	}
 	wrk, err := repo.R.Worktree()
 	if err != nil {
