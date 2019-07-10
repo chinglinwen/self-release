@@ -11,3 +11,6 @@ test.sh
 cmd/buildsvc/buildsvc
 cmd/buildsvc/client/client
 repos
+
+buildsvc.yaml
+self-release.yaml

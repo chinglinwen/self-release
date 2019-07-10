@@ -1,0 +1,83 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: self-release
+  namespace: yunwei
+spec:
+  ports:
+  - name: web
+    port: 80
+    targetPort: 8089
+    protocol: TCP
+  selector:
+    app: self-release
+  sessionAffinity: ClientIP
+
+# Ingress
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: self-release
+  namespace: yunwei
+  # annotations:
+    #traefik.ingress.kubernetes.io/frontend-entry-points: http,https
+    # traefik.ingress.kubernetes.io/redirect-entry-point: https
+spec:
+  rules:
+  - host: build.newops.haodai.net
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: self-release
+          servicePort: web
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: self-release
+  namespace: yunwei
+  labels:
+    app: self-release
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: self-release
+  template:
+    metadata:
+      labels:
+        app: self-release
+    spec:
+      containers:
+        - name: self-release
+          image: harbor.haodai.net/ops/self-release:v1
+          imagePullPolicy: Always
+          # command: ["/bin/sh","-c","sleep 3600000"]
+          args:
+          - -gitlab-user 
+          - CHANGETHIS
+          - -gitlab-pass
+          - CHANGETHIS
+          - -wechat-receiver-url 
+          - http://wechat.haodai.net
+          - -harbor-user
+          - CHANGETHIS
+          - -harbor-pass
+          - CHANGETHIS
+          ports:
+          - containerPort: 8089
+          volumeMounts:
+          - mountPath: /app/projectlogs
+            name: data
+      volumes:
+        - name: data
+          hostPath:
+            path: /data/k8s/self-release/projectlogs
+            type: DirectoryOrCreate
+      nodeSelector:
+        #kubernetes.io/hostname: 172.31.90.208
+        func: monitor
+        # env: yunwei
