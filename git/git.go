@@ -23,9 +23,10 @@ var (
 	// https://github.com/src-d/go-git/issues/999 token is deprecated
 	// defaultToken = flag.String("gitlab-token", "", "default gitlab token")
 
-	defaultGitlabURL = flag.String("gitlab-url", "http://g.haodai.net", "default gitlab url")
-	defaultUser      = flag.String("gitlab-user", "", "default gitlab user")
-	defaultPass      = flag.String("gitlab-pass", "", "default gitlab pass(personal token is ok)")
+	defaultGitlabURL  = flag.String("gitlab-url", "http://g.haodai.net", "default gitlab url")
+	defaultUser       = flag.String("gitlab-user", "", "default gitlab user")
+	defaultPass       = flag.String("gitlab-pass", "", "default gitlab pass(personal token is ok)")
+	gitlabAccessToken = flag.String("gitlab-token", "", "gitlab admin access token")
 
 	defaultRepoDir = flag.String("repoDir", "repos", "default path to store cloned projects")
 )

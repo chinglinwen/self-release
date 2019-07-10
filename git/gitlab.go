@@ -1,7 +1,6 @@
 package git
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 
@@ -18,13 +17,13 @@ const (
 	EnvTest      = "test"
 )
 
-var (
-	// GitlabEndpoint    = flag.String("gitlaburl", "http://g.haodai.net", "gitlab base url")
-	GitlabAccessToken = flag.String("gitlabtoken", "", "gitlab access token")
-)
+// var (
+// 	// GitlabEndpoint    = flag.String("gitlaburl", "http://g.haodai.net", "gitlab base url")
+// 	GitlabAccessToken = flag.String("gitlabtoken", "", "gitlab access token")
+// )
 
 func adminclient() *gitlab.Client {
-	client := gitlab.NewClient(http.DefaultClient, *GitlabAccessToken)
+	client := gitlab.NewClient(http.DefaultClient, *gitlabAccessToken)
 	client.SetBaseURL(*defaultGitlabURL)
 	return client
 }
