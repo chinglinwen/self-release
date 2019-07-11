@@ -260,32 +260,32 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	if !projectpkg.BranchIsTag(branch) {
 		if branch != p.Config.DevBranch { // tag should be release, not build?
-			a := fmt.Sprintf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.DevBranch, project)
+			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.DevBranch, project)
 			// log.Println(a)
-			b.log(a)
+			b.log(err)
 			return
 		}
 
-		var init, reinit bool
+		// how to parse force?
+		var init, forceinit bool
 		if strings.Contains(e.Message, "/init") {
 			b.log("will do init")
 			init = true
 		}
-		if strings.Contains(e.Message, "/reinit") {
-			b.log("will do reinit")
-			reinit = true
+		if strings.Contains(e.Message, "/forceinit") {
+			b.log("will do forceinit")
+			forceinit = true
 		}
 
 		// check if force is enabled
-
 		// check if inited, do init by manual trigger?
-
 		// if not inited before, or force is specified, do init now?
 		// this will trigger auto build for everyproject? just don't do it?
 
 		// how people trigger init at first place? release text or commit text?
 
 		if !p.Inited() && init {
+			b.log("<h2>Init project</h2>")
 			err = p.Init()
 			if err != nil {
 				err = fmt.Errorf("project: %v, init err: %v", project, err)
@@ -296,14 +296,15 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			b.logf("inited for project: %v", project)
 			// return // return for init operation?
 		}
-		if reinit {
+		if forceinit {
+			b.log("<h2>Force Init project</h2>")
 			err = p.Init(projectpkg.SetInitForce())
 			if err != nil {
-				err = fmt.Errorf("project: %v, reinit err: %v", project, err)
+				err = fmt.Errorf("project: %v, forceinit err: %v", project, err)
 				b.logerr(err)
 				return
 			}
-			b.logf("reinited for project: %v", project)
+			b.logf("forceinit for project: %v ok", project)
 			// return // return for init operation?
 		}
 	}
@@ -314,6 +315,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	var finalyaml string
 	if bo.gen {
+		b.log("<h2>Generate k8s yaml</h2>")
 
 		// almost generate everytime, except config
 		finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenEnv(env))
@@ -333,6 +335,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	if (!bo.nobuild) && p.NeedBuild() {
 		// out := make(chan string, 10)
 
+		b.log("<h2>Docker build</h2>")
+
 		b.logf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
 		out, e := p.Build(project, branch, env)
 		// e := p.Build(project, branch, env, out)
@@ -341,7 +345,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			b.logerr(err)
 			return
 		}
-		b.log("<h2>docker build outputs:</h2>")
+		b.log("docker build outputs:<br>")
 		for text := range out {
 			b.log(text)
 		}
@@ -379,6 +383,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		b.logf("apply for %v ok\n", project)
 		b.logf("k8s apply output:\n")
 		b.logf("%v\n", out)
+		b.log("<br>")
 	}
 
 	b.logf("<hr>end at %v .", time.Now().Format(TimeLayout))
