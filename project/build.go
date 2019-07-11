@@ -3,11 +3,20 @@ package project
 import (
 	"fmt"
 	"strings"
+	"wen/self-release/git"
 	"wen/self-release/pkg/harbor"
 )
 
 // Build only build develop branch?
 func (p *Project) Build(project, tag, env string) (out chan string, err error) {
+
+	if git.BranchIsTag(tag) {
+		_, err = git.CheckTagExist(project, tag)
+		if err != nil {
+			err = fmt.Errorf("check tag exist err: %v", err)
+			return
+		}
+	}
 
 	// clone first
 	// if env is empty, it will set to master

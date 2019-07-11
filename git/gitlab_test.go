@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -31,6 +32,23 @@ func TestGetUser(t *testing.T) {
 		return
 	}
 	spew.Dump(u)
+}
+
+func TestCheckTagExist(t *testing.T) {
+	u, err := CheckTagExist("robot/project-example", "v1.0.3-pre5.4dev")
+	if err != nil {
+		t.Error("check tag err ", err)
+		return
+	}
+	fmt.Println("tag:", u.Name)
+	u, err = CheckTagExist("robot/project-example", "v1.a.3-pre5.4dev")
+	if err == nil {
+		t.Error("check tag err ", err)
+		return
+	}
+	// fmt.Printf("err: %v\n", err)
+
+	// spew.Dump(u)
 }
 
 func TestGetProject(t *testing.T) {

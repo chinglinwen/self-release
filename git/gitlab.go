@@ -141,6 +141,24 @@ func GetProjectMembers(pathname string) (err error) {
 	return
 }
 
+// get gitlab tags
+func CheckTagExist(projectPath, tag string) (t *gitlab.Tag, err error) {
+	p, err := GetProject(projectPath)
+	if err != nil {
+		err = fmt.Errorf("get project err: %v", err)
+		return
+	}
+	t, _, err = adminclient().Tags.GetTag(p.ID, tag)
+	if err != nil {
+		if strings.Contains(err.Error(), "404 Tag Not Found") {
+			err = fmt.Errorf("tag not found")
+		}
+		err = fmt.Errorf("get tag %v err: %v", tag, err)
+		return
+	}
+	return
+}
+
 func CheckPerm(projectPath, user, env string) (err error) {
 	u, err := GetUser(user)
 	if err != nil {
