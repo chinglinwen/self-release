@@ -70,22 +70,22 @@ type ProjectConfig struct {
 	ConfigVer string `yaml:"configver"` // specify different version
 }
 
-type buildmode string
+// type buildmode string
 
 const (
-	buildmodeOn       = buildmode("on")
-	buildmodeAuto     = buildmode("auto")
-	buildmodeDisabled = buildmode("disabled")
+	buildmodeOn       = "on"
+	buildmodeAuto     = "auto"
+	buildmodeDisabled = "disabled"
 )
 
 func (p *Project) NeedBuild() bool {
 	switch p.Config.BuildMode {
-	case "auto":
+	case buildmodeAuto:
 		if p.Branch == p.Config.DevBranch {
 			return true
 		}
 		return !p.ImageIsExist()
-	case "disabled":
+	case buildmodeDisabled:
 		return false
 	default:
 		return true
@@ -151,6 +151,16 @@ func (p *Project) Inited() bool {
 	} // p nil should not happen
 	return false
 }
+
+// TODO: separate two type of init, let init check if docker is inited?
+// // gen dockerfile in user's repo?
+// func (p *Project) DockerInited() bool {
+// 	if p != nil {
+// 		config := filepath.Join(p.Project, "self-release", defaultConfigName) // relate to initk8s path
+// 		return p.configrepo.IsExist(config)
+// 	} // p nil should not happen
+// 	return false
+// }
 
 // func (p *Project) GetRepo() *git.Repo {
 // 	return p.repo
@@ -230,11 +240,6 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	}
 	log.Printf("project options: %#v\n", c)
 
-	defaultConfig, err := readTemplateConfig(configrepo, c.configVer) // using default config, can we get configver now?
-	if err != nil {
-		err = fmt.Errorf("get defaultConfig from config-repo err: %v", err)
-		return
-	}
 	// p = &Project{
 	// 	Project: project, // "template-before-create",
 	// 	// Branch:    "master", // TODO: default to master?
@@ -273,6 +278,11 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	config, err := readProjectConfig(configrepo, project)
 	if err != nil {
 		log.Println("read project config err, will using default config for ", project)
+		defaultConfig, e := readTemplateConfig(configrepo, c.configVer) // using default config, can we get configver now?
+		if e != nil {
+			err = fmt.Errorf("get defaultConfig from config-repo err: %v", e)
+			return
+		}
 		config = defaultConfig
 		err = nil
 	}
@@ -428,7 +438,7 @@ func readTemplateConfig(configrepo *git.Repo, configVer string) (p ProjectConfig
 		err = fmt.Errorf("read configrepo templateconfig: %v, err: %v", f, err)
 		return
 	}
-	return parseConfig(tyaml)
+	return decodeConfig(tyaml)
 }
 
 // func readTemplateConfig(configrepo *git.Repo, configVer string) (p ProjectConfig, err error) {
@@ -445,18 +455,27 @@ func readTemplateConfig(configrepo *git.Repo, configVer string) (p ProjectConfig
 // }
 
 func readProjectConfig(configrepo *git.Repo, project string) (c ProjectConfig, err error) {
-	// configrepo, err := GetConfigRepo()
-	// if err != nil || configrepo == nil {
-	// 	err = fmt.Errorf("read config from configrepo err: %v", err)
-	// 	return
-	// }
 	f := filepath.Join(project, defaultAppName, defaultConfigYAML)
 	cyaml, err := configrepo.GetFile(f)
 	if err != nil {
 		err = fmt.Errorf("read config file: %v, err: %v", f, err)
 		return
 	}
-	return parseConfig(cyaml)
+	return decodeConfig(cyaml)
+}
+
+func writeProjectConfig(configrepo *git.Repo, project string, c ProjectConfig) (err error) {
+	body, err := encodeConfig(c)
+	if err != nil {
+		return
+	}
+	f := filepath.Join(project, "self-release/config.yaml")
+	err = configrepo.Add(f, body)
+	if err != nil {
+		return
+	}
+	text := fmt.Sprintf("setting config.yaml for %v", project)
+	return configrepo.CommitAndPush(text)
 }
 
 // let's pass configrepo?
@@ -490,12 +509,22 @@ func readProjectConfig(configrepo *git.Repo, project string) (c ProjectConfig, e
 // }
 
 // unmarshal template config
-func parseConfig(cyaml []byte) (c ProjectConfig, err error) {
+func decodeConfig(cyaml []byte) (c ProjectConfig, err error) {
 	c = ProjectConfig{}
 	err = yaml.Unmarshal(cyaml, &c)
 	if err != nil {
 		err = fmt.Errorf("unmarshal config yaml: %v, err: %v", string(cyaml), err)
 		return
 	}
+	return
+}
+
+func encodeConfig(c ProjectConfig) (body string, err error) {
+	b, err := yaml.Marshal(c)
+	if err != nil {
+		err = fmt.Errorf("config yaml marshal err: %v", err)
+		return
+	}
+	body = string(b)
 	return
 }

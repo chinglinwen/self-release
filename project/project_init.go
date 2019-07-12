@@ -91,6 +91,33 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 	return
 }
 
+// Setting set project config
+func (p *Project) Setting(c ProjectConfig) (err error) {
+	if !p.Inited() {
+		// we currently ignore autoenv, only config env is working for init
+		envMap, e := p.readEnvs(nil)
+		if e != nil {
+			err = fmt.Errorf("readenvs err: %v", e)
+		}
+		_, err = p.initK8s(envMap, false)
+		if err != nil {
+			err = fmt.Errorf("initK8s err: %v", err)
+			return
+		}
+	}
+	pc := p.Config
+	if c.BuildMode != "" {
+		pc.BuildMode = c.BuildMode
+	}
+	if c.ConfigVer != "" {
+		pc.ConfigVer = c.ConfigVer
+	}
+	if c.DevBranch != "" {
+		pc.DevBranch = c.DevBranch
+	}
+	return writeProjectConfig(p.configrepo, p.Project, pc)
+}
+
 // errs := make(errlist)
 // found := false
 
@@ -268,7 +295,7 @@ func (p *Project) initAll(c initOption) (err error) {
 		err = fmt.Errorf("initDocker err: %v", err)
 		return
 	}
-	changed2, err := p.initK8s(envMap, c)
+	changed2, err := p.initK8s(envMap, c.force)
 	if err != nil {
 		err = fmt.Errorf("initK8s err: %v", err)
 		return
@@ -333,7 +360,7 @@ func (p *Project) initDocker(envMap map[string]string, c initOption) (update boo
     final: config:self-release/k8s-test.yaml
 	validatefinalyaml: true
 */
-func (p *Project) initK8s(envMap map[string]string, c initOption) (update bool, err error) {
+func (p *Project) initK8s(envMap map[string]string, force bool) (update bool, err error) {
 	items := []struct {
 		src, dst string
 	}{
@@ -347,7 +374,7 @@ func (p *Project) initK8s(envMap map[string]string, c initOption) (update bool, 
 	for _, v := range items {
 		src := filepath.Join("template", p.Config.ConfigVer, v.src)
 		dst := filepath.Join(p.Project, v.dst)
-		if c.force {
+		if force {
 			changed, err = p.CopyToConfigNoGenForce(src, dst, envMap)
 		} else {
 			changed, err = p.CopyToConfigNoGen(src, dst, envMap)
@@ -401,8 +428,8 @@ func (p *Project) genK8s(c genOption) (target string, err error) {
 
 	if needinit {
 		log.Printf("doing initk8s...")
-		co := initOption{force: true} // try generate everytime, no need to check force?
-		_, e := p.initK8s(p.envMap, co)
+		// co := initOption{force: true} // try generate everytime, no need to check force?
+		_, e := p.initK8s(p.envMap, true)
 		if e != nil {
 			err = fmt.Errorf("initK8s err: %v", e)
 			return
@@ -462,6 +489,10 @@ func (p *Project) CopyToConfigNoGenForce(src, dst string, envMap map[string]stri
 
 func (p *Project) CopyToConfig(src, dst string, envMap map[string]string) (changed bool, err error) {
 	return CopyTo(p.configrepo, p.configrepo, src, dst, envMap)
+}
+
+func (p *Project) CopyToRepoForce(torepo *git.Repo, src, dst string, envMap map[string]string) (changed bool, err error) {
+	return CopyTo(p.configrepo, torepo, src, dst, envMap, SetForce())
 }
 
 func (p *Project) CopyToRepo(torepo *git.Repo, src, dst string, envMap map[string]string) (changed bool, err error) {

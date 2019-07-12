@@ -79,6 +79,7 @@ func handleRelease(event *TagPushEvent) (err error) {
 type buildOption struct {
 	gen      bool
 	nobuild  bool
+	force    bool
 	deploy   bool
 	rollback bool
 	// no easy way to delete? why need delete?
@@ -234,6 +235,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		return
 	}
 
+	b.log("<h2>Info</h2>")
+
 	for k, v := range autoenv {
 		log.Printf("autoenv: %v=%v", k, v)
 		b.logf("autoenv: %v=%v", k, v)
@@ -268,11 +271,11 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 		// how to parse force?
 		var init, forceinit bool
-		if strings.Contains(e.Message, "/init") {
+		if strings.Contains(e.Message, "/helpdocker") {
 			b.log("will do init")
 			init = true
 		}
-		if strings.Contains(e.Message, "/forceinit") {
+		if strings.Contains(e.Message, "/forcehelpdocker") {
 			b.log("will do forceinit")
 			forceinit = true
 		}
@@ -332,7 +335,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// write to a auto.env? or
 	//envsubst.Eval()
 
-	if (!bo.nobuild) && p.NeedBuild() {
+	needbuild := p.NeedBuild()
+	if ((!bo.nobuild) && needbuild) || bo.force {
 		// out := make(chan string, 10)
 
 		b.log("<h2>Docker build</h2>")
@@ -362,6 +366,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// 	b.log("output:", v)
 		// }
 		b.log("build is ok.")
+	} else {
+		b.logf("will not build, flag nobuild: %v, buildmode: %v, needbuild: %v, force: %v\n", bo.nobuild, p.Config.BuildMode, needbuild, bo.force)
 	}
 	// check if inited or force provide, if not, init first
 

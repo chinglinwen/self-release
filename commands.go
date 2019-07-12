@@ -37,14 +37,14 @@ var (
 	funcs = []action{
 		// {name: "help", fn: help},
 		{name: "hi", fn: hi, help: "say hi."},
-		{name: "deploy", fn: deploy, help: "deploy project.", eg: "/deploy group/project [branch]"},
+		{name: "deploy", fn: deploy, help: "deploy project.", eg: "/deploy group/project [branch][nobuild|force]"},
 		{name: "deldeploy", fn: deldeploy, help: "delete deploy project.", eg: "/deldeploy group/project [branch]"},
 		{name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
-		{name: "retry", fn: retry, help: "retry last time deployed project."},
+		{name: "retry", fn: retry, help: "retry last time deployed project.", eg: "/retry [nobuild|force]"},
 		{name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
 		{name: "gen", fn: gen, help: "generate files(yaml) only last time deployed project.", eg: "/gen [group/project] [branch]"},
 		{name: "myproject", fn: myproject, help: "show last time project."},
-		{name: "init", fn: projectinit, help: "one time init project(branch: develop) to generate needed files.", eg: "/init group/project [force]"},
+		{name: "helpdocker", fn: projectinit, help: "help to generate docker files(in branch develop).", eg: "/helpdocker group/project [force]"},
 	}
 )
 
@@ -181,13 +181,7 @@ func projectinit(dev, args string) (out string, err error) {
 		return
 	}
 
-	var force bool
-	s := strings.Fields(args)
-	if len(s) == 2 {
-		if s[1] == "force" {
-			force = true
-		}
-	}
+	f := parseFlag(args)
 	branch := InitBranch // TODO: should this be arg?
 
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
@@ -195,7 +189,7 @@ func projectinit(dev, args string) (out string, err error) {
 		err = fmt.Errorf("new project: %v, err: %v", project, err)
 		return
 	}
-	if force {
+	if f.force {
 		err = p.Init(projectpkg.SetInitForce())
 	} else {
 		err = p.Init()
@@ -218,6 +212,7 @@ func deploy(dev, args string) (out string, err error) {
 	bo := &buildOption{
 		gen:      true,
 		nobuild:  f.nobuild,
+		force:    f.force,
 		deploy:   true,
 		nonotify: true,
 	}
@@ -342,6 +337,7 @@ func retry(dev, args string) (out string, err error) {
 		gen: true,
 		// build:    true, // default to configs
 		nobuild:  f.nobuild,
+		force:    f.force, // should no build again?
 		deploy:   true,
 		nonotify: true,
 	}
