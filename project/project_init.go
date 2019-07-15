@@ -92,7 +92,12 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 }
 
 // Setting set project config
-func (p *Project) Setting(c ProjectConfig) (err error) {
+func (p *Project) Setting(c ProjectConfig) (out string, err error) {
+	if c.BuildMode == "" && c.DevBranch == "" && c.ConfigVer == "" {
+		err = fmt.Errorf("no config item provided,so nothing to set\n%v",
+			"expected setting [imagebuild=auto|disabled|on][devbranch=develop|test][configver=php.v1]")
+		return
+	}
 	if !p.Inited() {
 		// we currently ignore autoenv, only config env is working for init
 		envMap, e := p.readEnvs(nil)
@@ -105,17 +110,43 @@ func (p *Project) Setting(c ProjectConfig) (err error) {
 			return
 		}
 	}
+	var update bool
+	out = "changed configs are:\n"
 	pc := p.Config
 	if c.BuildMode != "" {
+		log.Printf("project: %v changed buildmode from: %v to: %v\n", p.Project, pc.BuildMode, c.BuildMode)
 		pc.BuildMode = c.BuildMode
+		if pc.BuildMode == c.BuildMode {
+			out = fmt.Sprintf("%v  buildmode already set to %v\n", out, c.BuildMode)
+		} else {
+			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.BuildMode, c.BuildMode)
+			update = true
+		}
 	}
 	if c.ConfigVer != "" {
+		log.Printf("project: %v changed configver from: %v to: %v\n", p.Project, pc.ConfigVer, c.ConfigVer)
 		pc.ConfigVer = c.ConfigVer
+		if pc.ConfigVer == c.ConfigVer {
+			out = fmt.Sprintf("%v  configver already set to %v\n", out, c.ConfigVer)
+		} else {
+			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.ConfigVer, c.ConfigVer)
+			update = true
+		}
 	}
 	if c.DevBranch != "" {
+		log.Printf("project: %v changed devbranch from: %v to: %v\n", p.Project, pc.DevBranch, c.DevBranch)
 		pc.DevBranch = c.DevBranch
+		if pc.DevBranch == c.DevBranch {
+			out = fmt.Sprintf("%v  devbranch already set to %v\n", out, c.DevBranch)
+		} else {
+			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.DevBranch, c.DevBranch)
+			update = true
+		}
 	}
-	return writeProjectConfig(p.configrepo, p.Project, pc)
+	if update {
+		err = writeProjectConfig(p.configrepo, p.Project, pc)
+	}
+	return
 }
 
 // errs := make(errlist)

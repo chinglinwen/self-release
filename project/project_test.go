@@ -209,3 +209,19 @@ func TestProjectInit(t *testing.T) {
 		return
 	}
 }
+
+func TestProjectSetting(t *testing.T) {
+	p, err := NewProject(exampleproject, SetBranch("develop"))
+	if err != nil {
+		t.Error("newproject err", err)
+		return
+	}
+
+	err = p.Setting(ProjectConfig{
+		BuildMode: "auto",
+	})
+	if err != nil {
+		t.Error("project set config err", err)
+		return
+	}
+}

@@ -42,6 +42,7 @@ var (
 		{name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
 		{name: "retry", fn: retry, help: "retry last time deployed project.", eg: "/retry [nobuild|force]"},
 		{name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
+		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [imagebuild=auto|disabled|on][devbranch=develop|test][configver=php.v1]"},
 		{name: "gen", fn: gen, help: "generate files(yaml) only last time deployed project.", eg: "/gen [group/project] [branch]"},
 		{name: "myproject", fn: myproject, help: "show last time project."},
 		{name: "helpdocker", fn: projectinit, help: "help to generate docker files(in branch develop).", eg: "/helpdocker group/project [force]"},
@@ -144,12 +145,18 @@ type flagOption struct {
 }
 
 func parseFlag(args string) (f flagOption) {
-	f = flagOption{}
-	if strings.Contains(args, "force") {
-		f.force = true
-	}
-	if strings.Contains(args, "nobuild") {
-		f.nobuild = true
+	// f = flagOption{}
+	s := strings.Fields(args)
+	for _, v := range s {
+		if strings.Contains(v, "=") {
+			continue
+		}
+		if strings.Contains(v, "force") {
+			f.force = true
+		}
+		if strings.Contains(v, "nobuild") {
+			f.nobuild = true
+		}
 	}
 	return
 }
@@ -160,13 +167,20 @@ func parseProject(args string) (project, branch string, err error) {
 		err = fmt.Errorf("no project arg provided")
 		return
 	}
-	if len(s) < 2 {
-		project = s[0]
+	a := []string{}
+	for _, v := range s {
+		if strings.Contains(v, "=") {
+			continue
+		}
+		a = append(a, v)
+	}
+	if len(a) < 2 {
+		project = a[0]
 		branch = "develop" // TODO: using config?
 	}
-	if len(s) >= 2 {
-		project = s[0]
-		branch = s[1]
+	if len(a) >= 2 {
+		project = a[0]
+		branch = a[1]
 		if branch == "force" || branch == "nobuild" {
 			branch = "develop"
 		}
@@ -348,6 +362,98 @@ func retry(dev, args string) (out string, err error) {
 	if err == nil {
 		out = "retried ok"
 		log.Printf("retry from %v ok\n", dev)
+	}
+	return
+}
+
+type setOption struct {
+	buildmode string
+	configver string
+	devbranch string
+}
+
+func validateSetting(s setOption) error {
+	if s.buildmode != "" {
+		if s.buildmode != "auto" && s.buildmode != "disabled" && s.buildmode != "on" {
+			return fmt.Errorf("expect auto,disabled,on for imagebuild, but got: %v", s.buildmode)
+		}
+	}
+	return nil
+}
+func parseSetting(args string) (f setOption) {
+	// f = setOption{}
+	s := strings.Fields(args)
+	m := make(map[string]string)
+	for _, v := range s {
+		if !strings.Contains(v, "=") {
+			continue
+		}
+		ss := strings.Split(v, "=")
+		if len(ss) != 2 {
+			continue
+		}
+		m[ss[0]] = ss[1]
+	}
+	if m["imagebuild"] != "" {
+		f.buildmode = m["imagebuild"]
+	}
+	if m["devbranch"] != "" {
+		f.devbranch = m["devbranch"]
+	}
+	if m["configver"] != "" {
+		f.configver = m["configver"]
+	}
+	// if strings.Contains(args, "imagebuild=disabled") {
+	// 	f.buildmode = "disabled"
+	// }
+	// if strings.Contains(args, "imagebuild=auto") {
+	// 	f.buildmode = "auto"
+	// }
+	// if strings.Contains(args, "devbranch=test") {
+	// 	f.devbranch = "test"
+	// }
+	// if strings.Contains(args, "devbranch=develop") {
+	// 	f.devbranch = "develop"
+	// }
+	return
+}
+
+// retry
+func setting(dev, args string) (out string, err error) {
+	log.Println("got setting from ", dev)
+	s := parseSetting(args)
+	err = validateSetting(s)
+	if err != nil {
+		log.Println("validate setting err: ", err)
+		return
+	}
+
+	project, _, err := parseProject(args)
+	if err != nil {
+		brocker, e := sse.GetBrokerFromPerson(dev)
+		if e != nil {
+			err = fmt.Errorf("cant find previous released project", e)
+			log.Println(err)
+			return
+		}
+		project = brocker.Project
+	}
+
+	log.Println("start project setting for ", dev)
+	p, err := projectpkg.NewProject(project)
+	if err != nil {
+		err = fmt.Errorf("new project", err)
+		return
+	}
+	c := projectpkg.ProjectConfig{
+		BuildMode: s.buildmode,
+		DevBranch: s.devbranch,
+		ConfigVer: s.configver,
+	}
+	out, err = p.Setting(c)
+	if err == nil {
+		out = fmt.Sprintf("setting ok, %v", out)
+		log.Printf("setting from %v ok\n", dev)
 	}
 	return
 }
