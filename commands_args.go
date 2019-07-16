@@ -6,8 +6,10 @@ import (
 )
 
 type flagOption struct {
-	force   bool
-	nobuild bool
+	force       bool
+	nobuild     bool
+	dockeronly  bool
+	viewsetting bool
 }
 
 func parseFlag(args string) (f flagOption) {
@@ -29,12 +31,20 @@ func parseFlag(args string) (f flagOption) {
 		if strings.Contains(v, "nobuild") {
 			f.nobuild = true
 		}
+		if strings.Contains(v, "dockeronly") {
+			f.dockeronly = true
+		}
+		if strings.Contains(v, "viewsetting") {
+			f.viewsetting = true
+		}
 	}
 	return
 }
 
 func parseProject(args string) (project, branch string, err error) {
-	s := strings.Fields(args)
+	args1 := strings.NewReplacer(" force", " ", " nobuild", " ", " dockeronly",
+		" ", " viewsetting", " ").Replace(args)
+	s := strings.Fields(args1)
 	a := []string{}
 	for _, v := range s {
 		if strings.Contains(v, "=") {
@@ -43,7 +53,7 @@ func parseProject(args string) (project, branch string, err error) {
 		a = append(a, v)
 	}
 
-	if len(a) < 1 {
+	if len(a) == 0 {
 		err = fmt.Errorf("no project arg provided")
 		return
 	}
@@ -54,17 +64,23 @@ func parseProject(args string) (project, branch string, err error) {
 	if len(a) >= 2 {
 		project = a[0]
 		branch = a[1]
-		if branch == "force" || branch == "nobuild" {
-			branch = "develop"
-		}
+		// if branch == "force" || branch == "nobuild" {
+		// 	branch = "develop"
+		// }
+	}
+	if strings.TrimSpace(project) == "" {
+		err = fmt.Errorf("no project arg provided")
+		return
 	}
 	return
 }
 
 type setOption struct {
-	buildmode string
-	configver string
-	devbranch string
+	buildmode   string
+	configver   string
+	devbranch   string
+	selfrelease string
+	version     string
 }
 
 func validateSetting(s setOption) error {
@@ -73,8 +89,14 @@ func validateSetting(s setOption) error {
 			return fmt.Errorf("expect auto,disabled,on for imagebuild, but got: %v", s.buildmode)
 		}
 	}
+	if s.selfrelease != "" {
+		if s.selfrelease != "enabled" && s.selfrelease != "disabled" {
+			return fmt.Errorf("expect enabled,disabled for selfrelease, but got: %v", s.selfrelease)
+		}
+	}
 	return nil
 }
+
 func parseSetting(args string) (f setOption) {
 	// f = setOption{}
 	s := strings.Fields(args)
@@ -98,5 +120,12 @@ func parseSetting(args string) (f setOption) {
 	if m["configver"] != "" {
 		f.configver = m["configver"]
 	}
+	if m["selfrelease"] != "" {
+		f.selfrelease = m["selfrelease"]
+	}
+	if m["version"] != "" {
+		f.version = m["version"]
+	}
+
 	return
 }

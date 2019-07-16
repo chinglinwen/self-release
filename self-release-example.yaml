@@ -72,10 +72,16 @@ spec:
           volumeMounts:
           - mountPath: /app/projectlogs
             name: data
+          - mountPath: /app/repos
+            name: repos
       volumes:
         - name: data
           hostPath:
             path: /data/k8s/self-release/projectlogs
+            type: DirectoryOrCreate
+        - name: repos
+          hostPath:
+            path: /data/k8s/self-release/repos
             type: DirectoryOrCreate
       nodeSelector:
         #kubernetes.io/hostname: 172.31.90.208

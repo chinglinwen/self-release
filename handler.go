@@ -225,7 +225,7 @@ func rollbackAPIHandler(c echo.Context) (err error) {
 
 	var p *projectpkg.Project
 	if branch == "" {
-		p, err = getproject(project, branch, true)
+		p, err = getproject(project, branch, true, false)
 		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 		if err != nil {
 			err = fmt.Errorf("project: %v, new err: %v", project, err)

@@ -12,7 +12,9 @@ import (
 // a webpage to trigger the test
 type initOption struct {
 	// singleName string
-	force bool
+	force      bool
+	dockeronly bool
+	configonly bool
 	// configVer string
 	// branch    string
 	// devbranch string // do we need this?
@@ -26,6 +28,18 @@ func SetInitForce() func(*initOption) {
 		p.force = true
 	}
 }
+
+func SetInitDockerOnly(dockeronly bool) func(*initOption) {
+	return func(p *initOption) {
+		p.dockeronly = dockeronly
+	}
+}
+func SetInitConfigOnly(configonly bool) func(*initOption) {
+	return func(p *initOption) {
+		p.configonly = configonly
+	}
+}
+
 func SetInitConfig(config *ProjectConfig) func(*initOption) {
 	return func(p *initOption) {
 		p.config = config
@@ -51,14 +65,14 @@ func SetInitConfig(config *ProjectConfig) func(*initOption) {
 // 	}
 // }
 
-type errlist map[string]error
+// type errlist map[string]error
 
-func (errs *errlist) Error() (s string) {
-	for k, v := range *errs {
-		s = fmt.Sprintf("%v\nname: %v, init err: %v", s, k, v)
-	}
-	return
-}
+// func (errs *errlist) Error() (s string) {
+// 	for k, v := range *errs {
+// 		s = fmt.Sprintf("%v\nname: %v, init err: %v", s, k, v)
+// 	}
+// 	return
+// }
 
 // we use no err to signal update
 // we need to filter out nochange err (but not all)
@@ -67,17 +81,17 @@ func (errs *errlist) Error() (s string) {
 // single no change update
 // all nochange no update
 // single err? just return?
-func (errs *errlist) Nochange() bool {
-	if errs != nil && len(*errs) == 0 {
-		return false
-	}
-	for _, v := range *errs {
-		if v != ErrNoChange {
-			return false
-		}
-	}
-	return true // all err is ErrNoChange
-}
+// func (errs *errlist) Nochange() bool {
+// 	if errs != nil && len(*errs) == 0 {
+// 		return false
+// 	}
+// 	for _, v := range *errs {
+// 		if v != ErrNoChange {
+// 			return false
+// 		}
+// 	}
+// 	return true // all err is ErrNoChange
+// }
 
 // init can reading from repo's config, or assume have project name only(using default config version)?
 //
@@ -91,6 +105,9 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 	}
 	log.Printf("got init option: %#v", c)
 
+	// default to init config only
+	c.configonly = true
+
 	// change if config provided, overwrite default
 	if c.config != nil {
 		if c.config.BuildMode != "" {
@@ -101,6 +118,12 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 		}
 		if c.config.DevBranch != "" {
 			p.Config.DevBranch = c.config.DevBranch
+		}
+		if c.config.SelfRelease != "" {
+			p.Config.SelfRelease = c.config.SelfRelease
+		}
+		if c.config.Version != "" {
+			p.Config.Version = c.config.Version
 		}
 	}
 	err = p.initAll(c)
@@ -159,6 +182,27 @@ func (p *Project) Setting(c ProjectConfig) (out string, err error) {
 			update = true
 		}
 	}
+	if c.SelfRelease != "" {
+		log.Printf("project: %v changed selfrelease from: %v to: %v\n", p.Project, pc.SelfRelease, c.SelfRelease)
+		pc.SelfRelease = c.SelfRelease
+		if pc.SelfRelease == c.SelfRelease {
+			out = fmt.Sprintf("%v  selfrelease already set to %v\n", out, c.SelfRelease)
+		} else {
+			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.SelfRelease, c.SelfRelease)
+			update = true
+		}
+	}
+	if c.Version != "" {
+		log.Printf("project: %v changed version from: %v to: %v\n", p.Project, pc.Version, c.Version)
+		pc.Version = c.Version
+		if pc.Version == c.Version {
+			out = fmt.Sprintf("%v  Version already set to %v\n", out, c.Version)
+		} else {
+			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.Version, c.Version)
+			update = true
+		}
+	}
+
 	if update {
 		err = writeProjectConfig(p.configrepo, p.Project, pc)
 	}
@@ -339,24 +383,28 @@ func (p *Project) initAll(c initOption) (err error) {
 		err = fmt.Errorf("readenvs err: %v", err)
 	}
 	var changed1, changed2 bool
-	if !p.DockerInited() || c.force {
-		changed1, err = p.initDocker(envMap)
-		if err != nil {
-			err = fmt.Errorf("initDocker err: %v", err)
-			return
+	if !c.configonly {
+		if !p.DockerInited() || c.force {
+			changed1, err = p.initDocker(envMap)
+			if err != nil {
+				err = fmt.Errorf("initDocker err: %v", err)
+				return
+			}
+			needinit = true
 		}
-		needinit = true
 	}
-	if !p.Inited() || c.force {
-		changed2, err = p.initK8s(envMap, c.force)
-		if err != nil {
-			err = fmt.Errorf("initK8s err: %v", err)
-			return
+	if !c.dockeronly {
+		if !p.Inited() || c.force {
+			changed2, err = p.initK8s(envMap, c.force)
+			if err != nil {
+				err = fmt.Errorf("initK8s err: %v", err)
+				return
+			}
+			needinit = true
 		}
-		needinit = true
 	}
 	if !needinit {
-		err = fmt.Errorf("both repo and configrepo inited, you can try force init")
+		err = fmt.Errorf("both repo and configrepo inited or no force provided, you can try force init")
 		return
 	}
 	if !changed1 && !changed2 {
@@ -447,6 +495,11 @@ func (p *Project) initK8s(envMap map[string]string, force bool) (update bool, er
 			update = true
 		}
 	}
+	update, err = p.initConfig(envMap, force)
+	if err != nil {
+		err = fmt.Errorf("init config.yaml err: %v", err)
+		return
+	}
 	if !update {
 		log.Println("init k8s yaml have no change")
 		return
@@ -454,6 +507,34 @@ func (p *Project) initK8s(envMap map[string]string, force bool) (update bool, er
 
 	// 'by self-release' is used to filter out init webhook later
 	err = commitandpush(p.configrepo, fmt.Sprintf("init for project %v:%v", p.Project, p.Branch))
+	return
+}
+
+// handle this differently
+func (p *Project) initConfig(envMap map[string]string, force bool) (update bool, err error) {
+	// s := "config.yaml",
+	// src := filepath.Join("template", p.Config.ConfigVer, s)
+	d := "self-release/config.yaml"
+	dst := filepath.Join(p.Project, d)
+
+	srcbody, err := encodeConfig(p.Config)
+	if err != nil {
+		return
+	}
+	// var changed bool
+	if force {
+		update, err = p.CopyToConfigWithSrcNoGenForce(srcbody, dst, envMap)
+	} else {
+		update, err = p.CopyToConfigWithSrcNoGen(srcbody, dst, envMap)
+	}
+	if err != nil {
+		err = fmt.Errorf("copy config.yaml to config err: %v", err)
+		return
+	}
+	if update {
+		log.Printf("file: %v will be updated", dst)
+		// update = true
+	}
 	return
 }
 

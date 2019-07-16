@@ -270,9 +270,9 @@ func GetBrokerFromPerson(name string) (b *Broker, err error) {
 		return
 	}
 
-	for _, v := range bs {
-		fmt.Printf("key: %v\n", v.Key)
-	}
+	// for _, v := range bs {
+	// 	fmt.Printf("key: %v\n", v.Key)
+	// }
 	// spew.Dump("bs", bs)
 	for _, v := range bs {
 		// fmt.Printf("key: %v\n", v.Key)

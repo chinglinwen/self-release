@@ -71,6 +71,10 @@ func GetDefaultConfigVer() string {
 	return "php.v1"
 }
 
+func GetDefaultVer() string {
+	return "v1.0.0"
+}
+
 // // should init at main
 // func InitBuildSVC(addr string) {
 // 	defaultBuildsvc = NewBuildSVC(addr)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"strings"
 	"wen/self-release/git"
 	"wen/self-release/pkg/harbor"
 
@@ -64,10 +65,16 @@ type Project struct {
 }
 
 type ProjectConfig struct {
-	DevBranch string `yaml:"devbranch"` // default dev branch name
-	BuildMode string `yaml:"buildmode"` // used to disable auto build [default, auto, disabled]
-	// disableBuild bool  // if drone or manual push image?
-	ConfigVer string `yaml:"configver"` // specify different version
+	DevBranch   string `yaml:"devbranch"`   // default dev branch name
+	BuildMode   string `yaml:"buildmode"`   // used to disable auto build [default, auto, disabled]
+	ConfigVer   string `yaml:"configver"`   // specify different version
+	SelfRelease string `yaml:"selfrelease"` // enable or not for self-release on this project
+	Version     string `yaml:"version"`     // currently don't need?
+}
+
+func (c ProjectConfig) String() string {
+	return fmt.Sprintf("devbranch: %v\nbuildmode: %v\nconfigver: %v\nselfrelease: %v\nversion: %v\n",
+		c.DevBranch, c.BuildMode, c.ConfigVer, c.SelfRelease, c.Version)
 }
 
 // type buildmode string
@@ -191,6 +198,12 @@ func SetNoReadConfig() func(*projectOption) {
 	}
 }
 
+func SetNoEnableCheck(init bool) func(*projectOption) {
+	return func(p *projectOption) {
+		p.noenablecheck = init
+	}
+}
+
 type projectOption struct {
 	nopull bool
 	branch string
@@ -199,7 +212,8 @@ type projectOption struct {
 	configVer string
 	buildMode string
 
-	noreadconfig bool
+	noreadconfig  bool
+	noenablecheck bool
 }
 
 // type initOption struct {
@@ -224,11 +238,19 @@ type projectOption struct {
 // config: _ops/config/templatename.config
 // config: _ops/config/config.yaml  //specify which template and which config file?
 func NewProject(project string, options ...func(*projectOption)) (p *Project, err error) {
+	project = strings.TrimSpace(project)
+	if project == "" {
+		err = fmt.Errorf("empty project name")
+		return
+	}
+	if !strings.Contains(project, "/") {
+		err = fmt.Errorf("invalid format for project, should be \"group-name/repo-name\"")
+		return
+	}
 	// not inited repo, just return
 	configrepo, err := GetConfigRepo()
 	if err != nil {
-		err = fmt.Errorf("get configrepo err: %v", err)
-		return
+
 	}
 	c := &projectOption{
 		// branch:    "master",
@@ -239,7 +261,7 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	for _, op := range options {
 		op(c)
 	}
-	log.Printf("project options: %#v\n", c)
+	log.Printf("project: %v, options: %#v\n", project, c)
 
 	// p = &Project{
 	// 	Project: project, // "template-before-create",
@@ -286,6 +308,10 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		}
 		config = defaultConfig
 		err = nil
+	}
+	if config.SelfRelease != "enabled" && !c.noenablecheck {
+		err = fmt.Errorf("project disabled, try do init, if inited, try set selfrelease=enabled")
+		return
 	}
 	// two way to provide config
 	// by option setting

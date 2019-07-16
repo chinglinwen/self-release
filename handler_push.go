@@ -202,9 +202,29 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	var p *projectpkg.Project
 
+	// create project need to distinguish if it's a init
+	var init, forceinit bool
+	if !projectpkg.BranchIsTag(branch) {
+		if branch != p.Config.DevBranch { // tag should be release, not build?
+			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.DevBranch, project)
+			// log.Println(a)
+			b.log(err)
+			return
+		}
+
+		if strings.Contains(e.Message, "/helpdocker") {
+			b.log("will do init")
+			init = true
+		}
+		if strings.Contains(e.Message, "/forcehelpdocker") {
+			b.log("will do forceinit")
+			forceinit = true
+		}
+	}
+
 	if bo.p == nil {
 		// if not inited, just using default setting?
-		p, err = getproject(project, branch, bo.rollback)
+		p, err = getproject(project, branch, bo.rollback, init || forceinit)
 		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 		if err != nil {
 			err = fmt.Errorf("project: %v, new err: %v", project, err)
@@ -215,6 +235,39 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	} else {
 		p = bo.p
+	}
+
+	if !projectpkg.BranchIsTag(branch) {
+		// check if force is enabled
+		// check if inited, do init by manual trigger?
+		// if not inited before, or force is specified, do init now?
+		// this will trigger auto build for everyproject? just don't do it?
+
+		// how people trigger init at first place? release text or commit text?
+
+		if !p.Inited() && init {
+			b.log("<h2>Init project</h2>")
+			err = p.Init()
+			if err != nil {
+				err = fmt.Errorf("project: %v, init err: %v", project, err)
+				b.logerr(err)
+				return
+			}
+			// log.Printf("inited for project: %v", project)
+			b.logf("inited for project: %v", project)
+			// return // return for init operation?
+		}
+		if forceinit {
+			b.log("<h2>Force Init project</h2>")
+			err = p.Init(projectpkg.SetInitForce())
+			if err != nil {
+				err = fmt.Errorf("project: %v, forceinit err: %v", project, err)
+				b.logerr(err)
+				return
+			}
+			b.logf("forceinit for project: %v ok", project)
+			// return // return for init operation?
+		}
 	}
 
 	// if rollback is set, get previous tag as branch
@@ -261,56 +314,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// 	return
 	// }
 
-	if !projectpkg.BranchIsTag(branch) {
-		if branch != p.Config.DevBranch { // tag should be release, not build?
-			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.DevBranch, project)
-			// log.Println(a)
-			b.log(err)
-			return
-		}
-
-		// how to parse force?
-		var init, forceinit bool
-		if strings.Contains(e.Message, "/helpdocker") {
-			b.log("will do init")
-			init = true
-		}
-		if strings.Contains(e.Message, "/forcehelpdocker") {
-			b.log("will do forceinit")
-			forceinit = true
-		}
-
-		// check if force is enabled
-		// check if inited, do init by manual trigger?
-		// if not inited before, or force is specified, do init now?
-		// this will trigger auto build for everyproject? just don't do it?
-
-		// how people trigger init at first place? release text or commit text?
-
-		if !p.Inited() && init {
-			b.log("<h2>Init project</h2>")
-			err = p.Init()
-			if err != nil {
-				err = fmt.Errorf("project: %v, init err: %v", project, err)
-				b.logerr(err)
-				return
-			}
-			// log.Printf("inited for project: %v", project)
-			b.logf("inited for project: %v", project)
-			// return // return for init operation?
-		}
-		if forceinit {
-			b.log("<h2>Force Init project</h2>")
-			err = p.Init(projectpkg.SetInitForce())
-			if err != nil {
-				err = fmt.Errorf("project: %v, forceinit err: %v", project, err)
-				b.logerr(err)
-				return
-			}
-			b.logf("forceinit for project: %v ok", project)
-			// return // return for init operation?
-		}
-	}
 	// do gen if deploy is needed
 	if bo.deploy {
 		bo.gen = true
@@ -396,7 +399,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	return
 }
 
-func getproject(project, branch string, rollback bool) (p *projectpkg.Project, err error) {
+func getproject(project, branch string, rollback, init bool) (p *projectpkg.Project, err error) {
 	p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 	if err != nil {
 		return
@@ -411,7 +414,7 @@ func getproject(project, branch string, rollback bool) (p *projectpkg.Project, e
 
 		if argBranch != branch {
 			// re-open the branch
-			p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+			p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch), projectpkg.SetNoEnableCheck(init))
 			if err != nil {
 				err = fmt.Errorf("project: %v, branch: %v, new(rollback ) err: %v", project, branch, err)
 				return

@@ -42,10 +42,12 @@ var (
 		{name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
 		{name: "retry", fn: retry, help: "retry last time deployed project.", eg: "/retry [nobuild|force]"},
 		{name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
-		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [imagebuild=auto|disabled|on][devbranch=develop|test][configver=php.v1]"},
+		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [imagebuild=auto|disabled|on][devbranch=develop|test]" +
+			"[configver=php.v1][selfrelease=enabled|disabled][viewsetting]"},
 		{name: "gen", fn: gen, help: "generate files(yaml) only last time deployed project.", eg: "/gen [group/project] [branch]"},
 		{name: "myproject", fn: myproject, help: "show last time project."},
-		{name: "helpdocker", fn: projectinit, help: "help to generate docker files(in branch develop).", eg: "/helpdocker group/project [force]"},
+		{name: "helpdocker", fn: helpdocker, help: "help to generate docker files(in branch develop).", eg: "/helpdocker group/project [force]"},
+		{name: "init", fn: projectinit, help: "enable project by init config-repo.", eg: "/init group/project [force]"},
 	}
 )
 
@@ -131,6 +133,11 @@ func myproject(dev, args string) (out string, err error) {
 	return
 }
 
+func helpdocker(dev, args string) (out string, err error) {
+	args += " dockeronly"
+	return projectinit(dev, args)
+}
+
 // how to support setting?
 func projectinit(dev, args string) (out string, err error) {
 	s := parseSetting(args)
@@ -156,15 +163,15 @@ func projectinit(dev, args string) (out string, err error) {
 	// 	ConfigVer: s.configver,
 	// }
 
-	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch), projectpkg.SetNoEnableCheck(true))
 	if err != nil {
 		err = fmt.Errorf("new project: %v, err: %v", project, err)
 		return
 	}
 	if f.force {
-		err = p.Init(projectpkg.SetInitForce())
+		err = p.Init(projectpkg.SetInitDockerOnly(f.dockeronly), projectpkg.SetInitForce())
 	} else {
-		err = p.Init()
+		err = p.Init(projectpkg.SetInitDockerOnly(f.dockeronly))
 	}
 	if err == nil {
 		out = "init ok"
@@ -333,12 +340,13 @@ func setting(dev, args string) (out string, err error) {
 		log.Println("validate setting err: ", err)
 		return
 	}
+	f := parseFlag(args)
 
 	project, _, err := parseProject(args)
 	if err != nil {
 		brocker, e := sse.GetBrokerFromPerson(dev)
 		if e != nil {
-			err = fmt.Errorf("cant find previous released project: %v", e)
+			err = fmt.Errorf("no prorject provided and cant find previous project, err: %v", e)
 			log.Println(err)
 			return
 		}
@@ -346,21 +354,31 @@ func setting(dev, args string) (out string, err error) {
 	}
 
 	log.Println("start project setting for ", dev)
-	p, err := projectpkg.NewProject(project)
+	p, err := projectpkg.NewProject(project, projectpkg.SetNoEnableCheck(true))
 	if err != nil {
 		err = fmt.Errorf("new project: %v", err)
 		return
 	}
+	if f.viewsetting {
+		out = fmt.Sprint(p.Config)
+		log.Printf("setting from %v ok\n", dev)
+		return
+	}
+
 	c := projectpkg.ProjectConfig{
-		BuildMode: s.buildmode,
-		DevBranch: s.devbranch,
-		ConfigVer: s.configver,
+		BuildMode:   s.buildmode,
+		DevBranch:   s.devbranch,
+		ConfigVer:   s.configver,
+		SelfRelease: s.selfrelease,
+		Version:     s.version,
 	}
 	out, err = p.Setting(c)
-	if err == nil {
-		out = fmt.Sprintf("setting ok, %v", out)
-		log.Printf("setting from %v ok\n", dev)
+	if err != nil {
+		return
 	}
+
+	out = fmt.Sprintf("setting ok, %v", out)
+	log.Printf("setting from %v ok\n", dev)
 	return
 }
 
@@ -425,7 +443,7 @@ func rollback(dev, args string) (out string, err error) {
 
 	var p *projectpkg.Project
 	if branch == "" {
-		p, err = getproject(project, branch, true)
+		p, err = getproject(project, branch, true, false)
 		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 		if err != nil {
 			err = fmt.Errorf("project: %v, new err: %v", project, err)
