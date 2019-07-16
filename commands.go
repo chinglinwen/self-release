@@ -338,7 +338,7 @@ func setting(dev, args string) (out string, err error) {
 	if err != nil {
 		brocker, e := sse.GetBrokerFromPerson(dev)
 		if e != nil {
-			err = fmt.Errorf("cant find previous released project", e)
+			err = fmt.Errorf("cant find previous released project: %v", e)
 			log.Println(err)
 			return
 		}
@@ -348,7 +348,7 @@ func setting(dev, args string) (out string, err error) {
 	log.Println("start project setting for ", dev)
 	p, err := projectpkg.NewProject(project)
 	if err != nil {
-		err = fmt.Errorf("new project", err)
+		err = fmt.Errorf("new project: %v", err)
 		return
 	}
 	c := projectpkg.ProjectConfig{
