@@ -11,10 +11,13 @@ import (
 
 // a webpage to trigger the test
 type initOption struct {
-	singleName string
-	force      bool
-	configVer  string
-	branch     string // do we need this?
+	// singleName string
+	force bool
+	// configVer string
+	// branch    string
+	// devbranch string // do we need this?
+	// buildmode string
+	config *ProjectConfig
 }
 
 // force is used to re-init config.yaml
@@ -23,25 +26,30 @@ func SetInitForce() func(*initOption) {
 		p.force = true
 	}
 }
-
-func SetInitName(name string) func(*initOption) {
-	return func(o *initOption) {
-		o.singleName = name
+func SetInitConfig(config *ProjectConfig) func(*initOption) {
+	return func(p *initOption) {
+		p.config = config
 	}
 }
 
-func SetInitVersion(ver string) func(*initOption) {
-	return func(o *initOption) {
-		o.configVer = ver
-	}
-}
+// func SetInitName(name string) func(*initOption) {
+// 	return func(o *initOption) {
+// 		o.singleName = name
+// 	}
+// }
 
-// mostly branch is develop
-func SetInitBranch(branch string) func(*initOption) {
-	return func(o *initOption) {
-		o.branch = branch
-	}
-}
+// func SetInitVersion(ver string) func(*initOption) {
+// 	return func(o *initOption) {
+// 		o.configVer = ver
+// 	}
+// }
+
+// // mostly branch is develop
+// func SetInitBranch(branch string) func(*initOption) {
+// 	return func(o *initOption) {
+// 		o.branch = branch
+// 	}
+// }
 
 type errlist map[string]error
 
@@ -76,16 +84,24 @@ func (errs *errlist) Nochange() bool {
 // init template file, config.yaml and repotemplate files
 // if repo config.yaml exist, it will affect init process?
 func (p *Project) Init(options ...func(*initOption)) (err error) {
-	c := initOption{branch: "develop"}
+	// c := initOption{branch: "develop"}
+	c := initOption{}
 	for _, op := range options {
 		op(&c)
 	}
 	log.Printf("got init option: %#v", c)
 
-	if p.Inited() && !c.force {
-		// it should be by tag? text to force
-		err = fmt.Errorf("project %v already inited, you can try force init", p.Project)
-		return
+	// change if config provided, overwrite default
+	if c.config != nil {
+		if c.config.BuildMode != "" {
+			p.Config.BuildMode = c.config.BuildMode
+		}
+		if c.config.ConfigVer != "" {
+			p.Config.ConfigVer = c.config.ConfigVer
+		}
+		if c.config.DevBranch != "" {
+			p.Config.DevBranch = c.config.DevBranch
+		}
 	}
 	err = p.initAll(c)
 	return
@@ -315,32 +331,44 @@ func (p *Project) Setting(c ProjectConfig) (out string, err error) {
 //
 // we still do init k8s relate, but it's optional, it can skip
 func (p *Project) initAll(c initOption) (err error) {
+	var needinit bool
 
 	// we currently ignore autoenv, only config env is working for init
 	envMap, err := p.readEnvs(nil)
 	if err != nil {
 		err = fmt.Errorf("readenvs err: %v", err)
 	}
-	changed1, err := p.initDocker(envMap, c)
-	if err != nil {
-		err = fmt.Errorf("initDocker err: %v", err)
-		return
+	var changed1, changed2 bool
+	if !p.DockerInited() || c.force {
+		changed1, err = p.initDocker(envMap)
+		if err != nil {
+			err = fmt.Errorf("initDocker err: %v", err)
+			return
+		}
+		needinit = true
 	}
-	changed2, err := p.initK8s(envMap, c.force)
-	if err != nil {
-		err = fmt.Errorf("initK8s err: %v", err)
+	if !p.Inited() || c.force {
+		changed2, err = p.initK8s(envMap, c.force)
+		if err != nil {
+			err = fmt.Errorf("initK8s err: %v", err)
+			return
+		}
+		needinit = true
+	}
+	if !needinit {
+		err = fmt.Errorf("both repo and configrepo inited, you can try force init")
 		return
 	}
 	if !changed1 && !changed2 {
-		log.Println("both repo and configrepo have no change")
-		return nil
+		err = fmt.Errorf("both repo and configrepo have no file change")
+		return
 	}
 	return
 }
 
 // init docker just an optional steps
 // require build-docker.sh exist, if using self-release to build image
-func (p *Project) initDocker(envMap map[string]string, c initOption) (update bool, err error) {
+func (p *Project) initDocker(envMap map[string]string) (update bool, err error) {
 	repo, err := p.GetRepo()
 	if err != nil {
 		return
@@ -399,7 +427,7 @@ func (p *Project) initK8s(envMap map[string]string, force bool) (update bool, er
 		{src: "k8s/template-pre.yaml", dst: "self-release/template/template-pre.yaml"},
 		{src: "k8s/template-test.yaml", dst: "self-release/template/template-test.yaml"},
 		{src: "config.env", dst: "self-release/config.env"},
-		{src: "config.yaml", dst: "self-release/config.yaml"}, // should we add this?
+		// {src: "config.yaml", dst: "self-release/config.yaml"}, // should we add this? TODO:
 	}
 	var changed bool
 	for _, v := range items {
@@ -514,8 +542,19 @@ func (p *Project) CopyToConfigWithVerify(src, dst string, envMap map[string]stri
 func (p *Project) CopyToConfigNoGen(src, dst string, envMap map[string]string) (changed bool, err error) {
 	return CopyTo(p.configrepo, p.configrepo, src, dst, envMap, SetNoGen())
 }
+
 func (p *Project) CopyToConfigNoGenForce(src, dst string, envMap map[string]string) (changed bool, err error) {
 	return CopyTo(p.configrepo, p.configrepo, src, dst, envMap, SetNoGen(), SetForce())
+}
+
+// for config.yaml
+func (p *Project) CopyToConfigWithSrcNoGen(srcbody, dst string, envMap map[string]string) (changed bool, err error) {
+	return CopyTo(p.configrepo, p.configrepo, "", dst, envMap, SetNoGen(), SetSrcBody(srcbody))
+}
+
+// for config.yaml
+func (p *Project) CopyToConfigWithSrcNoGenForce(srcbody, dst string, envMap map[string]string) (changed bool, err error) {
+	return CopyTo(p.configrepo, p.configrepo, "", dst, envMap, SetNoGen(), SetSrcBody(srcbody), SetForce())
 }
 
 func (p *Project) CopyToConfig(src, dst string, envMap map[string]string) (changed bool, err error) {
@@ -537,6 +576,8 @@ type copyto struct {
 	nogen     bool
 	force     bool
 	finalbody *string
+
+	srcbody string
 }
 
 type copytOption func(c *copyto)
@@ -564,15 +605,25 @@ func SetFinalBody(body *string) copytOption {
 	}
 }
 
+func SetSrcBody(body string) copytOption {
+	return func(c *copyto) {
+		c.srcbody = body
+	}
+}
+
 func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, options ...copytOption) (changed bool, err error) {
 	o := &copyto{}
 	for _, op := range options {
 		op(o)
 	}
-	c, err := getcontent(repo, src)
-	if err != nil {
-		return
+	var c string
+	if o.srcbody == "" {
+		c, err = getcontent(repo, src)
+		if err != nil {
+			return
+		}
 	}
+
 	var body string
 	if !o.nogen {
 		// fmt.Println("convert", convertToSubst(c))  // for test

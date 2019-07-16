@@ -69,6 +69,7 @@ func main() {
 
 	g.GET("/wechat", wechatHandler)
 
+	e.Any("/harbor", harborHandler)
 	e.POST("/hook", hookHandler)
 
 	// e.Static("/logs", "projectlogs")

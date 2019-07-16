@@ -153,14 +153,15 @@ func (p *Project) Inited() bool {
 }
 
 // TODO: separate two type of init, let init check if docker is inited?
-// // gen dockerfile in user's repo?
-// func (p *Project) DockerInited() bool {
-// 	if p != nil {
-// 		config := filepath.Join(p.Project, "self-release", defaultConfigName) // relate to initk8s path
-// 		return p.configrepo.IsExist(config)
-// 	} // p nil should not happen
-// 	return false
-// }
+// gen dockerfile in user's repo?
+func (p *Project) DockerInited() bool {
+	repo, err := p.GetRepo()
+	if err != nil {
+		log.Println("getrepo err", err)
+		return false
+	}
+	return repo.IsExist("Dockerfile")
+}
 
 // func (p *Project) GetRepo() *git.Repo {
 // 	return p.repo
@@ -294,7 +295,7 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	p = &Project{
 		Project: project,
 		Branch:  c.branch,
-		Config:  config,
+		Config:  config, // how to persist this config?
 	}
 
 	// we don't need config.yaml anymore

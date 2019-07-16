@@ -131,72 +131,30 @@ func myproject(dev, args string) (out string, err error) {
 	return
 }
 
-// // make this into project config?
-// func convertback(name string) string {
-// 	if name == "wen" {
-// 		return "wenzhenglin"
-// 	}
-// 	return name
-// }
-
-type flagOption struct {
-	force   bool
-	nobuild bool
-}
-
-func parseFlag(args string) (f flagOption) {
-	// f = flagOption{}
-	s := strings.Fields(args)
-	for _, v := range s {
-		if strings.Contains(v, "=") {
-			continue
-		}
-		if strings.Contains(v, "force") {
-			f.force = true
-		}
-		if strings.Contains(v, "nobuild") {
-			f.nobuild = true
-		}
-	}
-	return
-}
-
-func parseProject(args string) (project, branch string, err error) {
-	s := strings.Fields(args)
-	if len(s) < 1 {
-		err = fmt.Errorf("no project arg provided")
+// how to support setting?
+func projectinit(dev, args string) (out string, err error) {
+	s := parseSetting(args)
+	err = validateSetting(s)
+	if err != nil {
+		log.Println("validate setting err: ", err)
 		return
 	}
-	a := []string{}
-	for _, v := range s {
-		if strings.Contains(v, "=") {
-			continue
-		}
-		a = append(a, v)
-	}
-	if len(a) < 2 {
-		project = a[0]
-		branch = "develop" // TODO: using config?
-	}
-	if len(a) >= 2 {
-		project = a[0]
-		branch = a[1]
-		if branch == "force" || branch == "nobuild" {
-			branch = "develop"
-		}
-	}
-	return
-}
 
-func projectinit(dev, args string) (out string, err error) {
-
-	project, _, err := parseProject(args)
+	project, branch, err := parseProject(args)
 	if err != nil {
 		return
 	}
-
 	f := parseFlag(args)
-	branch := InitBranch // TODO: should this be arg?
+
+	if branch == "" {
+		branch = InitBranch // set default
+	}
+
+	// c := projectpkg.ProjectConfig{
+	// 	BuildMode: s.buildmode,
+	// 	DevBranch: s.devbranch,
+	// 	ConfigVer: s.configver,
+	// }
 
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 	if err != nil {
@@ -363,58 +321,6 @@ func retry(dev, args string) (out string, err error) {
 		out = "retried ok"
 		log.Printf("retry from %v ok\n", dev)
 	}
-	return
-}
-
-type setOption struct {
-	buildmode string
-	configver string
-	devbranch string
-}
-
-func validateSetting(s setOption) error {
-	if s.buildmode != "" {
-		if s.buildmode != "auto" && s.buildmode != "disabled" && s.buildmode != "on" {
-			return fmt.Errorf("expect auto,disabled,on for imagebuild, but got: %v", s.buildmode)
-		}
-	}
-	return nil
-}
-func parseSetting(args string) (f setOption) {
-	// f = setOption{}
-	s := strings.Fields(args)
-	m := make(map[string]string)
-	for _, v := range s {
-		if !strings.Contains(v, "=") {
-			continue
-		}
-		ss := strings.Split(v, "=")
-		if len(ss) != 2 {
-			continue
-		}
-		m[ss[0]] = ss[1]
-	}
-	if m["imagebuild"] != "" {
-		f.buildmode = m["imagebuild"]
-	}
-	if m["devbranch"] != "" {
-		f.devbranch = m["devbranch"]
-	}
-	if m["configver"] != "" {
-		f.configver = m["configver"]
-	}
-	// if strings.Contains(args, "imagebuild=disabled") {
-	// 	f.buildmode = "disabled"
-	// }
-	// if strings.Contains(args, "imagebuild=auto") {
-	// 	f.buildmode = "auto"
-	// }
-	// if strings.Contains(args, "devbranch=test") {
-	// 	f.devbranch = "test"
-	// }
-	// if strings.Contains(args, "devbranch=develop") {
-	// 	f.devbranch = "develop"
-	// }
 	return
 }
 

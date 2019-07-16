@@ -177,7 +177,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	tip := fmt.Sprintf("start build for project %v, branch: %v, env: %v\n", project, branch, env)
 	b.logf(tip)
 
-	notifytext := fmt.Sprintf("%vlog url: http://build.newops.haodai.net/logs?key=%v", tip, b.Key)
+	notifytext := fmt.Sprintf("%vlog url: http://release.haodai.net/logs?key=%v", tip, b.Key)
 	b.notify(notifytext, e.UserName)
 
 	if bo == nil {
