@@ -72,7 +72,7 @@ func GetDefaultConfigVer() string {
 }
 
 func GetDefaultVer() string {
-	return "v1.0.0"
+	return "v0.0.1"
 }
 
 // // should init at main

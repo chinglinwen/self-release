@@ -77,11 +77,12 @@ func handleRelease(event *TagPushEvent) (err error) {
 }
 
 type buildOption struct {
-	gen      bool
-	nobuild  bool
-	force    bool
-	deploy   bool
-	rollback bool
+	gen        bool
+	nobuild    bool
+	force      bool
+	buildimage bool
+	deploy     bool
+	rollback   bool
 	// no easy way to delete? why need delete?
 	nonotify bool
 	p        *projectpkg.Project // to avoid re-open or git pull
@@ -205,13 +206,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// create project need to distinguish if it's a init
 	var init, forceinit bool
 	if !projectpkg.BranchIsTag(branch) {
-		if branch != p.Config.DevBranch { // tag should be release, not build?
-			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.DevBranch, project)
-			// log.Println(a)
-			b.log(err)
-			return
-		}
-
 		if strings.Contains(e.Message, "/helpdocker") {
 			b.log("will do init")
 			init = true
@@ -238,6 +232,12 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 
 	if !projectpkg.BranchIsTag(branch) {
+		if branch != p.Config.DevBranch { // tag should be release, not build?
+			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.DevBranch, project)
+			// log.Println(a)
+			b.log(err)
+			return
+		}
 		// check if force is enabled
 		// check if inited, do init by manual trigger?
 		// if not inited before, or force is specified, do init now?
@@ -339,7 +339,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	//envsubst.Eval()
 
 	needbuild := p.NeedBuild()
-	if ((!bo.nobuild) && needbuild) || bo.force {
+	if ((!bo.nobuild) && needbuild) || bo.buildimage {
 		// out := make(chan string, 10)
 
 		b.log("<h2>Docker build</h2>")
@@ -408,7 +408,7 @@ func getproject(project, branch string, rollback, init bool) (p *projectpkg.Proj
 		argBranch := branch
 		branch, err = p.GetPreviousTag() // rollback before specific tag, just redeploy then?
 		if err != nil {
-			err = fmt.Errorf("GetPreviousTag err: %v", err)
+			err = fmt.Errorf("get previous tag err: %v", err)
 			return
 		}
 

@@ -83,6 +83,7 @@ const (
 	buildmodeOn       = "on"
 	buildmodeAuto     = "auto"
 	buildmodeDisabled = "disabled"
+	buildmodeManual   = "manual" // for manual build
 )
 
 func (p *Project) NeedBuild() bool {
@@ -94,9 +95,14 @@ func (p *Project) NeedBuild() bool {
 		return !p.ImageIsExist()
 	case buildmodeDisabled:
 		return false
+	case buildmodeManual:
+		return false
 	default:
 		return true
 	}
+}
+func (p *Project) IsManual() bool {
+	return p.Config.BuildMode == buildmodeManual
 }
 
 func (p *Project) ImageIsExist() bool {
@@ -203,6 +209,11 @@ func SetNoEnableCheck(init bool) func(*projectOption) {
 		p.noenablecheck = init
 	}
 }
+func SetConfigMustExist(exist bool) func(*projectOption) {
+	return func(p *projectOption) {
+		p.configMustExist = exist
+	}
+}
 
 type projectOption struct {
 	nopull bool
@@ -214,6 +225,8 @@ type projectOption struct {
 
 	noreadconfig  bool
 	noenablecheck bool
+
+	configMustExist bool
 }
 
 // type initOption struct {
@@ -299,7 +312,7 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 
 	// try get config, to overwrite default config
 	config, err := readProjectConfig(configrepo, project)
-	if err != nil {
+	if err != nil && !c.configMustExist {
 		log.Println("read project config err, will using default config for ", project)
 		defaultConfig, e := readTemplateConfig(configrepo, c.configVer) // using default config, can we get configver now?
 		if e != nil {
@@ -308,6 +321,10 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		}
 		config = defaultConfig
 		err = nil
+	}
+	if err != nil {
+		err = fmt.Errorf("read config failed, config may not exist, err: %v", err)
+		return
 	}
 	if config.SelfRelease != "enabled" && !c.noenablecheck {
 		err = fmt.Errorf("project disabled, try do init, if inited, try set selfrelease=enabled")

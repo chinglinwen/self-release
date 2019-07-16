@@ -7,11 +7,84 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"wen/self-release/pkg/sse"
+	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
 	prettyjson "github.com/hokaccha/go-prettyjson"
 	"github.com/labstack/echo"
+	cache "github.com/patrickmn/go-cache"
 )
+
+// do build if buildmode is manual
+func HarborToDeploy(i *HarborEventInfo) (err error) {
+	log.Printf("got push from: %v, project: %v:%v\n", i.Name, i.Project, i.Tag)
+	project, branch, name := i.Project, i.Tag, i.Name
+
+	d, found := getCache(i)
+	if found {
+		log.Printf("ignore cached event for project: %v:%v, expire in: %v\n", project, branch, d.Format(TimeLayout))
+		return
+	}
+	setCache(i)
+	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch), projectpkg.SetConfigMustExist(true))
+	if err != nil {
+		return
+	}
+
+	// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+	if err != nil {
+		err = fmt.Errorf("project: %v:%v, new err: %v", project, branch, err)
+		return
+	}
+	if !p.IsManual() {
+		log.Printf("ignore build for project: %v:%v, buildmode is not manual\n", project, branch)
+		return
+	}
+	log.Printf("start harbor build for project: %v:%v\n", project, branch)
+
+	bo := &buildOption{
+		gen: true,
+		// nobuild:    f.nobuild,
+		buildimage: false,
+		deploy:     true,
+		// nonotify:   true,
+		p: p,
+	}
+	e := &sse.EventInfo{
+		Project: i.Project,
+		Branch:  i.Tag,
+		// Env:       env, // default derive from branch
+		UserName: i.Name,
+		// UserEmail: useremail,
+		Message: fmt.Sprintf("from harbor %v", name),
+	}
+
+	b := NewBuilder(project, branch)
+	b.log("starting logs trigger by harbor build")
+
+	err = b.startBuild(e, bo)
+	if err != nil {
+		err = fmt.Errorf("startdeploy for project: %v, branch: %v, err: %v", project, branch, err)
+		log.Println(err)
+		return
+	}
+	return
+}
+
+var C = cache.New(1*time.Minute, 1*time.Minute)
+
+func setCache(i *HarborEventInfo) {
+	key := fmt.Sprintf("%v:%v-%v", i.Project, i.Tag, i.Name)
+	d, _ := time.ParseDuration("1m")
+	C.Set(key, i, d)
+}
+
+func getCache(i *HarborEventInfo) (d time.Time, found bool) {
+	key := fmt.Sprintf("%v:%v-%v", i.Project, i.Tag, i.Name)
+	_, d, found = C.GetWithExpiration(key)
+	return
+}
 
 func harborHandler(c echo.Context) (err error) {
 	//may do redirect later?
@@ -23,7 +96,7 @@ func harborHandler(c echo.Context) (err error) {
 		return
 	}
 	// fmt.Printf("r: %#v\n", r)
-	// log.Printf("body: %v", body)
+	log.Printf("body: %v", body)
 
 	i, err := getHarborEventInfo(body)
 	if err != nil {
@@ -44,6 +117,13 @@ func harborHandler(c echo.Context) (err error) {
 	}
 	log.Printf("got push: %s\n\n\n", out)
 
+	err = HarborToDeploy(i)
+	if err != nil {
+		err = fmt.Errorf("harbor deploy err: %v", err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return
+	}
 	return c.JSONPretty(http.StatusOK, E(0, "push event handle ok", "ok"), " ")
 }
 

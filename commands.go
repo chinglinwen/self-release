@@ -37,10 +37,10 @@ var (
 	funcs = []action{
 		// {name: "help", fn: help},
 		{name: "hi", fn: hi, help: "say hi."},
-		{name: "deploy", fn: deploy, help: "deploy project.", eg: "/deploy group/project [branch][nobuild|force]"},
+		{name: "deploy", fn: deploy, help: "deploy project.", eg: "/deploy group/project [branch][nobuild|buildimage]"},
 		{name: "deldeploy", fn: deldeploy, help: "delete deploy project.", eg: "/deldeploy group/project [branch]"},
 		{name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
-		{name: "retry", fn: retry, help: "retry last time deployed project.", eg: "/retry [nobuild|force]"},
+		{name: "retry", fn: retry, help: "retry last time deployed project.", eg: "/retry [nobuild|buildimage]"},
 		{name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
 		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [imagebuild=auto|disabled|on][devbranch=develop|test]" +
 			"[configver=php.v1][selfrelease=enabled|disabled][viewsetting]"},
@@ -189,11 +189,11 @@ func deploy(dev, args string) (out string, err error) {
 	}
 	f := parseFlag(args)
 	bo := &buildOption{
-		gen:      true,
-		nobuild:  f.nobuild,
-		force:    f.force,
-		deploy:   true,
-		nonotify: true,
+		gen:        true,
+		nobuild:    f.nobuild,
+		buildimage: f.buildimage,
+		deploy:     true,
+		nonotify:   true,
 	}
 	e := &sse.EventInfo{
 		Project: project,
@@ -315,10 +315,10 @@ func retry(dev, args string) (out string, err error) {
 	bo := &buildOption{
 		gen: true,
 		// build:    true, // default to configs
-		nobuild:  f.nobuild,
-		force:    f.force, // should no build again?
-		deploy:   true,
-		nonotify: true,
+		nobuild:    f.nobuild,
+		buildimage: f.buildimage, // should no build again?
+		deploy:     true,
+		nonotify:   true,
 	}
 	argstoevent(b.Event, args)
 

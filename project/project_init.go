@@ -132,7 +132,7 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 
 // Setting set project config
 func (p *Project) Setting(c ProjectConfig) (out string, err error) {
-	if c.BuildMode == "" && c.DevBranch == "" && c.ConfigVer == "" {
+	if c.BuildMode == "" && c.DevBranch == "" && c.ConfigVer == "" && c.SelfRelease == "" && c.Version == "" {
 		err = fmt.Errorf("no config item provided,so nothing to set\n%v",
 			"expected setting [imagebuild=auto|disabled|on][devbranch=develop|test][configver=php.v1]")
 		return

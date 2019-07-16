@@ -7,6 +7,7 @@ import (
 
 type flagOption struct {
 	force       bool
+	buildimage  bool
 	nobuild     bool
 	dockeronly  bool
 	viewsetting bool
@@ -37,13 +38,16 @@ func parseFlag(args string) (f flagOption) {
 		if strings.Contains(v, "viewsetting") {
 			f.viewsetting = true
 		}
+		if strings.Contains(v, "buildimage") {
+			f.buildimage = true
+		}
 	}
 	return
 }
 
 func parseProject(args string) (project, branch string, err error) {
 	args1 := strings.NewReplacer(" force", " ", " nobuild", " ", " dockeronly",
-		" ", " viewsetting", " ").Replace(args)
+		" ", " viewsetting", " ", " buildimage", " ").Replace(args)
 	s := strings.Fields(args1)
 	a := []string{}
 	for _, v := range s {
