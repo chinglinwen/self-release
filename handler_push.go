@@ -338,11 +338,11 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// write to a auto.env? or
 	//envsubst.Eval()
 
+	b.log("<h2>Docker build</h2>")
+
 	needbuild := p.NeedBuild()
 	if ((!bo.nobuild) && needbuild) || bo.buildimage {
 		// out := make(chan string, 10)
-
-		b.log("<h2>Docker build</h2>")
 
 		b.logf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
 		out, e := p.Build(project, branch, env)
@@ -389,7 +389,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		}
 		// b.logf("apply for %v ok\n<h2>k8s apply output:</h2>%v\n", project, out)
 		b.log("<h2>k8s apply</h2>")
-		b.logf("apply for %v ok\n", project)
+		// b.logf("apply for %v ok\n", project)
 		b.logf("k8s apply output:\n")
 		b.logf("%v\n", out)
 		b.log("<br>")

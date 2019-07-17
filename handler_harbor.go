@@ -61,7 +61,7 @@ func HarborToDeploy(i *HarborEventInfo) (err error) {
 	}
 
 	b := NewBuilder(project, branch)
-	b.log("starting logs trigger by harbor build")
+	b.log("starting logs trigger by harbor image push, buildmode: manual")
 
 	err = b.startBuild(e, bo)
 	if err != nil {
@@ -96,10 +96,11 @@ func harborHandler(c echo.Context) (err error) {
 		return
 	}
 	// fmt.Printf("r: %#v\n", r)
-	log.Printf("body: %v", body)
+	// log.Printf("body: %v", body)
 
 	i, err := getHarborEventInfo(body)
 	if err != nil {
+		log.Printf("body: %v", body)
 		err = fmt.Errorf("get event info err: %v", err)
 		E(http.StatusBadRequest, err.Error(), "failed")
 		return
