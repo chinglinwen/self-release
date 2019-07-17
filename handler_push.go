@@ -380,7 +380,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// }
 		b.log("build is ok.")
 	} else {
-		b.logf("will not build, flag nobuild: %v, buildmode: %v, needbuild: %v, force: %v\n", bo.nobuild, p.Config.BuildMode, needbuild, bo.force)
+		b.logf("will not build, flag nobuild: %v, buildmode: %v, needbuild: %v, buildimage: %v\n", bo.nobuild, p.Config.BuildMode, needbuild, bo.buildimage)
 	}
 	// check if inited or force provide, if not, init first
 
