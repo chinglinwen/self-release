@@ -415,7 +415,7 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	// p.repo = repo
 	// p.WorkDir = p.repo.GetWorkDir()
 
-	p.configConfigPath = filepath.Join(defaultAppName, p.Project)
+	p.configConfigPath = filepath.Join(p.Project, defaultAppName)
 
 	log.Printf("create project: %q ok\n", project)
 

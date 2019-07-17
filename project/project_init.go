@@ -139,7 +139,7 @@ func (p *Project) Setting(c ProjectConfig) (out string, err error) {
 	}
 	if !p.Inited() {
 		// we currently ignore autoenv, only config env is working for init
-		envMap, e := p.readEnvs(nil)
+		_, envMap, e := p.ReadEnvs(nil)
 		if e != nil {
 			err = fmt.Errorf("readenvs err: %v", e)
 		}
@@ -380,7 +380,7 @@ func (p *Project) initAll(c initOption) (err error) {
 	var needinit bool
 
 	// we currently ignore autoenv, only config env is working for init
-	envMap, err := p.readEnvs(nil)
+	_, envMap, err := p.ReadEnvs(nil)
 	if err != nil {
 		err = fmt.Errorf("readenvs err: %v", err)
 	}

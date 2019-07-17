@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"wen/self-release/git"
 
@@ -104,14 +105,14 @@ func (p *Project) Generate(options ...func(*genOption)) (target string, err erro
 		return
 	}
 
-	// var envMap map[string]string
-	envMap, err := p.readEnvs(c.autoenv)
-	if err != nil {
-		// err = fmt.Errorf("readenvs err: %v", err)
-		log.Printf("readenvs err: %v, will ignore\n", err)
-		// envMap = make(map[string]string)
-	}
-	p.envMap = envMap
+	// // var envMap map[string]string
+	// envMap, err := p.readEnvs(c.autoenv)
+	// if err != nil {
+	// 	// err = fmt.Errorf("readenvs err: %v", err)
+	// 	log.Printf("readenvs err: %v, will ignore\n", err)
+	// 	// envMap = make(map[string]string)
+	// }
+	p.envMap = c.autoenv // already merged envs
 	// p.genOption = c
 
 	target, err = p.genK8s(c)
@@ -445,7 +446,7 @@ func generateByEnv(templateBody string) (string, error) {
 // }
 
 // autoenv can be nil, if no env settings
-func (p *Project) readEnvs(autoenv map[string]string) (envMap map[string]string, err error) {
+func (p *Project) ReadEnvs(autoenv map[string]string) (mergeNote []string, envMap map[string]string, err error) {
 	// for the filter
 	// envFiles := []string{}
 
@@ -463,8 +464,9 @@ func (p *Project) readEnvs(autoenv map[string]string) (envMap map[string]string,
 	f := filepath.Join(p.configrepo.GetWorkDir(), p.configConfigPath, "config.env") // make this configurable?
 	if !isExist(f) {
 		// envFiles = append(envFiles, f)
-		log.Printf("env file: %v not exist, ignore env\n", f)
-		envMap = autoenv
+		err = fmt.Errorf("env file: %v not exist", f)
+		// log.Printf("env file: %v not exist, ignore env\n", f)
+		// envMap = autoenv
 		return
 	}
 	// }
@@ -476,6 +478,15 @@ func (p *Project) readEnvs(autoenv map[string]string) (envMap map[string]string,
 		return // TODO: need ignore?
 	}
 
+	// mergeNote = "config envs:\n"
+	for k, v := range envMap {
+		mergeNote = append(mergeNote, fmt.Sprintf("configenv: %v=%v\n", k, v))
+	}
+
+	sort.Slice(mergeNote, func(i, j int) bool {
+		return mergeNote[i] < mergeNote[j] // alphabetical order
+	})
+	mergeNote = append(mergeNote, "") // append newline split
 	// for k, v := range envMap {
 	// 	if k == "devBranch" {
 	// 		p.DevBranch = v
@@ -485,14 +496,28 @@ func (p *Project) readEnvs(autoenv map[string]string) (envMap map[string]string,
 	// 	}
 	// }
 
-	if autoenv == nil {
-		return
+	mergeNote1 := make([]string, 0)
+	split := "//----------//"
+	if autoenv != nil {
+		// append build envs
+		for k, v := range autoenv {
+			if configv, ok := envMap[k]; ok {
+				a := fmt.Sprintf("autoenv: %v=%v %v overwrite by configenv: %v to %v\n", k, configv, split, v, configv)
+				log.Printf(a)
+				mergeNote1 = append(mergeNote1, a)
+				continue
+			} else {
+				envMap[k] = v // support overwrite?
+				mergeNote1 = append(mergeNote1, fmt.Sprintf("autoenv: %v=%v\n", k, v))
+			}
+		}
 	}
 
-	// append build envs
-	for k, v := range autoenv {
-		envMap[k] = v // support overwrite?
-	}
+	sort.Slice(mergeNote1, func(i, j int) bool {
+		return mergeNote1[i] < mergeNote1[j] // alphabetical order
+	})
+
+	mergeNote = append(mergeNote, mergeNote1...)
 
 	return
 }

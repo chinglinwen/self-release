@@ -288,11 +288,21 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		return
 	}
 
+	mergenote, envMap, err := p.ReadEnvs(autoenv)
+	if err != nil {
+		// err = fmt.Errorf("readenvs err: %v", err)
+		log.Printf("readenvs err: %v, will ignore\n", err)
+		// envMap = make(map[string]string)
+	}
+	// else {
+	// 	log.Printf("merged envs from config.env to autoenv: \n%v", mergenote)
+	// }
+
 	b.log("<h2>Info</h2>")
 
-	for k, v := range autoenv {
-		log.Printf("autoenv: %v=%v", k, v)
-		b.logf("autoenv: %v=%v", k, v)
+	for _, v := range mergenote {
+		log.Print(v)
+		b.log(v)
 	}
 
 	// it should be config from repo or template now
@@ -324,7 +334,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		b.log("<h2>Generate k8s yaml</h2>")
 
 		// almost generate everytime, except config
-		finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenEnv(env))
+		finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(envMap), projectpkg.SetGenEnv(env))
 		if err != nil {
 			err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
 			b.logerr(err)
