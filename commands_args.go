@@ -89,7 +89,7 @@ type setOption struct {
 
 func validateSetting(s setOption) error {
 	if s.buildmode != "" {
-		if s.buildmode != "auto" && s.buildmode != "disabled" && s.buildmode != "on" {
+		if s.buildmode != "auto" && s.buildmode != "disabled" && s.buildmode != "on" && s.buildmode != "manual" {
 			return fmt.Errorf("expect auto,disabled,on for imagebuild, but got: %v", s.buildmode)
 		}
 	}
@@ -115,8 +115,8 @@ func parseSetting(args string) (f setOption) {
 		}
 		m[ss[0]] = ss[1]
 	}
-	if m["imagebuild"] != "" {
-		f.buildmode = m["imagebuild"]
+	if m["buildmode"] != "" {
+		f.buildmode = m["buildmode"]
 	}
 	if m["devbranch"] != "" {
 		f.devbranch = m["devbranch"]

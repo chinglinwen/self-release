@@ -154,56 +154,58 @@ func (p *Project) Setting(c ProjectConfig) (out string, err error) {
 	pc := p.Config
 	if c.BuildMode != "" {
 		log.Printf("project: %v changed buildmode from: %v to: %v\n", p.Project, pc.BuildMode, c.BuildMode)
-		pc.BuildMode = c.BuildMode
 		if pc.BuildMode == c.BuildMode {
 			out = fmt.Sprintf("%v  buildmode already set to %v\n", out, c.BuildMode)
 		} else {
-			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.BuildMode, c.BuildMode)
+			out = fmt.Sprintf("%v  buildmode from: %v -> %v\n", out, pc.BuildMode, c.BuildMode)
 			update = true
 		}
+		pc.BuildMode = c.BuildMode
 	}
 	if c.ConfigVer != "" {
 		log.Printf("project: %v changed configver from: %v to: %v\n", p.Project, pc.ConfigVer, c.ConfigVer)
-		pc.ConfigVer = c.ConfigVer
 		if pc.ConfigVer == c.ConfigVer {
 			out = fmt.Sprintf("%v  configver already set to %v\n", out, c.ConfigVer)
 		} else {
-			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.ConfigVer, c.ConfigVer)
+			out = fmt.Sprintf("%v  configver from: %v -> %v\n", out, pc.ConfigVer, c.ConfigVer)
 			update = true
 		}
+		pc.ConfigVer = c.ConfigVer
 	}
 	if c.DevBranch != "" {
 		log.Printf("project: %v changed devbranch from: %v to: %v\n", p.Project, pc.DevBranch, c.DevBranch)
-		pc.DevBranch = c.DevBranch
+
 		if pc.DevBranch == c.DevBranch {
 			out = fmt.Sprintf("%v  devbranch already set to %v\n", out, c.DevBranch)
 		} else {
-			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.DevBranch, c.DevBranch)
+			out = fmt.Sprintf("%v  devbranch from: %v -> %v\n", out, pc.DevBranch, c.DevBranch)
 			update = true
 		}
+		pc.DevBranch = c.DevBranch
 	}
 	if c.SelfRelease != "" {
 		log.Printf("project: %v changed selfrelease from: %v to: %v\n", p.Project, pc.SelfRelease, c.SelfRelease)
-		pc.SelfRelease = c.SelfRelease
 		if pc.SelfRelease == c.SelfRelease {
 			out = fmt.Sprintf("%v  selfrelease already set to %v\n", out, c.SelfRelease)
 		} else {
-			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.SelfRelease, c.SelfRelease)
+			out = fmt.Sprintf("%v  selfrelease from: %v -> %v\n", out, pc.SelfRelease, c.SelfRelease)
 			update = true
 		}
+		pc.SelfRelease = c.SelfRelease
 	}
 	if c.Version != "" {
 		log.Printf("project: %v changed version from: %v to: %v\n", p.Project, pc.Version, c.Version)
-		pc.Version = c.Version
 		if pc.Version == c.Version {
 			out = fmt.Sprintf("%v  Version already set to %v\n", out, c.Version)
 		} else {
-			out = fmt.Sprintf("%v  %v -> %v\n", out, pc.Version, c.Version)
+			out = fmt.Sprintf("%v  version from: %v -> %v\n", out, pc.Version, c.Version)
 			update = true
 		}
+		pc.Version = c.Version
 	}
 
 	if update {
+		log.Printf("project: %v saving config\n", p.Project)
 		err = writeProjectConfig(p.configrepo, p.Project, pc)
 	}
 	return

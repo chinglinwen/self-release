@@ -42,7 +42,7 @@ var (
 		{name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
 		{name: "retry", fn: retry, help: "retry last time deployed project.", eg: "/retry [nobuild|buildimage]"},
 		{name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
-		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [imagebuild=auto|disabled|on][devbranch=develop|test]" +
+		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [buildmode=auto|disabled|on|manual][devbranch=develop|test]" +
 			"[configver=php.v1][selfrelease=enabled|disabled][viewsetting]"},
 		{name: "gen", fn: gen, help: "generate files(yaml) only last time deployed project.", eg: "/gen [group/project] [branch]"},
 		{name: "myproject", fn: myproject, help: "show last time project."},
@@ -377,7 +377,7 @@ func setting(dev, args string) (out string, err error) {
 		return
 	}
 
-	out = fmt.Sprintf("setting ok, %v", out)
+	out = fmt.Sprintf("setting ok for %v, %v", project, out)
 	log.Printf("setting from %v ok\n", dev)
 	return
 }

@@ -263,7 +263,8 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	// not inited repo, just return
 	configrepo, err := GetConfigRepo()
 	if err != nil {
-
+		err = fmt.Errorf("get config repo err: %v", err)
+		return
 	}
 	c := &projectOption{
 		// branch:    "master",
