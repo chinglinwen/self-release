@@ -705,6 +705,8 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 		if err != nil {
 			return
 		}
+	} else {
+		c = o.srcbody
 	}
 
 	var body string
