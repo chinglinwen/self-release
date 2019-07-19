@@ -423,6 +423,9 @@ func convertToSubst(templateBody string) string {
 }
 
 func generateByMap(templateBody string, envMap map[string]string) (string, error) {
+	// inject resource here
+	templateBody = injectResource(templateBody, envMap)
+
 	return envsubst.Eval(templateBody, func(k string) string {
 		if v, ok := envMap[k]; !ok {
 			log.Printf("got unknown env config name: %v\n", k)
@@ -436,6 +439,20 @@ func generateByMap(templateBody string, envMap map[string]string) (string, error
 
 func generateByEnv(templateBody string) (string, error) {
 	return envsubst.EvalEnv(templateBody)
+}
+
+func injectResource(templateBody string, envMap map[string]string) string {
+	if envMap["ENV-RESOURCE"] != "" {
+		templateBody = strings.Replace(templateBody, "env:", fmt.Sprintf("env:\n%v", envMap["ENV-RESOURCE"]), -1)
+	}
+	if envMap["VOLUME-RESOURCE"] != "" {
+		templateBody = strings.Replace(templateBody, "volumes:", fmt.Sprintf("volumes:\n%v", envMap["VOLUME-RESOURCE"]), -1)
+	}
+	if envMap["MOUNT-RESOURCE"] != "" {
+		templateBody = strings.Replace(templateBody, "volumeMounts::", fmt.Sprintf("volumeMounts::\n%v", envMap["MOUNT-RESOURCE"]), -1)
+	}
+
+	return templateBody
 }
 
 // https://github.com/joho/godotenv
@@ -483,6 +500,12 @@ func (p *Project) ReadEnvs(autoenv map[string]string) (mergeNote []string, envMa
 		mergeNote = append(mergeNote, fmt.Sprintf("configenv: %v=%v\n", k, v))
 	}
 
+	// for inject resources
+	r, _ := p.readResources()
+	envMap["ENV-RESOURCE"] = r.envs
+	envMap["VOLUME-RESOURCE"] = r.volumes
+	envMap["MOUNT-RESOURCE"] = r.mounts
+
 	sort.Slice(mergeNote, func(i, j int) bool {
 		return mergeNote[i] < mergeNote[j] // alphabetical order
 	})
@@ -527,4 +550,42 @@ func isExist(file string) bool {
 		return true
 	}
 	return false
+}
+
+type resource struct {
+	envs    string
+	volumes string
+	mounts  string
+}
+
+func (p *Project) readResources() (r resource, err error) {
+	r.envs, err = p.readResource("envs.resource")
+	if err != nil {
+		log.Printf("%v get resource err: %v, will ignore", p.Project, err)
+	}
+	r.volumes, err = p.readResource("volumes.resource")
+	if err != nil {
+		log.Printf("%v get resource err: %v, will ignore", p.Project, err)
+	}
+	r.mounts, err = p.readResource("mounts.resource")
+	if err != nil {
+		log.Printf("%v get resource err: %v, will ignore", p.Project, err)
+	}
+	err = nil
+	return
+}
+
+func (p *Project) readResource(name string) (s string, err error) {
+	f := filepath.Join(p.configConfigPath, "template", name)
+	if !p.configrepo.IsExist(f) {
+		err = fmt.Errorf("%v is not exist", name)
+		return
+	}
+	b, err := p.configrepo.GetFile(f)
+	if err != nil {
+		err = fmt.Errorf("try read %v err: %v", name, err)
+		return
+	}
+	s = string(b)
+	return
 }
