@@ -111,8 +111,7 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 	autoenv["CI_NAMESPACE"] = namespace
 	autoenv["CI_PROJECT_NAME"] = projectName
 	autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + e.Env
-	autoenv["CI_REPLICAS"] = "1" // TODO: can we parse it? make it from config.yaml? or config.env
-	// we choose to config by us, not dev, not using this variable will overwrite default value
+	autoenv["CI_REPLICAS"] = "1" // config.env has higher priority to overwrite this
 
 	autoenv["CI_IMAGE"] = projectpkg.GetImage(e.Project, e.Branch) // or using project_path
 
