@@ -14,3 +14,5 @@ repos
 
 buildsvc.yaml
 self-release.yaml
+
+node_modules
