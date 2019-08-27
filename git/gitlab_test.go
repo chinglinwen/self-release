@@ -101,3 +101,23 @@ func TestCheckPerm(t *testing.T) {
 	}
 
 }
+
+func TestGetProjects(t *testing.T) {
+	_, ps, err := GetProjects(UserToken)
+	if err != nil {
+		t.Error("err", err)
+	}
+	fmt.Println("got", len(ps))
+
+	for _, v := range ps {
+		fmt.Println(v.ID, v.WebURL)
+	}
+}
+
+func TestGetProjectLists(t *testing.T) {
+	_, ps, err := GetProjectLists(UserToken)
+	if err != nil {
+		t.Error("err", err)
+	}
+	fmt.Println("got", len(ps))
+}

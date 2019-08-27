@@ -47,6 +47,8 @@ func main() {
 	box = rice.MustFindBox(*defaultWebDir)
 
 	e := echo.New()
+	e.Pre(middleware.AddTrailingSlash())
+
 	// e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	// e.Use(middleware.Logger())
@@ -61,6 +63,9 @@ func main() {
 	}))
 
 	g := e.Group("/api")
+
+	p := g.Group("/projects")
+	p.GET("/", projectListHandler)
 
 	// no where to handle auth?
 	// g.GET("/init", initAPIHandler)
