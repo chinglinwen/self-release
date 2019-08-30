@@ -17,6 +17,12 @@ type Project struct {
 	State bool   `json:"state"`
 }
 
+func projectUpdateHandler(c echo.Context) (err error) {
+	// r, err := c.Request().GetBody()
+	// b, _ := ioutil.ReadAll(r)
+	// fmt.Println("update body: ", b)
+	return c.String(http.StatusOK, `{"result_code":"0","status":"ok"}`)
+}
 func projectListHandler(c echo.Context) (err error) {
 	_, pss, err := git.GetProjects(UserToken)
 	if err != nil {
