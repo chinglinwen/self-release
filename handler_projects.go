@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"wen/self-release/git"
+	"wen/self-release/pkg/resource"
 
+	"github.com/chinglinwen/log"
 	"github.com/labstack/echo"
 )
 
@@ -43,4 +45,18 @@ func projectListHandler(c echo.Context) (err error) {
 		return
 	}
 	return c.String(http.StatusOK, string(b))
+}
+func projectResourceListHandler(c echo.Context) (err error) {
+	ns := c.Param("ns")
+	if ns == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "empty ns")
+	}
+	log.Printf("try get resource for %v\n", ns)
+	r, err := resource.GetResource(ns)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "get resource err:", err)
+	}
+	log.Printf("get resource for %v ok\n", ns)
+	// b, _ := json.MarshalIndent(r, "", "  ")
+	return c.JSON(http.StatusOK, r)
 }

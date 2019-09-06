@@ -8,6 +8,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"wen/self-release/pkg/harbor"
 	"wen/self-release/pkg/sse"
@@ -47,6 +48,8 @@ func main() {
 	box = rice.MustFindBox(*defaultWebDir)
 
 	e := echo.New()
+
+	// e.HTTPErrorHandler = customHTTPErrorHandler
 	// e.Pre(middleware.AddTrailingSlash())
 
 	e.Use(middleware.Logger())
@@ -63,15 +66,19 @@ func main() {
 	}))
 
 	g := e.Group("/api")
-	g.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
-		log.Printf("url: %q, body: %q\n", c.Request().URL, reqBody)
-	}))
+
+	// g.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+	// 	log.Printf("url: %q, method: %v, body: %q\n", c.Request().URL, c.Request().Method, reqBody)
+	// }))
 
 	p := g.Group("/projects")
 
 	p.Any("/:id", projectUpdateHandler)
 
 	p.GET("/", projectListHandler)
+
+	r := g.Group("/resources")
+	r.GET("/:ns", projectResourceListHandler)
 
 	// no where to handle auth?
 	// g.GET("/init", initAPIHandler)
@@ -108,4 +115,16 @@ func dosse(e *echo.Echo) {
 
 	// e.GET("/events/", homeHandler)
 	e.GET("/logs", logsHandler)
+}
+
+func customHTTPErrorHandler(err error, c echo.Context) {
+	code := http.StatusInternalServerError
+	if he, ok := err.(*echo.HTTPError); ok {
+		code = he.Code
+	}
+	errorPage := fmt.Sprintf("%d.html", code)
+	if err := c.File(errorPage); err != nil {
+		c.Logger().Error(err)
+	}
+	c.Logger().Error("error here", err)
 }
