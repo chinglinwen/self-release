@@ -23,7 +23,7 @@ func TestRunHelmGen(t *testing.T) {
 	// dir := "/home/wen/gocode/src/wen/self-release/project/repos/wenzhenglin/config-deploy"
 	// dir := "/home/wen/t/repos/wenzhenglin/config-deploy"
 	dir := "/home/wen/git/yunwei/config-deploy"
-	out, err := runHelmGen(dir, "haodai/main", "pre")
+	out, err := runHelmGen(dir, "haodai/main", "pre", GENSHAPICALL)
 	if err != nil {
 		t.Error("HelmGen err", err)
 		return
