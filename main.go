@@ -73,7 +73,11 @@ func main() {
 
 	p := g.Group("/projects")
 
-	p.Any("/:id", projectUpdateHandler)
+	p.Any("/:ns/:project", projectUpdateHandler)
+
+	// get and put values files
+	p.GET("/:ns/:project/values", projectValuesGetHandler)
+	p.POST("/:ns/:project/values", projectValuesUpdateHandler)
 
 	p.GET("/", projectListHandler)
 

@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"wen/self-release/git"
 	"wen/self-release/pkg/resource"
+	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
 	"github.com/labstack/echo"
@@ -17,6 +19,46 @@ type Project struct {
 	Name  string `json:"name"`
 	Git   string `json:"git"`
 	State bool   `json:"state"`
+}
+
+func projectValuesGetHandler(c echo.Context) (err error) {
+	ns := c.Param("ns")
+	env := c.FormValue("env")
+	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
+	log.Printf("get values for project: %v, env: %v\n ", project, env)
+
+	out, err := projectpkg.ValuesFileRead(project, env)
+	if err != nil {
+		err = fmt.Errorf("read values file for project: %v, env: %v, err: %v", project, env, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return
+	}
+	return c.JSONPretty(http.StatusOK, EData(200, "build ok", "ok", out), "")
+}
+
+func projectValuesUpdateHandler(c echo.Context) (err error) {
+	ns := c.Param("ns")
+	env := c.FormValue("env")
+	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
+	log.Printf("write values for project: %v, env: %v\n ", project, env)
+
+	v := projectpkg.Values{}
+	if err = c.Bind(v); err != nil {
+		err = fmt.Errorf("read body for project: %v, env: %v, err: %v", project, env, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return
+	}
+
+	err = projectpkg.ValuesFileWrite(project, env, v)
+	if err != nil {
+		err = fmt.Errorf("write values file for project: %v, env: %v, err: %v", project, env, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return
+	}
+	return c.JSONPretty(http.StatusOK, E(200, "saved ok", "ok"), " ")
 }
 
 func projectUpdateHandler(c echo.Context) (err error) {

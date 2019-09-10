@@ -12,22 +12,22 @@ import (
 // frontend is using json, helm charts use yaml
 
 type Values struct {
-	Envs  map[string]string `json:"envs"`
+	Envs  map[string]string `json:"envs,omitempty"`
 	Mysql []struct {
-		Name     string `json:"name"`
-		Host     string `json:"host"`
-		Port     string `json:"port"`
-		Database string `json:"database"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-	} `json:"mysql"`
-	Codis map[string]string `json:"codis"`
+		Name     string `json:"name,omitempty"`
+		Host     string `json:"host,omitempty"`
+		Port     string `json:"port,omitempty"`
+		Database string `json:"database,omitempty"`
+		Username string `json:"username,omitempty"`
+		Password string `json:"password,omitempty"`
+	} `json:"mysql,omitempty"`
+	Codis map[string]string `json:"codis,omitempty"`
 	Nfs   []struct {
-		Name      string `json:"name"`
-		Path      string `json:"path"`
-		Server    string `json:"server"`
-		MountPath string `json:"mountPath"`
-	} `json:"nfs"`
+		Name      string `json:"name,omitempty"`
+		Path      string `json:"path,omitempty"`
+		Server    string `json:"server,omitempty"`
+		MountPath string `json:"mountPath,omitempty"`
+	} `json:"nfs,omitempty"`
 }
 
 func ValuesJsonToYaml(body string) (values string, err error) {
@@ -72,17 +72,38 @@ func parseValuesYaml(body string) (values Values, err error) {
 	return
 }
 
-func ValuesFileWrite(project, env, body string) (err error) {
+func ValuesFileWrite(project, env string, v Values) (err error) {
+	d, err := yaml.Marshal(&v)
+	if err != nil {
+		err = fmt.Errorf("marshal yaml err: %v", err)
+		return
+	}
+	body := string(d)
+
 	// skip project fetch, we fetch config repo directly
 	configrepo, err := GetConfigRepo()
 	if err != nil {
 		err = fmt.Errorf("get config repo err: %v", err)
 		return
 	}
-
+	// how to handle multi env resource
+	if env != "" {
+		env += "-" + env
+	}
+	f := fmt.Sprintf("%v/values%v.yaml", project, env)
+	return configrepo.AddAndPush(f, body, fmt.Sprintf("add %v", f))
+}
+func ValuesFileWriteFromJson(project, env, body string) (err error) {
 	v, err := ValuesJsonToYaml(body)
 	if err != nil {
 		err = fmt.Errorf("convert json to yaml err: %v", err)
+		return
+	}
+
+	// skip project fetch, we fetch config repo directly
+	configrepo, err := GetConfigRepo()
+	if err != nil {
+		err = fmt.Errorf("get config repo err: %v", err)
 		return
 	}
 	// how to handle multi env resource
