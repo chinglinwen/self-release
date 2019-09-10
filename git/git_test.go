@@ -433,3 +433,17 @@ func TestAddAndPush(t *testing.T) {
 		return
 	}
 }
+
+func TestPushAnyLocalChange(t *testing.T) {
+	// r, err := New("wenzhenglin/test", SetBranch("feature2"))
+	r, err := New("wenzhenglin/config-deploy")
+	if err != nil {
+		t.Error("new err:", err)
+		return
+	}
+	err = r.PushLocalChange("test demo push for all local changes")
+	if err != nil {
+		t.Error("push err:", err)
+		return
+	}
+}

@@ -217,6 +217,22 @@ func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
 
 	log.Printf("new repo and get worktree ok, for repo: %q, branch: %q, tag: %q\n", repo.Project, repo.Branch, repo.Tag)
 
+	// check status, if not clean just ignore checkout local, may cause later commit fail?
+	status, err := wrk.Status()
+	if err != nil {
+		err = fmt.Errorf("check status error: %v, for repo: %q, branch: %q\n", err, repo.Project, repo.Branch)
+		log.Println(err)
+		return nil, err
+	}
+	// when there's change, we assume it's on the correct branch?
+	// add this condition for commit changes by third party ( push by code, not by git command )
+	if !status.IsClean() {
+		log.Printf("status: %v", status)
+
+		log.Printf("worktree is not clean, skip checkout local, for repo: %q, branch: %q\n", repo.Project, repo.Branch)
+		return
+	}
+
 	// this will make local changes lost
 	// checkout is needed after new, so we can work on correct branch
 	err = repo.CheckoutLocal()

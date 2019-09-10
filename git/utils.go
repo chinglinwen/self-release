@@ -42,6 +42,24 @@ func (r *Repo) AddFileAndPush(filename, commitText string) (err error) {
 	return r.Push()
 }
 
+// PushLocalChange add and commit, and push all changes by other party
+func (r *Repo) PushLocalChange(commitText string) (err error) {
+	// err = r.CheckoutLocal()
+	// if err != nil {
+	// 	return
+	// }
+
+	err = r.GitAdd(".")
+	if err != nil {
+		return
+	}
+	err = r.Commit(commitText)
+	if err != nil {
+		return
+	}
+	return r.Push()
+}
+
 func (r *Repo) GetFile(filename string) ([]byte, error) {
 	f := filepath.Join(r.Local, filename)
 	return ioutil.ReadFile(f)
