@@ -23,37 +23,50 @@ type Project struct {
 
 func projectValuesGetHandler(c echo.Context) (err error) {
 	ns := c.Param("ns")
-	env := c.FormValue("env")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
-	log.Printf("get values for project: %v, env: %v\n ", project, env)
+	log.Printf("get values for project: %v\n ", project)
 
-	out, err := projectpkg.ValuesFileRead(project, env)
+	repo, err := projectpkg.NewValuesRepo(project)
 	if err != nil {
-		err = fmt.Errorf("read values file for project: %v, env: %v, err: %v", project, env, err)
+		err = fmt.Errorf("read values file for project: %v, err: %v", project, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 		return
 	}
-	return c.JSONPretty(http.StatusOK, EData(200, "build ok", "ok", out), "")
+
+	out, err := repo.ValuesFileReadAll()
+	if err != nil {
+		err = fmt.Errorf("read values file for project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return
+	}
+	return c.JSONPretty(http.StatusOK, EData(200, "read values ok", "ok", out), "")
 }
 
 func projectValuesUpdateHandler(c echo.Context) (err error) {
 	ns := c.Param("ns")
-	env := c.FormValue("env")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
-	log.Printf("write values for project: %v, env: %v\n ", project, env)
+	log.Printf("write values for project: %v\n ", project)
 
-	v := projectpkg.Values{}
+	v := projectpkg.ValuesAll{}
 	if err = c.Bind(v); err != nil {
-		err = fmt.Errorf("read body for project: %v, env: %v, err: %v", project, env, err)
+		err = fmt.Errorf("read body for project: %v, err: %v", project, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 		return
 	}
 
-	err = projectpkg.ValuesFileWrite(project, env, v)
+	repo, err := projectpkg.NewValuesRepo(project)
 	if err != nil {
-		err = fmt.Errorf("write values file for project: %v, env: %v, err: %v", project, env, err)
+		err = fmt.Errorf("write values file for project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+		return
+	}
+	err = repo.ValuesFileWriteAll(v)
+	if err != nil {
+		err = fmt.Errorf("write values file for project: %v, err: %v", project, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 		return

@@ -214,7 +214,7 @@ func E(code int, msg, status string) map[string]interface{} {
 // 	}
 // }
 
-func EData(code int, msg, status string, data string) map[string]interface{} {
+func EData(code int, msg, status string, data interface{}) map[string]interface{} {
 	// log.Println(msg)
 	return map[string]interface{}{
 		"code":    code,

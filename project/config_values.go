@@ -3,13 +3,45 @@ package project
 import (
 	"encoding/json"
 	"fmt"
+	"wen/self-release/git"
 
+	"github.com/chinglinwen/log"
 	"gopkg.in/yaml.v2"
+)
+
+const (
+	EnvOnline    = "online"
+	EnvPreOnline = "pre"
+	EnvTest      = "test"
 )
 
 // provide values.yaml read and write
 
 // frontend is using json, helm charts use yaml
+
+type ValuesRepo struct {
+	project    string
+	configrepo *git.Repo
+}
+
+func NewValuesRepo(project string) (v *ValuesRepo, err error) {
+	configrepo, err := GetConfigRepo()
+	if err != nil {
+		err = fmt.Errorf("get config repo err: %v", err)
+		return
+	}
+	if !configrepo.IsExist(project) {
+		// should we create it? only if it's write?
+		// let create for the init?
+		err = fmt.Errorf("project does not exist err: %v")
+		return
+	}
+	v = &ValuesRepo{
+		project:    project,
+		configrepo: configrepo,
+	}
+	return
+}
 
 type Values struct {
 	Envs  map[string]string `json:"envs,omitempty"`
@@ -30,33 +62,169 @@ type Values struct {
 	} `json:"nfs,omitempty"`
 }
 
-func ValuesJsonToYaml(body string) (values string, err error) {
-	v, err := parseValuesJson(body)
+type ValuesAll struct {
+	Online Values `json:"online,omitempty"`
+	Pre    Values `json:"pre,omitempty"`
+	Test   Values `json:"test,omitempty"`
+}
+
+// we just read all env, no need fallback read online for pre?
+func (v *ValuesRepo) ValuesFileReadAll() (all ValuesAll, err error) {
+	log.Printf("reading online values for %v\n", v.project)
+	onlinev, err := v.ValuesFileRead(ONLINE)
 	if err != nil {
+		err = fmt.Errorf("get online values err: %v", err)
 		return
 	}
-	d, err := yaml.Marshal(&v)
+	log.Printf("reading pre values for %v\n", v.project)
+	prev, err := v.ValuesFileRead(PRE)
 	if err != nil {
+		err = fmt.Errorf("get pre values err: %v", err)
 		return
 	}
-	values = string(d)
+	log.Printf("reading test values for %v\n", v.project)
+	testv, err := v.ValuesFileRead(TEST)
+	if err != nil {
+		err = fmt.Errorf("get test values err: %v", err)
+		return
+	}
+	all = ValuesAll{
+		Online: onlinev,
+		Pre:    prev,
+		Test:   testv,
+	}
 	return
 }
 
-func ValuesYamlToJson(body string) (values string, err error) {
-	v, err := parseValuesYaml(body)
+// func (v *ValuesRepo) ValuesFileReadWithFallback(env string) (values Values, err error) {
+// 	var fetchdefault bool
+// 	// how to handle multi env resource
+// 	if env != ONLINE {
+// 		values, err = v.ValuesFileRead(env)
+// 		if err == nil {
+// 			return
+// 		}
+// 		fetchdefault = true
+// 	}
+// 	if env == ONLINE || fetchdefault {
+// 		return v.ValuesFileRead(ONLINE)
+// 	}
+// 	return
+// }
+func (v *ValuesRepo) ValuesFileRead(env string) (values Values, err error) {
+	f := getValueFileName(v.project, env)
+	return v.readfile(f)
+}
+
+func (v *ValuesRepo) readfile(filename string) (values Values, err error) {
+	b, err := v.configrepo.GetFile(filename)
+	return ParseValuesYaml(string(b))
+}
+
+func (v *ValuesRepo) ValuesFileWriteAll(all ValuesAll) (err error) {
+	update1, err := v.ValuesFileWrite(ONLINE, all.Online)
 	if err != nil {
 		return
 	}
-	d, err := json.Marshal(&v)
+	update2, err := v.ValuesFileWrite(PRE, all.Pre)
 	if err != nil {
 		return
 	}
-	values = string(d)
+	update3, err := v.ValuesFileWrite(TEST, all.Test)
+	if err != nil {
+		return
+	}
+	if !update1 && !update2 && !update3 {
+		log.Println("no need to update any values file for", v.project)
+	}
+	var a string
+	if update1 {
+		a += " " + ONLINE
+	}
+	if update2 {
+		a += " " + PRE
+	}
+	if update3 {
+		a += " " + TEST
+	}
+	commit := fmt.Sprintf("update values.yaml( %v) for: %v", a, v.project)
+	log.Println(commit)
+	return v.configrepo.CommitAndPush(commit)
+}
+
+func checkHasValue(v Values) bool {
+	if len(v.Codis) != 0 {
+		return true
+	}
+	if len(v.Envs) != 0 {
+		return true
+	}
+	if len(v.Mysql) != 0 {
+		return true
+	}
+	if len(v.Nfs) != 0 {
+		return true
+	}
+	return false
+}
+func (v *ValuesRepo) ValuesFileWrite(env string, value Values) (update bool, err error) {
+	// if no values, no create
+	if !checkHasValue(value) {
+		update = false
+		return
+	}
+	d, err := yaml.Marshal(&value)
+	if err != nil {
+		err = fmt.Errorf("marshal yaml err: %v", err)
+		return
+	}
+	body := string(d)
+	f := getValueFileName(v.project, env)
+	err = v.configrepo.Add(f, body)
 	return
 }
 
-func parseValuesJson(body string) (values Values, err error) {
+func getValueFileName(project, env string) (filename string) {
+	if env == ONLINE {
+		return fmt.Sprintf("%v/values.yaml", project)
+	}
+	return fmt.Sprintf("%v/values-%v.yaml", project, env)
+
+}
+
+// func (v *ValuesRepo) valuesFileWrite(filename, body string) (values Values, err error) {
+// 	b, err := v.configrepo.AddAndPush(filename, body, fmt.Sprintf("add values file %v", filename))
+// 	return ParseValuesYaml(string(b))
+// }
+
+// func ValuesJsonToYaml(body string) (values string, err error) {
+// 	v, err := ParseValuesJson(body)
+// 	if err != nil {
+// 		return
+// 	}
+// 	d, err := yaml.Marshal(&v)
+// 	if err != nil {
+// 		return
+// 	}
+// 	values = string(d)
+// 	return
+// }
+
+// func ValuesYamlToJson(body string) (values string, err error) {
+// 	v, err := ParseValuesYaml(body)
+// 	if err != nil {
+// 		return
+// 	}
+// 	d, err := json.Marshal(&v)
+// 	if err != nil {
+// 		return
+// 	}
+// 	values = string(d)
+// 	return
+// }
+
+// for api endpoint
+func ParseAllValuesJson(body string) (values ValuesAll, err error) {
 	err = json.Unmarshal([]byte(body), &values)
 	if err != nil {
 		return
@@ -64,7 +232,15 @@ func parseValuesJson(body string) (values Values, err error) {
 	return
 }
 
-func parseValuesYaml(body string) (values Values, err error) {
+func ParseValuesJson(body string) (values Values, err error) {
+	err = json.Unmarshal([]byte(body), &values)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func ParseValuesYaml(body string) (values Values, err error) {
 	err = yaml.Unmarshal([]byte(body), &values)
 	if err != nil {
 		return
@@ -72,79 +248,23 @@ func parseValuesYaml(body string) (values Values, err error) {
 	return
 }
 
-func ValuesFileWrite(project, env string, v Values) (err error) {
-	d, err := yaml.Marshal(&v)
-	if err != nil {
-		err = fmt.Errorf("marshal yaml err: %v", err)
-		return
-	}
-	body := string(d)
+// func ValuesFileWriteFromJson(project, env, body string) (err error) {
+// 	v, err := ValuesJsonToYaml(body)
+// 	if err != nil {
+// 		err = fmt.Errorf("convert json to yaml err: %v", err)
+// 		return
+// 	}
 
-	// skip project fetch, we fetch config repo directly
-	configrepo, err := GetConfigRepo()
-	if err != nil {
-		err = fmt.Errorf("get config repo err: %v", err)
-		return
-	}
-	// how to handle multi env resource
-	if env != "" {
-		env += "-" + env
-	}
-	f := fmt.Sprintf("%v/values%v.yaml", project, env)
-	return configrepo.AddAndPush(f, body, fmt.Sprintf("add %v", f))
-}
-func ValuesFileWriteFromJson(project, env, body string) (err error) {
-	v, err := ValuesJsonToYaml(body)
-	if err != nil {
-		err = fmt.Errorf("convert json to yaml err: %v", err)
-		return
-	}
-
-	// skip project fetch, we fetch config repo directly
-	configrepo, err := GetConfigRepo()
-	if err != nil {
-		err = fmt.Errorf("get config repo err: %v", err)
-		return
-	}
-	// how to handle multi env resource
-	if env != "" {
-		env += "-" + env
-	}
-	f := fmt.Sprintf("%v/values%v.yaml", project, env)
-	return configrepo.AddAndPush(f, v, fmt.Sprintf("add %v", f))
-}
-
-func ValuesFileRead(project, env string) (body string, err error) {
-	var fetchdefault bool
-	// how to handle multi env resource
-	if env != "" {
-		env += "-" + env
-		f := fmt.Sprintf("%v/values%v.yaml", project, env)
-		body, err = valuesFileRead(f)
-		if err == nil {
-			return
-		}
-		fetchdefault = true
-	}
-	if env == "" || fetchdefault {
-		f := fmt.Sprintf("%v/values.yaml", project)
-		return valuesFileRead(f)
-	}
-	return
-}
-
-func valuesFileRead(filename string) (body string, err error) {
-	// skip project fetch, we fetch config repo directly
-	configrepo, err := GetConfigRepo()
-	if err != nil {
-		err = fmt.Errorf("get config repo err: %v", err)
-		return
-	}
-	b, err := configrepo.GetFile(filename)
-	body, err = ValuesYamlToJson(string(b))
-	if err != nil {
-		err = fmt.Errorf("convert yaml to json err: %v", err)
-		return
-	}
-	return
-}
+// 	// skip project fetch, we fetch config repo directly
+// 	configrepo, err := GetConfigRepo()
+// 	if err != nil {
+// 		err = fmt.Errorf("get config repo err: %v", err)
+// 		return
+// 	}
+// 	// how to handle multi env resource
+// 	if env != "" {
+// 		env += "-" + env
+// 	}
+// 	f := fmt.Sprintf("%v/values%v.yaml", project, env)
+// 	return configrepo.AddAndPush(f, v, fmt.Sprintf("add %v", f))
+// }

@@ -53,7 +53,7 @@ func main() {
 	// e.Pre(middleware.AddTrailingSlash())
 
 	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	// e.Use(middleware.Recover()) // comments out for testing
 	// e.Use(middleware.Logger())
 	//e.Use(middleware.Static("/data"))
 

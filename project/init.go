@@ -58,7 +58,8 @@ func GetConfigRepo() (configrepo *git.Repo, err error) {
 		err = fmt.Errorf("base not initialized")
 		return
 	}
-	return git.NewWithPull(defaultBase.configRepo, git.SetBranch("templateconfig")) //, git.SetNoPull())
+	// return git.NewWithPull(defaultBase.configRepo, git.SetBranch("templateconfig")) //, git.SetNoPull())
+	return git.NewWithPull(defaultBase.configRepo) //, git.SetNoPull())
 }
 
 // func init() {
