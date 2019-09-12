@@ -10,6 +10,7 @@ import (
 
 	"github.com/chinglinwen/log"
 	"github.com/labstack/echo"
+	gitlab "github.com/xanzy/go-gitlab"
 )
 
 var UserToken = "JQBLUdNq9twWbCbdg6m-"
@@ -80,10 +81,20 @@ func projectUpdateHandler(c echo.Context) (err error) {
 	// fmt.Println("update body: ", b)
 	return c.String(http.StatusOK, `{"result_code":"0","status":"ok"}`)
 }
+
+// how to know when to update the cache? manual refresh?
+var projectsCache []*gitlab.Project
+
 func projectListHandler(c echo.Context) (err error) {
-	_, pss, err := git.GetProjects(UserToken)
-	if err != nil {
-		return
+	var pss []*gitlab.Project
+	if len(projectsCache) == 0 {
+		_, pss, err = git.GetProjects(UserToken)
+		if err != nil {
+			return
+		}
+		projectsCache = pss
+	} else {
+		pss = projectsCache
 	}
 	var ps []Project
 	for _, v := range pss {
