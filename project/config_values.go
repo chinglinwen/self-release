@@ -167,10 +167,10 @@ func checkHasValue(v Values) bool {
 	}
 	return false
 }
-func (v *ValuesRepo) ValuesFileWrite(env string, value Values) (update bool, err error) {
+func (v *ValuesRepo) ValuesFileWrite(env string, value Values) (updated bool, err error) {
 	// if no values, no create
 	if !checkHasValue(value) {
-		update = false
+		updated = false
 		return
 	}
 	d, err := yaml.Marshal(&value)
@@ -181,6 +181,11 @@ func (v *ValuesRepo) ValuesFileWrite(env string, value Values) (update bool, err
 	body := string(d)
 	f := getValueFileName(v.project, env)
 	err = v.configrepo.Add(f, body)
+	if err != nil {
+		err = fmt.Errorf("create file err: %v", err)
+		return
+	}
+	updated = true
 	return
 }
 
