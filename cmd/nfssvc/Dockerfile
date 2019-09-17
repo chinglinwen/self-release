@@ -7,6 +7,6 @@ MAINTAINER wenzhenglin(http://g.haodai.net/wenzhenglin/nfssvc)
 COPY nfssvc /app
 
 CMD /app/nfssvc
-ENTRYPOINT ["./nfssvc"]
+# ENTRYPOINT ["./nfssvc"]
 
 EXPOSE 8080

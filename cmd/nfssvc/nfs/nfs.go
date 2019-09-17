@@ -26,6 +26,10 @@ func Parse(body, server string) (results []Entry, err error) {
 			}
 			continue
 		}
+		if name == "nfslist" {
+			// ignore this item
+			continue
+		}
 		path := strings.Fields(text)[0]
 		results = append(results, Entry{
 			Name:   name,

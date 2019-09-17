@@ -26,6 +26,7 @@ metadata:
   # traefik.ingress.kubernetes.io/redirect-entry-point: https
 spec:
   rules:
+    # curl nfssvc.newops.haodai.net/api/
     - host: nfssvc.newops.haodai.net
       http:
         paths:
@@ -56,16 +57,19 @@ spec:
           image: harbor.haodai.net/ops/nfssvc:v1
           imagePullPolicy: Always
           args:
+            - /app/nfssvc
+            - -path
+            - /data/nfslist/exports
           ports:
             - containerPort: 8080
           volumeMounts:
             - name: data
-              mountPath: /etc/exports
-              subPath: exports
+              mountPath: /data/nfslist
+              # subPath: exports
       volumes:
         - name: data
           nfs:
-            path: /etc/exports
+            path: /data/nfslist
             server: 172.31.83.26
       nodeSelector:
         #kubernetes.io/hostname: 172.31.90.208
