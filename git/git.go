@@ -362,6 +362,7 @@ func (repo *Repo) Fetch() (err error) {
 		},
 		Tags:  git.AllTags,
 		Force: true,
+		Depth: 1, // let's do shallow fetch
 	})
 	if err == git.NoErrAlreadyUpToDate {
 		err = nil
