@@ -153,7 +153,7 @@ func (r *Repo) Commit(commitText string) (err error) {
 
 	if status == nil || len(status) == 0 {
 		// log.Printf("attempt to commit, but nothing changed in %v:%v\n", r.Project, r.Branch)
-		err = fmt.Errorf("attempt to commit, but nothing changed in %v:%v\n", r.Project, r.Branch)
+		err = fmt.Errorf("attempt to commit, but nothing changed in %v:%v", r.Project, r.Branch)
 		return
 	}
 	log.Println("get status ok", r.Project)

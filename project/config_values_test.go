@@ -4,6 +4,23 @@ import (
 	"testing"
 )
 
+func TestValuesFileWriteAll(t *testing.T) {
+	repo, err := NewValuesRepo("xindaiquan/base-service")
+	if err != nil {
+		t.Error("new repo", err)
+		return
+	}
+	all, err := ParseAllValuesJson(demojsonall)
+	if err != nil {
+		t.Error("ParseAllValuesJson err", err)
+		return
+	}
+	err = repo.ValuesFileWriteAll(all)
+	if err != nil {
+		t.Error("write", err)
+		return
+	}
+}
 func TestParseAllValuesJson(t *testing.T) {
 	all, err := ParseAllValuesJson(demojsonall)
 	if err != nil {
@@ -100,10 +117,10 @@ var demojsonall = `
 		"b": "b2"
 	  },
 	  "codis": {
-		"SESSION_REDIS_HOST": "codis-proxy-flow-center-loanapi.codis-cluster",
-		"SESSION_REDIS_PORT": "19000",
 		"REDIS_HOST": "192.168.10.99",
-		"REDIS_PORT": "7201"
+		"REDIS_PORT": "7201",
+		"SESSION_REDIS_HOST": "codis-proxy-flow-center-loanapi.codis-cluster",
+		"SESSION_REDIS_PORT": "19000"
 	  },
 	  "mysql": [
 		{
@@ -134,7 +151,7 @@ var demojsonall = `
 	},
 	"test": {
 	  "envs": {
-		"a": "a1"
+		"a": "a2"
 	  },
 	  "codis": {},
 	  "mysql": [],

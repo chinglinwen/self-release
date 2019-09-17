@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"testing"
-
-	prettyjson "github.com/hokaccha/go-prettyjson"
 )
 
 var okbody = `
@@ -116,9 +114,4 @@ func TestUnmarshalHarborEvent(t *testing.T) {
 	fmt.Printf("type: %v\n", e.Events[0].Target.MediaType)
 	fmt.Printf("tag: %v\n", e.Events[0].Target.Tag)
 	pretty(e)
-}
-
-func pretty(a interface{}) {
-	out, _ := prettyjson.Marshal(a)
-	fmt.Printf("out: %s\n", out)
 }

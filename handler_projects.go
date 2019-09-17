@@ -9,6 +9,7 @@ import (
 	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
+	prettyjson "github.com/hokaccha/go-prettyjson"
 	"github.com/labstack/echo"
 	gitlab "github.com/xanzy/go-gitlab"
 )
@@ -22,6 +23,7 @@ type Project struct {
 	State bool   `json:"state"`
 }
 
+// read values file
 func projectValuesGetHandler(c echo.Context) (err error) {
 	ns := c.Param("ns")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
@@ -45,35 +47,49 @@ func projectValuesGetHandler(c echo.Context) (err error) {
 	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", out), "")
 }
 
+// save values file
 func projectValuesUpdateHandler(c echo.Context) (err error) {
 	ns := c.Param("ns")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
 	log.Printf("write values for project: %v\n ", project)
 
-	v := projectpkg.ValuesAll{}
-	if err = c.Bind(&v); err != nil {
-		err = fmt.Errorf("read body for project: %v, err: %v", project, err)
-		// log.Println(err)
+	r := c.Request()
+	body, err := readbody(r)
+	if err != nil {
+		err = fmt.Errorf("read body err: %v", err)
+		log.Println(err)
 		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
-		// c.JSONPretty(http.StatusOK, err, "")
 		return
 	}
+	// log.Printf("body: %v", body)
 
-	repo, err := projectpkg.NewValuesRepo(project)
+	v, err := projectpkg.ParseAllValuesJson(body)
 	if err != nil {
-		err = fmt.Errorf("write values file for project: %v, err: %v", project, err)
+		err = fmt.Errorf("read body for project: %v, err: %v", project, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
+		return
+	}
+	repo, err := projectpkg.NewValuesRepo(project)
+	if err != nil {
+		err = fmt.Errorf("git fetch project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(3, err.Error(), "failed"), " ")
 		return
 	}
 	err = repo.ValuesFileWriteAll(v)
 	if err != nil {
 		err = fmt.Errorf("write values file for project: %v, err: %v", project, err)
 		log.Println(err)
-		c.JSONPretty(http.StatusOK, E(3, err.Error(), "failed"), " ")
+		c.JSONPretty(http.StatusOK, E(4, err.Error(), "failed"), " ")
 		return
 	}
 	return c.JSONPretty(http.StatusOK, E(0, "saved ok", "ok"), " ")
+}
+
+func pretty(a interface{}) {
+	out, _ := prettyjson.Marshal(a)
+	fmt.Printf("pretty: %s\n", out)
 }
 
 func projectUpdateHandler(c echo.Context) (err error) {

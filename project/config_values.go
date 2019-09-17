@@ -33,7 +33,7 @@ func NewValuesRepo(project string) (v *ValuesRepo, err error) {
 	if !configrepo.IsExist(project) {
 		// should we create it? only if it's write?
 		// let create for the init?
-		err = fmt.Errorf("project does not exist err: %v")
+		err = fmt.Errorf("project does not exist")
 		return
 	}
 	v = &ValuesRepo{
@@ -135,7 +135,8 @@ func (v *ValuesRepo) ValuesFileWriteAll(all ValuesAll) (err error) {
 		return
 	}
 	if !update1 && !update2 && !update3 {
-		log.Println("no need to update any values file for", v.project)
+		err = fmt.Errorf("all values are empty")
+		return
 	}
 	var a string
 	if update1 {
@@ -147,7 +148,7 @@ func (v *ValuesRepo) ValuesFileWriteAll(all ValuesAll) (err error) {
 	if update3 {
 		a += " " + TEST
 	}
-	commit := fmt.Sprintf("update values.yaml( %v) for: %v", a, v.project)
+	commit := fmt.Sprintf("update values.yaml(%v) for: %v", a, v.project)
 	log.Println(commit)
 	return v.configrepo.CommitAndPush(commit)
 }
@@ -171,8 +172,10 @@ func (v *ValuesRepo) ValuesFileWrite(env string, value Values) (updated bool, er
 	// if no values, no create
 	if !checkHasValue(value) {
 		updated = false
+		log.Printf("no need to update values file env: %v for %v\n", env, v.project)
 		return
 	}
+	log.Printf("start to write values file env: %v for %v\n", env, v.project)
 	d, err := yaml.Marshal(&value)
 	if err != nil {
 		err = fmt.Errorf("marshal yaml err: %v", err)

@@ -196,7 +196,7 @@ func processPushEvent(e *gitlab.PushEvent) {
 }
 
 func E(code int, msg, status string) map[string]interface{} {
-	log.Println(msg)
+	// log.Println(msg)
 	return map[string]interface{}{
 		"code":    code,
 		"message": msg,
