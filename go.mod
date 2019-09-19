@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go v0.41.0 // indirect
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/TimeBye/go-harbor v0.0.0-20180426032037-c21d9e5a36f5
-	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
+	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/chinglinwen/log v0.0.0-20180802093412-402fdc33bf76
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
@@ -26,6 +26,7 @@ require (
 	github.com/moul/http2curl v1.0.0 // indirect
 	github.com/parnurzeal/gorequest v0.2.15
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/pborman/ansi v0.0.0-20160920233902-86f499584b0a
 	github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/tidwall/gjson v1.3.0
