@@ -51,9 +51,9 @@ func TestCheckTagExist(t *testing.T) {
 	// spew.Dump(u)
 }
 
-func TestGetProject(t *testing.T) {
+func TestGetProjectsAdmin(t *testing.T) {
 	p := "flow_center/tangguo"
-	u, err := GetProject(p)
+	u, err := GetProjectsAdmin(p)
 	if err != nil {
 		t.Error("get project err ", err)
 		return
@@ -102,8 +102,38 @@ func TestCheckPerm(t *testing.T) {
 
 }
 
+// only got 20
 func TestGetProjects(t *testing.T) {
 	_, ps, err := GetProjects(UserToken)
+	if err != nil {
+		t.Error("err", err)
+	}
+	fmt.Println("got", len(ps))
+
+	// sort.Slice(ps, func(i, j int) bool {
+	// 	return ps[i].WebURL < ps[j].WebURL
+	// })
+	for _, v := range ps {
+		fmt.Println(v.ID, v.WebURL)
+	}
+}
+
+// only got one project
+func TestGetProjectsByUser(t *testing.T) {
+	ps, err := GetProjectsByUser(UserToken)
+	if err != nil {
+		t.Error("err", err)
+	}
+	fmt.Println("got", len(ps))
+
+	for _, v := range ps {
+		fmt.Println(v.ID, v.WebURL)
+	}
+}
+
+// got 61
+func TestGetProjectsOld(t *testing.T) {
+	ps, err := GetProjectsOld(UserToken)
 	if err != nil {
 		t.Error("err", err)
 	}
@@ -121,3 +151,11 @@ func TestGetProjectLists(t *testing.T) {
 	}
 	fmt.Println("got", len(ps))
 }
+
+// func TestListPersonalProjects(t *testing.T) {
+// 	_, ps, err := listPersonalProjects(UserToken)
+// 	if err != nil {
+// 		t.Error("err", err)
+// 	}
+// 	fmt.Println("got", len(ps))
+// }

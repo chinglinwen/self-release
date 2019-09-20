@@ -124,7 +124,7 @@ func projectListHandler(c echo.Context) (err error) {
 
 	var pss []*gitlab.Project
 	if len(projectsCache) == 0 {
-		_, pss, err = git.GetProjects(usertoken)
+		pss, err = git.GetProjects(usertoken)
 		if err != nil {
 			err = fmt.Errorf("get project err: %v", err)
 			log.Println(err)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 
@@ -189,7 +190,7 @@ func GetGroupLists(token string) (gs []string, err error) {
 // 	return err == nil
 // }
 
-func GetProjects(token string) (c *gitlab.Client, pss []*gitlab.Project, err error) {
+func GetProjectsAdmin(token string) (pss []*gitlab.Project, err error) {
 
 	// for all group projects
 	c, gs, err := GetGroups(token)
@@ -282,14 +283,21 @@ func GetProjects(token string) (c *gitlab.Client, pss []*gitlab.Project, err err
 		wg.Done()
 	}()
 	wg.Wait()
+	fmt.Println("got ", len(pss))
 
 	pss = uniqproject(pss)
+	fmt.Println("after unique ", len(pss))
 
 	if len(pss) == 0 {
 		err = fmt.Errorf("there's no any projects")
 		log.Println(err)
 		return
 	}
+
+	sort.Slice(pss, func(i, j int) bool {
+		return pss[i].WebURL < pss[j].WebURL
+	})
+
 	// fmt.Println("len", len(pss))
 	return
 }
@@ -397,44 +405,60 @@ func printproject(ps []*gitlab.Project, name string) {
 	}
 }
 
-func GetProjectsOld(token string) (c *gitlab.Client, pss []*gitlab.Project, err error) {
-	// for all group projects
-	c, gs, err := GetGroups(token)
+func GetProjects(token string) (ps []*gitlab.Project, err error) {
+	u, err := GetUserByToken(token)
 	if err != nil {
-		log.Println("getgroups err", err)
+		return
+	}
+	if u.IsAdmin {
+		log.Println("getting projects for admin user", u.Name)
+		return GetProjectsAdmin(token)
+	}
+	return GetProjectsOld(token)
+}
+
+// only got one project
+func GetProjectsByUser(token string) (ps []*gitlab.Project, err error) {
+	u, err := GetUserByToken(token)
+	if err != nil {
 		return
 	}
 	a := gitlab.PrivateVisibility
-	for _, g := range gs {
-		ps, _, e := c.Groups.ListGroupProjects(g.ID, &gitlab.ListGroupProjectsOptions{
-			Visibility: &a,
-		})
-		if e != nil {
-			continue
-		}
-		pss = append(pss, ps[:]...)
-	}
+	list := gitlab.ListOptions{Page: 1, PerPage: 10000}
+	c := userclient(token)
+	ps, _, err = c.Projects.ListUserProjects(u.ID, &gitlab.ListProjectsOptions{
+		ListOptions: list,
+		Visibility:  &a,
+	})
+	return
+}
 
-	// for all personal projects inclusion
-	ps, _, err := c.Projects.ListProjects(&gitlab.ListProjectsOptions{})
+// https://docs.gitlab.com/ce/api/projects.html#list-projects
+func GetProjectsOld(token string) (ps []*gitlab.Project, err error) {
+	c := userclient(token)
+	list := gitlab.ListOptions{Page: 1, PerPage: 10000}
+
+	yes := true
+	// by := "id"
+	ps, _, err = c.Projects.ListProjects(&gitlab.ListProjectsOptions{
+		ListOptions: list,
+		Membership:  &yes,
+		// OrderBy:     &by,
+	})
 	if err != nil {
 		log.Println("listprojects err", err)
 		return
 	}
-	pss = append(pss, ps[:]...)
 
-	if len(pss) == 0 {
+	if len(ps) == 0 {
 		err = fmt.Errorf("there's no any projects")
 		log.Println(err)
 		return
 	}
-	// for _, v := range pss {
-	// 	if strings.Contains(v.WebURL, "yunwei/worktile") || strings.Contains(v.WebURL, "yunwei/trx") {
-	// 		spew.Dump("v:", v)
-	// 		// fmt.Println(v.WebURL, v.RequestAccessEnabled)
-	// 	}
-	// 	fmt.Println(v.WebURL, v.RequestAccessEnabled)
-	// }
+
+	sort.Slice(ps, func(i, j int) bool {
+		return ps[i].WebURL < ps[j].WebURL
+	})
 	return
 }
 
@@ -455,7 +479,7 @@ func GetProjectLists(token string) (admin bool, projects []string, err error) {
 		return
 	}
 
-	_, pss, err := GetProjects(token)
+	pss, err := GetProjects(token)
 	if err != nil {
 		log.Println("getprojects err", err)
 		return
