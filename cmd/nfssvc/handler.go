@@ -31,7 +31,7 @@ func newNfs(server, path string) *exports {
 func (e *exports) listNfsHandler(c echo.Context) (err error) {
 	results, err := nfs.Parse(e.body, e.server)
 	if err != nil {
-		err = fmt.Errorf("parse exports error: ", err)
+		err = fmt.Errorf("parse exports error: %v", err)
 		log.Println(err)
 		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
 		return

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"wen/self-release/git"
@@ -14,7 +13,7 @@ import (
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
-var UserToken = "JQBLUdNq9twWbCbdg6m-"
+// var UserToken = "JQBLUdNq9twWbCbdg6m-"
 
 type Project struct {
 	ID    int    `json:"id"`
@@ -102,11 +101,34 @@ func projectUpdateHandler(c echo.Context) (err error) {
 // how to know when to update the cache? manual refresh?
 var projectsCache []*gitlab.Project
 
+func getUserHandler(c echo.Context) (err error) {
+	r := c.Request()
+	user := r.Header.Get("X-Auth-User")
+	// usertoken := r.Header.Get("X-Secret")
+	d:=map[string]string{
+		"user": user,
+	}
+	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", d), "")
+}
 func projectListHandler(c echo.Context) (err error) {
+
+	r := c.Request()
+	user := r.Header.Get("X-Auth-User")
+	usertoken := r.Header.Get("X-Secret")
+	// if user == "" || usertoken == "" {
+	// 	err := fmt.Errorf("login required")
+	// 	log.Println(err)
+	// 	return c.JSONPretty(http.StatusOK, E(-1, err.Error(), "failed"), " ")
+	// }
+	log.Printf("got user: %v, token: %v\n", user,usertoken)
+
 	var pss []*gitlab.Project
 	if len(projectsCache) == 0 {
-		_, pss, err = git.GetProjects(UserToken)
+		_, pss, err = git.GetProjects(usertoken)
 		if err != nil {
+			err = fmt.Errorf("get project err: %v", err)
+			log.Println(err)
+			c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
 			return
 		}
 		projectsCache = pss
@@ -123,11 +145,7 @@ func projectListHandler(c echo.Context) (err error) {
 		}
 		ps = append(ps, p)
 	}
-	b, err := json.Marshal(ps)
-	if err != nil {
-		return
-	}
-	return c.String(http.StatusOK, string(b))
+	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", ps), "")
 }
 func projectResourceListHandler(c echo.Context) (err error) {
 	ns := c.Param("ns")
@@ -140,6 +158,5 @@ func projectResourceListHandler(c echo.Context) (err error) {
 		return echo.NewHTTPError(http.StatusOK, "get resource err:", err)
 	}
 	log.Printf("get resource for %v ok\n", ns)
-	// b, _ := json.MarshalIndent(r, "", "  ")
-	return c.JSON(http.StatusOK, r)
+	return c.JSONPretty(http.StatusOK, EData(0, "get resource ok", "ok", r), "")
 }

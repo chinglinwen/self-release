@@ -7,7 +7,7 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	r := Parse(demotext)
+	r, _ := Parse(demotext, "")
 	spew.Dump("result", r)
 }
 

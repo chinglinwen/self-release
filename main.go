@@ -8,6 +8,7 @@ package main
 
 import (
 	"flag"
+	"os"
 	"fmt"
 	"net/http"
 	"wen/self-release/pkg/harbor"
@@ -34,14 +35,24 @@ var (
 	harborUser = flag.String("harbor-user", "", "harbor user for harbor auth")
 	harborPass = flag.String("harbor-pass", "", "harbor pass for harbor auth")
 
+	secretKey = flag.String("key", "", "secret key keep private")
+	
 	box *rice.Box
 )
+
+func checkFlag() {
+	fmt.Println("args:", os.Args)
+	if *secretKey == "" {
+		log.Fatal("secretKey is empty")
+	}
+}
 
 func main() {
 	log.Println("starting...")
 	log.Debug.Println("debug is on")
 
 	flag.Parse()
+	checkFlag()
 	projectpkg.Setting(*defaultHarborKey, *buildsvcAddr, *defaultConfigRepo)
 	harbor.Setting(*harborURL, *harborUser, *harborPass)
 
@@ -71,7 +82,36 @@ func main() {
 	// 	log.Printf("url: %q, method: %v, body: %q\n", c.Request().URL, c.Request().Method, reqBody)
 	// }))
 
+	u := g.Group("/users")
+	u.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowCredentials: true, 
+	}))
+	u.Use(loginCheck())
+	u.GET("/", getUserHandler)
+
 	p := g.Group("/projects")
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowCredentials: true, 
+	}))
+	p.Use(loginCheck())
+
+	// p.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
+	// 	// if username == "joe" && password == "secret" {
+	// 	// 	return true, nil
+	// 	// }
+	// 	// return false, nil
+
+	// 	r := c.Request()
+	// 	user := r.Header.Get("X-Auth-User")
+	// 	log.Printf("got user: %v\n", user)
+	// 	usertoken := r.Header.Get("X-Secret")
+	// 	if user == "" || usertoken == "" {
+	// 		return false, nil
+	// 	}
+	// 	return true, nil
+	// }))
 
 	p.Any("/:ns/:project", projectUpdateHandler)
 

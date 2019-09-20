@@ -16,3 +16,4 @@ buildsvc.yaml
 self-release.yaml
 
 node_modules
+start_cre.sh

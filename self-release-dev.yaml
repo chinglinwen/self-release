@@ -1,0 +1,45 @@
+---
+# Endpoints
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: self-release
+  namespace: ingress
+subsets:
+  - addresses:
+      - ip: 192.168.10.234
+    ports:
+      - port: 8089
+
+# Service
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: self-release
+  namespace: ingress
+spec:
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8089
+
+# Ingress
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: self-release
+  namespace: ingress
+  # annotations:
+  #traefik.ingress.kubernetes.io/frontend-entry-points: http,https
+  # traefik.ingress.kubernetes.io/redirect-entry-point: https
+spec:
+  rules:
+    - host: release.haodai.net
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: self-release
+              servicePort: 80

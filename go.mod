@@ -9,7 +9,7 @@ require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/chinglinwen/log v0.0.0-20180802093412-402fdc33bf76
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/drone/envsubst v1.0.2
 	github.com/ericchiang/k8s v1.2.0
 	github.com/ghodss/yaml v1.0.0
