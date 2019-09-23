@@ -4,7 +4,8 @@ WORKDIR /app
 MAINTAINER wenzhenglin(http://g.haodai.net/wenzhenglin/self-release.git)
 
 RUN wget http://fs.haodai.net/soft/kubectl -O /bin/kubectl && \
-    chmod +x /bin/kubectl && \
+    wget http://fs.haodai.net/soft/helm-v2.14.3 -O /bin/helm && \
+    chmod +x /bin/kubectl /bin/helm && \
     wget -O - http://fs.haodai.net/k8s/v1.14/addkubeconfig.sh | sh
 
 COPY self-release /app
