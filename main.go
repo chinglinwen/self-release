@@ -118,6 +118,13 @@ func main() {
 	u.Use(loginCheck())
 	u.GET("/", getUserHandler)
 
+	gen := g.Group("/gen")
+	gen.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"*"},
+		AllowCredentials: true,
+	}))
+	gen.Any("/:ns/:project/:env", genYAMLHandler)
+
 	p := g.Group("/projects")
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"*"},
