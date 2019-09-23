@@ -413,15 +413,38 @@ func GetProjects(token string) (ps []*gitlab.Project, err error) {
 	if err != nil {
 		return
 	}
+
 	if u.IsAdmin {
 		log.Println("getting projects for admin user", u.Name)
-		return GetProjectsAdmin(token)
+		if ps, ok := projectsCache["admin"]; ok {
+			log.Println("get projects from cache for admin user", u.Name)
+			return ps, nil
+		}
+		ps, err = GetProjectsAdmin()
+		if err != nil {
+			return
+		}
+		// cache it
+		log.Println("cached projects for admin user", u.Name)
+		projectsCache["admin"] = ps
+		return
 	}
-	return GetProjectsUser(token)
+	log.Println("getting projects for user", u.Name)
+	if ps, ok := projectsCache[token]; ok {
+		log.Println("get projects from cache for user", u.Name)
+		return ps, nil
+	}
+	ps, err = GetProjectsUser(token)
+	if err != nil {
+		return
+	}
+	log.Println("cached projects for user", u.Name)
+	projectsCache[token] = ps
+	return
 }
 
-func GetProjectsAdmin(token string) (ps []*gitlab.Project, err error) {
-	c := userclient(token)
+func GetProjectsAdmin() (ps []*gitlab.Project, err error) {
+	c := adminclient()
 
 	// a := gitlab.PrivateVisibility
 	// access := gitlab.NoPermissions

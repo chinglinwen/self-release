@@ -36,7 +36,7 @@ var (
 // defaultRepoDir = flag.String("repoDir", "repos", "default path to store cloned projects")
 )
 
-// init package setting
+// Init init package setting
 func Init(gitlabURL, user, pass, accessToken, repoDir string) {
 	log.Println("inited user setting", user)
 	defaultUser = user
@@ -46,6 +46,14 @@ func Init(gitlabURL, user, pass, accessToken, repoDir string) {
 	gitlabAccessToken = accessToken
 	defaultRepoDir = repoDir
 
+	// cache admin projects at start
+	go func() {
+		ps, err := GetProjects(gitlabAccessToken)
+		if err != nil {
+			log.Fatal("fetch admin projects err", err)
+		}
+		log.Printf("cached admin projects at start, got %v projects\n", len(ps))
+	}()
 }
 
 // func checkflag() {
