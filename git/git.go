@@ -4,14 +4,13 @@ package git
 import (
 
 	// "gopkg.in/src-d/go-billy.v4"
-	"flag"
+
 	"fmt"
 	"log"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
-	"time"
 
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -23,36 +22,48 @@ var (
 	// https://github.com/src-d/go-git/issues/999 token is deprecated
 	// defaultToken = flag.String("gitlab-token", "", "default gitlab token")
 
-	defaultGitlabURL  = flag.String("gitlab-url", "http://g.haodai.net", "default gitlab url")
-	defaultUser       = flag.String("gitlab-user", "", "default gitlab user")
-	defaultPass       = flag.String("gitlab-pass", "", "default gitlab pass(personal token is ok)")
-	gitlabAccessToken = flag.String("gitlab-token", "", "gitlab admin access token")
+	defaultGitlabURL  string
+	defaultUser       string
+	defaultPass       string
+	gitlabAccessToken string
+	defaultRepoDir    string
 
-	defaultRepoDir = flag.String("repoDir", "repos", "default path to store cloned projects")
+// defaultGitlabURL  = flag.String("gitlab-url", "http://g.haodai.net", "default gitlab url")
+// defaultUser       = flag.String("gitlab-user", "", "default gitlab user")
+// defaultPass       = flag.String("gitlab-pass", "", "default gitlab pass(personal token is ok)")
+// gitlabAccessToken = flag.String("gitlab-token", "", "gitlab admin access token")
+
+// defaultRepoDir = flag.String("repoDir", "repos", "default path to store cloned projects")
 )
 
-func Init(user, pass string) {
+// init package setting
+func Init(gitlabURL, user, pass, accessToken, repoDir string) {
 	log.Println("inited user setting", user)
-	*defaultUser = user
-	*defaultPass = pass
+	defaultUser = user
+	defaultPass = pass
+
+	defaultGitlabURL = gitlabURL
+	gitlabAccessToken = accessToken
+	defaultRepoDir = repoDir
+
 }
 
-func checkflag() {
-	if *defaultUser == "" {
-		log.Fatal("no defaultUser provided")
-	}
-	if *defaultPass == "" {
-		log.Fatal("no defaultPass provided")
-	}
-	log.Printf("using default notify user: %v", *defaultUser)
-}
+// func checkflag() {
+// 	if defaultUser == "" {
+// 		log.Fatal("no defaultUser provided")
+// 	}
+// 	if defaultPass == "" {
+// 		log.Fatal("no defaultPass provided")
+// 	}
+// 	log.Printf("using default notify user: %v", defaultUser)
+// }
 
-func init() {
-	go func() {
-		time.Sleep(5 * time.Second) // should now executed flag.parse
-		checkflag()
-	}()
-}
+// func init() {
+// 	go func() {
+// 		time.Sleep(5 * time.Second) // should now executed flag.parse
+// 		checkflag()
+// 	}()
+// }
 
 // var (
 // 	fs = osfs.New("gitdir")
@@ -163,10 +174,10 @@ func SetForce() func(*Repo) {
 }
 
 func newrepo(project string, options ...func(*Repo)) (*Repo, error) {
-	if *defaultUser == "" {
+	if defaultUser == "" {
 		return nil, fmt.Errorf("user empty")
 	}
-	if *defaultPass == "" {
+	if defaultPass == "" {
 		return nil, fmt.Errorf("pass empty")
 	}
 
@@ -174,10 +185,10 @@ func newrepo(project string, options ...func(*Repo)) (*Repo, error) {
 	// name := t[len(t)-1]
 	repo := &Repo{
 		Project: project,
-		Local:   filepath.Join(*defaultRepoDir, project),
-		URL:     fmt.Sprintf("%v/%v", *defaultGitlabURL, project),
-		user:    *defaultUser,
-		pass:    *defaultPass,
+		Local:   filepath.Join(defaultRepoDir, project),
+		URL:     fmt.Sprintf("%v/%v", defaultGitlabURL, project),
+		user:    defaultUser,
+		pass:    defaultPass,
 	}
 	for _, op := range options {
 		op(repo)

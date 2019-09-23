@@ -19,6 +19,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 
+	gitpkg "wen/self-release/git"
 	projectpkg "wen/self-release/project"
 )
 
@@ -38,6 +39,13 @@ var (
 	secretKey = flag.String("key", "", "secret key keep private")
 
 	box *rice.Box
+
+	// git
+	defaultGitlabURL  = flag.String("gitlab-url", "http://g.haodai.net", "default gitlab url")
+	defaultUser       = flag.String("gitlab-user", "", "default gitlab user")
+	defaultPass       = flag.String("gitlab-pass", "", "default gitlab pass(personal token is ok)")
+	gitlabAccessToken = flag.String("gitlab-token", "", "gitlab admin access token")
+	defaultRepoDir    = flag.String("repoDir", "repos", "default path to store cloned projects")
 )
 
 func checkFlag() {
@@ -45,6 +53,26 @@ func checkFlag() {
 	if *secretKey == "" {
 		log.Fatal("secretKey is empty")
 	}
+
+	// git
+	if *defaultGitlabURL == "" {
+		log.Fatal("no defaultGitlabURL provided")
+	}
+	if *gitlabAccessToken == "" {
+		log.Fatal("no gitlabAccessToken provided")
+	}
+	if *defaultRepoDir == "" {
+		log.Fatal("no defaultRepoDir provided")
+	}
+
+	if *defaultUser == "" {
+		log.Fatal("no defaultUser provided")
+	}
+	if *defaultPass == "" {
+		log.Fatal("no defaultPass provided")
+	}
+	gitpkg.Init(*defaultGitlabURL, *defaultUser, *defaultPass, *gitlabAccessToken, *defaultRepoDir)
+	log.Printf("using default notify user: %v", *defaultUser)
 }
 
 func main() {

@@ -21,20 +21,20 @@ const (
 // var client *gitlab.Client
 
 // func client() *gitlab.Client {
-// 	client := gitlab.NewClient(http.DefaultClient, *gitlabAccessToken)
+// 	client := gitlab.NewClient(http.DefaultClient, gitlabAccessToken)
 // 	client.SetBaseURL(*defaultGitlabURL)
 // 	return client
 // }
 
 func adminclient() *gitlab.Client {
-	client := gitlab.NewClient(http.DefaultClient, *gitlabAccessToken)
-	client.SetBaseURL(*defaultGitlabURL)
+	client := gitlab.NewClient(http.DefaultClient, gitlabAccessToken)
+	client.SetBaseURL(defaultGitlabURL)
 	return client
 }
 
 func userclient(token string) *gitlab.Client {
 	client := gitlab.NewClient(http.DefaultClient, token)
-	client.SetBaseURL(*defaultGitlabURL)
+	client.SetBaseURL(defaultGitlabURL)
 	return client
 }
 
@@ -190,8 +190,8 @@ func GetGroupLists(token string) (gs []string, err error) {
 // 	return err == nil
 // }
 
-func GetProjectsAdmin(token string) (pss []*gitlab.Project, err error) {
-
+// fetch admin differently, because fetch by ownership doesn't work for admin
+func GetProjectsAdminByGroup(token string) (pss []*gitlab.Project, err error) {
 	// for all group projects
 	c, gs, err := GetGroups(token)
 	if err != nil {
@@ -306,6 +306,9 @@ func uniqproject(pss []*gitlab.Project) (ps []*gitlab.Project) {
 	keys := make(map[int]bool)
 	// list := []string{}
 	for _, v := range pss {
+		if v.ID == 23 {
+			spew.Dump("v23", v)
+		}
 		if _, value := keys[v.ID]; !value {
 			keys[v.ID] = true
 			ps = append(ps, v)
@@ -315,14 +318,14 @@ func uniqproject(pss []*gitlab.Project) (ps []*gitlab.Project) {
 }
 
 func listPersonalProjects(c *gitlab.Client, queue chan []*gitlab.Project) {
-	a := gitlab.PrivateVisibility
+	// a := gitlab.PrivateVisibility
 	// access := gitlab.NoPermissions
-	list := gitlab.ListOptions{Page: 1, PerPage: 1000} //perpage doesn't work
+	list := gitlab.ListOptions{Page: 1, PerPage: 10000} //perpage doesn't work
 
 	for i := 1; ; i++ {
 		ps, resp, err := c.Projects.ListProjects(&gitlab.ListProjectsOptions{
 			ListOptions: list,
-			Visibility:  &a,
+			// Visibility:  &a,
 		})
 		if err != nil {
 			log.Println("listprojects err", err)
@@ -341,7 +344,7 @@ func listPersonalProjects(c *gitlab.Client, queue chan []*gitlab.Project) {
 }
 
 func listProjects(c *gitlab.Client, g *gitlab.Group, queue chan []*gitlab.Project) {
-	a := gitlab.PrivateVisibility
+	// a := gitlab.PrivateVisibility
 	// access := gitlab.DeveloperPermissions
 	list := gitlab.ListOptions{Page: 1, PerPage: 10000} //perpage doesn't work
 
@@ -366,7 +369,7 @@ func listProjects(c *gitlab.Client, g *gitlab.Group, queue chan []*gitlab.Projec
 	for i := 1; ; i++ {
 		ps, resp, e := c.Groups.ListGroupProjects(g.ID, &gitlab.ListGroupProjectsOptions{
 			ListOptions: list,
-			Visibility:  &a, //this cause need second list
+			// Visibility:  &a, //this cause need second list
 			// MinAccessLevel: &access,
 		})
 		if e != nil {
@@ -414,27 +417,67 @@ func GetProjects(token string) (ps []*gitlab.Project, err error) {
 		log.Println("getting projects for admin user", u.Name)
 		return GetProjectsAdmin(token)
 	}
-	return GetProjectsOld(token)
+	return GetProjectsUser(token)
 }
 
-// only got one project
-func GetProjectsByUser(token string) (ps []*gitlab.Project, err error) {
-	u, err := GetUserByToken(token)
-	if err != nil {
-		return
-	}
-	a := gitlab.PrivateVisibility
-	list := gitlab.ListOptions{Page: 1, PerPage: 10000}
+func GetProjectsAdmin(token string) (ps []*gitlab.Project, err error) {
 	c := userclient(token)
-	ps, _, err = c.Projects.ListUserProjects(u.ID, &gitlab.ListProjectsOptions{
-		ListOptions: list,
-		Visibility:  &a,
-	})
+
+	// a := gitlab.PrivateVisibility
+	// access := gitlab.NoPermissions
+	list := gitlab.ListOptions{Page: 1, PerPage: 10000} //perpage doesn't work
+
+	// ps, _, err = c.Projects.ListProjects(&gitlab.ListProjectsOptions{
+	// 	ListOptions: list,
+	// 	// Visibility:  &a,
+	// })
+	// if err != nil {
+	// 	log.Println("listprojects2 err", err)
+	// 	return
+	// }
+	// return
+
+	for i := 1; ; i++ {
+		p, resp, e := c.Projects.ListProjects(&gitlab.ListProjectsOptions{
+			ListOptions: list,
+			// Visibility:  &a,
+		})
+		if e != nil {
+			log.Println("listprojects err", e)
+			err = e
+			return
+		}
+
+		// println("len for personal", len(ps))
+		// printproject(ps, "agent")
+		// queue <- ps
+		if resp.TotalPages < i {
+			break
+		}
+		ps = append(ps, p...)
+		list.Page = i
+	}
 	return
 }
 
+// only got one project
+// func GetProjectsByUser(token string) (ps []*gitlab.Project, err error) {
+// 	u, err := GetUserByToken(token)
+// 	if err != nil {
+// 		return
+// 	}
+// 	a := gitlab.PrivateVisibility
+// 	list := gitlab.ListOptions{Page: 1, PerPage: 10000}
+// 	c := userclient(token)
+// 	ps, _, err = c.Projects.ListUserProjects(u.ID, &gitlab.ListProjectsOptions{
+// 		ListOptions: list,
+// 		Visibility:  &a,
+// 	})
+// 	return
+// }
+
 // https://docs.gitlab.com/ce/api/projects.html#list-projects
-func GetProjectsOld(token string) (ps []*gitlab.Project, err error) {
+func GetProjectsUser(token string) (ps []*gitlab.Project, err error) {
 	c := userclient(token)
 	list := gitlab.ListOptions{Page: 1, PerPage: 10000}
 
