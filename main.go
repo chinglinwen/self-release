@@ -8,9 +8,9 @@ package main
 
 import (
 	"flag"
-	"os"
 	"fmt"
 	"net/http"
+	"os"
 	"wen/self-release/pkg/harbor"
 	"wen/self-release/pkg/sse"
 
@@ -36,7 +36,7 @@ var (
 	harborPass = flag.String("harbor-pass", "", "harbor pass for harbor auth")
 
 	secretKey = flag.String("key", "", "secret key keep private")
-	
+
 	box *rice.Box
 )
 
@@ -63,7 +63,7 @@ func main() {
 	// e.HTTPErrorHandler = customHTTPErrorHandler
 	// e.Pre(middleware.AddTrailingSlash())
 
-	e.Use(middleware.Logger())
+	// e.Use(middleware.Logger())
 	// e.Use(middleware.Recover()) // comments out for testing
 	// e.Use(middleware.Logger())
 	//e.Use(middleware.Static("/data"))
@@ -84,16 +84,16 @@ func main() {
 
 	u := g.Group("/users")
 	u.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowCredentials: true, 
+		AllowOrigins:     []string{"*"},
+		AllowCredentials: true,
 	}))
 	u.Use(loginCheck())
 	u.GET("/", getUserHandler)
 
 	p := g.Group("/projects")
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowCredentials: true, 
+		AllowOrigins:     []string{"*"},
+		AllowCredentials: true,
 	}))
 	p.Use(loginCheck())
 
