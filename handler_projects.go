@@ -107,7 +107,7 @@ func getUserHandler(c echo.Context) (err error) {
 	d := map[string]string{
 		"user": user,
 	}
-	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", d), "")
+	return c.JSONPretty(http.StatusOK, EData(0, "get user ok", "ok", d), "")
 }
 func projectListHandler(c echo.Context) (err error) {
 	refresh := c.FormValue("refresh")
@@ -141,7 +141,7 @@ func projectListHandler(c echo.Context) (err error) {
 		ps = append(ps, p)
 	}
 	log.Printf("got %v projects for user: %v\n", len(ps), user)
-	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", ps), "")
+	return c.JSONPretty(http.StatusOK, EData(0, "list projects ok", "ok", ps), "")
 }
 func projectResourceListHandler(c echo.Context) (err error) {
 	ns := c.Param("ns")
