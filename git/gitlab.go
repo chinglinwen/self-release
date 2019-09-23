@@ -306,9 +306,6 @@ func uniqproject(pss []*gitlab.Project) (ps []*gitlab.Project) {
 	keys := make(map[int]bool)
 	// list := []string{}
 	for _, v := range pss {
-		if v.ID == 23 {
-			spew.Dump("v23", v)
-		}
 		if _, value := keys[v.ID]; !value {
 			keys[v.ID] = true
 			ps = append(ps, v)
@@ -408,15 +405,14 @@ func printproject(ps []*gitlab.Project, name string) {
 	}
 }
 
-func GetProjects(token string) (ps []*gitlab.Project, err error) {
+func GetProjects(token, refresh string) (ps []*gitlab.Project, err error) {
 	u, err := GetUserByToken(token)
 	if err != nil {
 		return
 	}
-
 	if u.IsAdmin {
 		log.Println("getting projects for admin user", u.Name)
-		if ps, ok := projectsCache["admin"]; ok {
+		if ps, ok := projectsCache["admin"]; ok && refresh != "yes" {
 			log.Println("get projects from cache for admin user", u.Name)
 			return ps, nil
 		}
@@ -430,7 +426,7 @@ func GetProjects(token string) (ps []*gitlab.Project, err error) {
 		return
 	}
 	log.Println("getting projects for user", u.Name)
-	if ps, ok := projectsCache[token]; ok {
+	if ps, ok := projectsCache[token]; ok && refresh != "yes" {
 		log.Println("get projects from cache for user", u.Name)
 		return ps, nil
 	}
@@ -480,6 +476,11 @@ func GetProjectsAdmin() (ps []*gitlab.Project, err error) {
 		ps = append(ps, p...)
 		list.Page = i
 	}
+
+	// fmt.Println("got ", len(ps))
+
+	ps = uniqproject(ps)
+	// fmt.Println("after unique ", len(ps))
 	return
 }
 
@@ -528,42 +529,42 @@ func GetProjectsUser(token string) (ps []*gitlab.Project, err error) {
 	return
 }
 
-func GetProjectLists(token string) (admin bool, projects []string, err error) {
-	isadmin, e := IsAdmin(token)
-	if err != nil {
-		err = fmt.Errorf("check admin error %v", e)
-		return
-	}
-	if isadmin {
-		// // filter list to reduce project searching time
-		// list, e := listpods()
-		// if e != nil {
-		// 	err = fmt.Errorf("walk error %v", e)
-		// 	return
-		// }
-		admin = true
-		return
-	}
+// func GetProjectLists(token string) (admin bool, projects []string, err error) {
+// 	isadmin, e := IsAdmin(token)
+// 	if err != nil {
+// 		err = fmt.Errorf("check admin error %v", e)
+// 		return
+// 	}
+// 	if isadmin {
+// 		// // filter list to reduce project searching time
+// 		// list, e := listpods()
+// 		// if e != nil {
+// 		// 	err = fmt.Errorf("walk error %v", e)
+// 		// 	return
+// 		// }
+// 		admin = true
+// 		return
+// 	}
 
-	pss, err := GetProjects(token)
-	if err != nil {
-		log.Println("getprojects err", err)
-		return
-	}
-	for _, p := range pss {
-		// fmt.Println("--", p.PathWithNamespace)
-		// spew.Dump("p", p)
-		// url := strings.Split(p.WebURL, "/")
-		// if len(url) != 5 {
-		// 	log.Println("get project list warn: bad format %v", p.WebURL)
-		// 	continue
-		// }
-		// git := fmt.Sprintf("%v/%v", url[3], url[4])
-		git := strings.Replace(p.PathWithNamespace, " ", "", -1) //remove empty space
-		projects = append(projects, git)
-	}
-	return false, unique(projects), nil
-}
+// 	pss, err := GetProjects(token)
+// 	if err != nil {
+// 		log.Println("getprojects err", err)
+// 		return
+// 	}
+// 	for _, p := range pss {
+// 		// fmt.Println("--", p.PathWithNamespace)
+// 		// spew.Dump("p", p)
+// 		// url := strings.Split(p.WebURL, "/")
+// 		// if len(url) != 5 {
+// 		// 	log.Println("get project list warn: bad format %v", p.WebURL)
+// 		// 	continue
+// 		// }
+// 		// git := fmt.Sprintf("%v/%v", url[3], url[4])
+// 		git := strings.Replace(p.PathWithNamespace, " ", "", -1) //remove empty space
+// 		projects = append(projects, git)
+// 	}
+// 	return false, unique(projects), nil
+// }
 
 func unique(intSlice []string) []string {
 	keys := make(map[string]bool)

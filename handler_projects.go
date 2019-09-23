@@ -10,7 +10,6 @@ import (
 	"github.com/chinglinwen/log"
 	prettyjson "github.com/hokaccha/go-prettyjson"
 	"github.com/labstack/echo"
-	gitlab "github.com/xanzy/go-gitlab"
 )
 
 // var UserToken = "JQBLUdNq9twWbCbdg6m-"
@@ -99,18 +98,19 @@ func projectUpdateHandler(c echo.Context) (err error) {
 }
 
 // how to know when to update the cache? manual refresh?
-var projectsCache []*gitlab.Project
+// var projectsCache []*gitlab.Project
 
 func getUserHandler(c echo.Context) (err error) {
 	r := c.Request()
 	user := r.Header.Get("X-Auth-User")
 	// usertoken := r.Header.Get("X-Secret")
-	d:=map[string]string{
+	d := map[string]string{
 		"user": user,
 	}
 	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", d), "")
 }
 func projectListHandler(c echo.Context) (err error) {
+	refresh := c.FormValue("refresh")
 
 	r := c.Request()
 	user := r.Header.Get("X-Auth-User")
@@ -120,20 +120,15 @@ func projectListHandler(c echo.Context) (err error) {
 	// 	log.Println(err)
 	// 	return c.JSONPretty(http.StatusOK, E(-1, err.Error(), "failed"), " ")
 	// }
-	log.Printf("got user: %v, token: %v\n", user,usertoken)
+	log.Printf("got user: %v, token: %v, refresh: %v\n", user, usertoken, refresh)
 
-	var pss []*gitlab.Project
-	if len(projectsCache) == 0 {
-		pss, err = git.GetProjects(usertoken)
-		if err != nil {
-			err = fmt.Errorf("get project err: %v", err)
-			log.Println(err)
-			c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
-			return
-		}
-		projectsCache = pss
-	} else {
-		pss = projectsCache
+	// var pss []*gitlab.Project
+	pss, err := git.GetProjects(usertoken, refresh)
+	if err != nil {
+		err = fmt.Errorf("get project err: %v", err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
+		return
 	}
 	var ps []Project
 	for _, v := range pss {
@@ -145,6 +140,7 @@ func projectListHandler(c echo.Context) (err error) {
 		}
 		ps = append(ps, p)
 	}
+	log.Printf("got %v projects for user: %v\n", len(ps), user)
 	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", ps), "")
 }
 func projectResourceListHandler(c echo.Context) (err error) {

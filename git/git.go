@@ -48,7 +48,7 @@ func Init(gitlabURL, user, pass, accessToken, repoDir string) {
 
 	// cache admin projects at start
 	go func() {
-		ps, err := GetProjects(gitlabAccessToken)
+		ps, err := GetProjects(gitlabAccessToken, "yes")
 		if err != nil {
 			log.Fatal("fetch admin projects err", err)
 		}

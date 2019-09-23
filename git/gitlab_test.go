@@ -104,7 +104,7 @@ func TestCheckPerm(t *testing.T) {
 
 // only got 20
 func TestGetProjectsAdmin(t *testing.T) {
-	ps, err := GetProjectsAdmin(adminToken)
+	ps, err := GetProjectsAdmin()
 	// ps, err := GetProjectsAdmin(UserToken) // they need to use different list
 	if err != nil {
 		t.Error("err", err)
@@ -145,13 +145,13 @@ func TestGetProjectsUser(t *testing.T) {
 	}
 }
 
-func TestGetProjectLists(t *testing.T) {
-	_, ps, err := GetProjectLists(UserToken)
-	if err != nil {
-		t.Error("err", err)
-	}
-	fmt.Println("got", len(ps))
-}
+// func TestGetProjectLists(t *testing.T) {
+// 	_, ps, err := GetProjectLists(UserToken)
+// 	if err != nil {
+// 		t.Error("err", err)
+// 	}
+// 	fmt.Println("got", len(ps))
+// }
 
 // func TestListPersonalProjects(t *testing.T) {
 // 	ps, err := listPersonalProjects2(adminToken)
