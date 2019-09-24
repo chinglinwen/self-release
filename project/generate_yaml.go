@@ -60,9 +60,10 @@ func runHelmGen(dir, project, env, apicontext string) (out string, err error) {
 	cmd.Dir = dir
 
 	// depend on helm gen.sh to return error
-	output, err := cmd.Output() // let stderr goes to err variable
+	// output, err := cmd.Output() // let stderr goes to err variable
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("call gen.sh err: %v\noutput: %v\n", err, string(output))
+		err = fmt.Errorf("call gen.sh err: %v\noutput: %v\n", err, string(output))
 		return
 	}
 	out = string(output)

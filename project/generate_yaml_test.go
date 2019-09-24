@@ -20,10 +20,10 @@ func TestHelmGen(t *testing.T) {
 		"\x1b[\xae": unknown escape sequence
 */
 func TestRunHelmGen(t *testing.T) {
-	// dir := "/home/wen/gocode/src/wen/self-release/project/repos/wenzhenglin/config-deploy"
+	dir := "/home/wen/gocode/src/wen/self-release/repos/wenzhenglin/config-deploy"
 	// dir := "/home/wen/t/repos/wenzhenglin/config-deploy"
-	dir := "/home/wen/git/yunwei/config-deploy"
-	out, err := runHelmGen(dir, "haodai/main", "pre", GENSHAPICALL)
+	// dir := "/home/wen/git/yunwei/config-deploy"
+	out, err := runHelmGen(dir, "haodai/main", "online", GENSHAPICALL)
 	if err != nil {
 		t.Error("HelmGen err", err)
 		return
