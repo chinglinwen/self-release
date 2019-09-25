@@ -120,7 +120,7 @@ func projectListHandler(c echo.Context) (err error) {
 	// 	log.Println(err)
 	// 	return c.JSONPretty(http.StatusOK, E(-1, err.Error(), "failed"), " ")
 	// }
-	log.Printf("got user: %v, token: %v, refresh: %v\n", user, usertoken, refresh)
+	log.Printf("got user: %v, refresh: %v\n", user, refresh)
 
 	// var pss []*gitlab.Project
 	pss, err := git.GetProjects(usertoken, refresh)

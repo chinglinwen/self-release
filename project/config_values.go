@@ -33,7 +33,7 @@ func NewValuesRepo(project string) (v *ValuesRepo, err error) {
 	if !configrepo.IsExist(project) {
 		// should we create it? only if it's write?
 		// let create for the init?
-		err = fmt.Errorf("project does not exist")
+		err = fmt.Errorf("project does not exist in config-repo")
 		return
 	}
 	v = &ValuesRepo{
