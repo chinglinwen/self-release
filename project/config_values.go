@@ -43,9 +43,21 @@ func NewValuesRepo(project string) (v *ValuesRepo, err error) {
 	return
 }
 
+type ValuesConfig struct {
+	NodePort int    `json:"nodePort"`
+	Domain   string `json:"domain"`
+	Deploy   struct {
+		Replicas int `json:"replicas"`
+	} `json:"deploy"`
+	Monitor struct {
+		Address string `json:"address"`
+	} `json:"monitor"`
+}
+
 type Values struct {
-	Envs  map[string]string `json:"envs,omitempty"`
-	Mysql []struct {
+	Config ValuesConfig      `json:"config,omitempty"`
+	Envs   map[string]string `json:"envs,omitempty"`
+	Mysql  []struct {
 		Name     string `json:"name,omitempty"`
 		Host     string `json:"host,omitempty"`
 		Port     string `json:"port,omitempty"`

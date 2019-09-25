@@ -79,6 +79,7 @@ nfs:
   `
 var demojson = `
 {
+	"config": {"nodePort":30000,"domain":"a.com","deploy":{"replicas":2},"monitor":{"address":"a.com"}},
 	"envs": {
 	   "EXAMPLE-KEY": "EXAMPLE-value"
 	},
@@ -112,6 +113,7 @@ var demojson = `
 var demojsonall = `
 {
 	"online": {
+	  "config": {"nodePort":30000,"domain":"a.com","deploy":{"replicas":2},"monitor":{"address":"a.com"}},
 	  "envs": {
 		"EXAMPLE-KEY": "EXAMPLE-value",
 		"b": "b2"

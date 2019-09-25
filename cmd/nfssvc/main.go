@@ -30,6 +30,10 @@ func main() {
 
 	e := echo.New()
 	e.Use(middleware.Logger())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"*"},
+		AllowCredentials: true,
+	}))
 	// e.Use(middleware.Recover())
 	// e.Use(middleware.Logger())
 	//e.Use(middleware.Static("/data"))
@@ -37,10 +41,6 @@ func main() {
 	// automatically add routers for net/http/pprof
 	// e.g. /debug/pprof, /debug/pprof/heap, etc.
 	// echopprof.Wrap(e)
-
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-	}))
 
 	g := e.Group("/api")
 	g.GET("/", nfs.listNfsHandler)
