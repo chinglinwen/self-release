@@ -4,6 +4,72 @@ import (
 	"testing"
 )
 
+var demoYaml = `
+config:
+  # env: pre
+  # env: test
+  
+  # online need nodePort and domain
+  env: online
+  nodePort: 12
+  domain: a.com
+  deploy:
+    replicas: 1
+  monitor:
+    address: a.com
+
+envs:
+  EXAMPLE-KEY: EXAMPLE-value
+
+mysql:
+  - name: 10-107-3307-liuliang
+    host: DB_HOST
+    port: DB_PORT
+    database: DB_DATABASE
+    username: DB_USERNAME
+    password: DB_PASSWORD
+
+codis:
+  SESSION_REDIS_HOST: "codis-proxy-flow-center-loanapi.codis-cluster"
+  SESSION_REDIS_PORT: "19000"
+  REDIS_HOST: "192.168.10.99"
+  REDIS_PORT: "7201"
+
+nfs:
+  - name: loanapi-public
+    path: /data/staticfile_yjr/file_data/openapi
+    server: 172.31.83.26
+    mountPath: /apps/loanapi/www/Public
+`
+
+func TestParseValuesYaml(t *testing.T) {
+	v, err := ParseValuesYaml(demoYaml)
+	if err != nil {
+		t.Error("parse", err)
+		return
+	}
+	pretty(v)
+}
+
+func TestValuesFileReadAll(t *testing.T) {
+	repo, err := NewValuesRepo("haodai/main")
+	if err != nil {
+		t.Error("new repo", err)
+		return
+	}
+	// all, err := ParseAllValuesJson(demojsonall)
+	// if err != nil {
+	// 	t.Error("ParseAllValuesJson err", err)
+	// 	return
+	// }
+	all, err := repo.ValuesFileReadAll()
+	if err != nil {
+		t.Error("write", err)
+		return
+	}
+	pretty(all)
+}
+
 func TestValuesFileWriteAll(t *testing.T) {
 	repo, err := NewValuesRepo("xindaiquan/base-service")
 	if err != nil {

@@ -101,7 +101,8 @@ func main() {
 	// echopprof.Wrap(e)
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
+		AllowOrigins:     []string{"*"},
+		AllowCredentials: true,
 	}))
 
 	g := e.Group("/api")

@@ -43,15 +43,16 @@ func NewValuesRepo(project string) (v *ValuesRepo, err error) {
 	return
 }
 
+// twoword key need yaml tag
 type ValuesConfig struct {
-	NodePort int    `json:"nodePort"`
-	Domain   string `json:"domain"`
+	NodePort int    `json:"nodePort,omitempty" yaml:"nodePort,omitempty"`
+	Domain   string `json:"domain,omitempty" yaml:"domain,omitempty"`
 	Deploy   struct {
-		Replicas int `json:"replicas"`
-	} `json:"deploy"`
+		Replicas int `json:"replicas,omitempty" yaml:"replicas,omitempty"`
+	} `json:"deploy,omitempty" yaml:"deploy,omitempty"`
 	Monitor struct {
-		Address string `json:"address"`
-	} `json:"monitor"`
+		Address string `json:"address,omitempty" yaml:"address,omitempty"`
+	} `json:"monitor,omitempty" yaml:"monitor,omitempty"`
 }
 
 type Values struct {
@@ -70,7 +71,7 @@ type Values struct {
 		Name      string `json:"name,omitempty"`
 		Path      string `json:"path,omitempty"`
 		Server    string `json:"server,omitempty"`
-		MountPath string `json:"mountPath,omitempty"`
+		MountPath string `json:"mountPath,omitempty" yaml:"mountPath,omitempty"`
 	} `json:"nfs,omitempty"`
 }
 
