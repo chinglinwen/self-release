@@ -100,37 +100,26 @@ func main() {
 	// e.g. /debug/pprof, /debug/pprof/heap, etc.
 	// echopprof.Wrap(e)
 
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+	g := e.Group("/api")
+	g.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"*"},
 		AllowCredentials: true,
 	}))
-
-	g := e.Group("/api")
 
 	// g.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
 	// 	log.Printf("url: %q, method: %v, body: %q\n", c.Request().URL, c.Request().Method, reqBody)
 	// }))
 
 	u := g.Group("/users")
-	u.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"*"},
-		AllowCredentials: true,
-	}))
+
 	u.Use(loginCheck())
 	u.GET("/", getUserHandler)
 
 	gen := g.Group("/gen")
-	gen.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"*"},
-		AllowCredentials: true,
-	}))
+
 	gen.Any("/:ns/:project/:env", genYAMLHandler)
 
 	p := g.Group("/projects")
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"*"},
-		AllowCredentials: true,
-	}))
 	p.Use(loginCheck())
 
 	// p.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
