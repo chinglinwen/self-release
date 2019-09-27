@@ -8,6 +8,22 @@ import (
 	"github.com/chinglinwen/log"
 )
 
+func Apply(project, env string, envMap map[string]string) (out string, err error) {
+	final, err := HelmGenPrintFinal(project, env, envMap)
+	if err != nil {
+		return
+	}
+	return ApplyByKubectlWithString(final)
+}
+
+func Delete(project, env string, envMap map[string]string) (out string, err error) {
+	final, err := HelmGenPrintFinal(project, env, envMap)
+	if err != nil {
+		return
+	}
+	return DeleteByKubectlWithString(final)
+}
+
 /*
 this error does not helpful?
 
@@ -30,13 +46,41 @@ this error does not helpful?
 // }
 
 // ApplyByKubectl apply k8s yaml.
-func ApplyByKubectl(filebody, fileName string) (out string, err error) {
+func ApplyByKubectl(fileName string) (out string, err error) {
 	s := fmt.Sprintf("kubectl apply -f %v", fileName)
 	cmd := exec.Command("sh", "-c", s)
 	// cmd.Stdin = strings.NewReader(filebody)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("apply file: %v err: %v, \ncmd: %v\noutput: %v", fileName, err, s, string(output))
+		return
+	}
+	log.Printf("applied cmd: %v", s)
+	out = string(output)
+	return
+}
+
+func ApplyByKubectlWithString(filebody string) (out string, err error) {
+	s := fmt.Sprintf("kubectl apply -f -")
+	cmd := exec.Command("sh", "-c", s)
+	cmd.Stdin = strings.NewReader(filebody)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		err = fmt.Errorf("apply filebody err: %v, \ncmd: %v\noutput: %v", err, s, string(output))
+		return
+	}
+	log.Printf("applied cmd: %v", s)
+	out = string(output)
+	return
+}
+
+func DeleteByKubectlWithString(filebody string) (out string, err error) {
+	s := fmt.Sprintf("kubectl delete -f -")
+	cmd := exec.Command("sh", "-c", s)
+	cmd.Stdin = strings.NewReader(filebody)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		err = fmt.Errorf("apply filebody err: %v, \ncmd: %v\noutput: %v", err, s, string(output))
 		return
 	}
 	log.Printf("applied cmd: %v", s)

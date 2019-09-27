@@ -423,6 +423,9 @@ func convertToSubst(templateBody string) string {
 }
 
 func generateByMap(templateBody string, envMap map[string]string) (string, error) {
+	// for compatibilities
+	templateBody = convertToSubst(templateBody)
+
 	// inject resource here
 	templateBody = injectResource(templateBody, envMap)
 

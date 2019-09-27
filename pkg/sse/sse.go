@@ -58,13 +58,23 @@ type Broker struct {
 }
 
 type EventInfo struct {
-	Project   string // event.Project.PathWithNamespace
-	Branch    string // parseBranch(event.Ref)
-	Env       string
-	UserName  string
-	UserEmail string
-	Message   string
-	Time      time.Time
+	Project   string    `json:"project,omitempty"` // event.Project.PathWithNamespace
+	Branch    string    `json:"branch,omitempty"`  // parseBranch(event.Ref)
+	CommitId  string    `json:"commitid,omitempty"`
+	Env       string    `json:"env,omitempty"`
+	UserName  string    `json:"user_name,omitempty"`
+	UserEmail string    `json:"user_email,omitempty"`
+	Message   string    `json:"message,omitempty"`
+	Time      time.Time `json:"time,omitempty"`
+}
+
+func ParseEventInfoJson(body string) (event *EventInfo, err error) {
+	event = &EventInfo{}
+	err = json.Unmarshal([]byte(body), event)
+	if err != nil {
+		return
+	}
+	return
 }
 
 // GetInfo to satisfy eventer
@@ -307,7 +317,7 @@ func Lock(project, branch string) (err error) {
 	if builderLock == nil {
 		builderLock = make(map[string]bool)
 	}
-	k := fmt.Sprintf("%v:%", project, branch)
+	k := fmt.Sprintf("%v:%v", project, branch)
 	if v, ok := builderLock[k]; ok && v {
 		err = fmt.Errorf("operation is in running, try later")
 		return
@@ -317,7 +327,7 @@ func Lock(project, branch string) (err error) {
 }
 
 func UnLock(project, branch string) (err error) {
-	k := fmt.Sprintf("%v:%", project, branch)
+	k := fmt.Sprintf("%v:%v", project, branch)
 	if v, ok := builderLock[k]; !ok || !v {
 		err = fmt.Errorf("there's no lock")
 		return

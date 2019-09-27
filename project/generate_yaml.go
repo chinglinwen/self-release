@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	// "github.com/acarl005/stripansi"
 	"github.com/chinglinwen/log"
@@ -27,6 +28,69 @@ func HelmGen(project, env string) (out string, err error) {
 // HelmGenPrint print only
 func HelmGenPrint(project, env string) (out string, err error) {
 	return dogen(project, env, GENSHPRINT)
+}
+
+// validate with example
+func HelmGenPrintFinal(project, env string, envMap map[string]string) (final string, err error) {
+	final, err = dogenFinal(project, env, envMap)
+	if err != nil {
+		return
+	}
+	_, err = ValidateByKubectlWithString(final)
+	if err != nil {
+		err = fmt.Errorf("validate yaml err: %v", err)
+		return
+	}
+	return
+}
+
+var exampleEnvMap = getexampleEnvMap()
+
+func HelmGenPrintValidateYaml(project, env string) (err error) {
+	exampleEnvMap["CI_TIME"] = time.Now().Format(TimeLayout)
+	final, err := dogenFinal(project, env, exampleEnvMap)
+	if err != nil {
+		return
+	}
+	out, err := ValidateByKubectlWithString(final)
+	if err != nil {
+		err = fmt.Errorf("validate yaml err: %v\noutput: %v\nfinal: %v", err, out, final)
+		return
+	}
+	return
+}
+
+const TimeLayout = "2006-1-2_15:04:05"
+
+func getexampleEnvMap() (autoenv map[string]string) {
+	autoenv = make(map[string]string)
+	autoenv["CI_PROJECT_PATH"] = "demo/hello"
+	autoenv["CI_BRANCH"] = "v1.0.0"
+	autoenv["CI_ENV"] = "online"
+	autoenv["CI_NAMESPACE"] = "demo"
+	autoenv["CI_PROJECT_NAME"] = "hello"
+	autoenv["CI_PROJECT_NAME_WITH_ENV"] = "hello" + "-" + "online"
+	autoenv["CI_REPLICAS"] = "1"
+	autoenv["CI_IMAGE"] = "example.com/demo/hello:v1.0.0"
+	autoenv["CI_USER_NAME"] = "demouser"
+	autoenv["CI_USER_EMAIL"] = "demouser@example.com"
+	autoenv["CI_MSG"] = "demo info to validate yaml"
+	// autoenv["CI_TIME"] = time.Now().Format(TimeLayout)
+	return
+}
+
+func dogenFinal(project, env string, envMap map[string]string) (final string, err error) {
+	t, err := dogen(project, env, GENSHPRINT)
+	if err != nil {
+		err = fmt.Errorf("get yaml err: %v", err)
+		return
+	}
+	final, err = generateByMap(t, envMap)
+	if err != nil {
+		err = fmt.Errorf("generate final with map err: %v", err)
+		return
+	}
+	return
 }
 
 func dogen(project, env, apicontext string) (out string, err error) {

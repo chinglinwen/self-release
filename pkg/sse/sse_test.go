@@ -8,7 +8,7 @@ import (
 	"github.com/peterbourgon/diskv"
 )
 
-func init() {
+func Init() {
 	*logsPath = "../../projectlogs"
 	os.MkdirAll(*logsPath, 0755)
 
@@ -18,6 +18,17 @@ func init() {
 	})
 }
 
+func TestParseEventInfoJson(t *testing.T) {
+
+	b := "{\"namespace\":\"demo\",\"project\":\"hello\",\"branch\":\"v1.0.0\",\"Env\":\"\",\"time\":\"0001-01-01T00:00:00Z\"}"
+
+	i, err := ParseEventInfoJson(b)
+	if err != nil {
+		t.Errorf("ParseEventInfoJson err %v", err)
+		return
+	}
+	fmt.Println("got info: ", i)
+}
 func TestGetBrokers(t *testing.T) {
 	b := New("prjoecta", "brancha")
 	fmt.Fprint(b.PWriter, "created ")

@@ -713,7 +713,7 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 	if !o.nogen {
 		// fmt.Println("convert", convertToSubst(c))  // for test
 		// return
-		body, err = generateByMap(convertToSubst(c), envMap)
+		body, err = generateByMap(c, envMap)
 		if err != nil {
 			err = fmt.Errorf("generate with map err: %v", err)
 			return
@@ -746,7 +746,7 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 		}
 	}
 	if o.verify {
-		_, err = ValidateByKubectl(body, dst)
+		_, err = ValidateByKubectlWithString(body)
 		if err != nil {
 			log.Printf("validate body: %v\n", body)
 			err = fmt.Errorf("validate by kubectl err: %v", err)

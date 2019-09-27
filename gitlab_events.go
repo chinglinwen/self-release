@@ -39,11 +39,17 @@ func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	// e.Env = projectpkg.GetEnvFromBranch(e.Branch)
 	e.UserName = event.UserUsername
 	e.UserEmail = event.UserEmail
-	if len(event.Commits) == 0 {
-		err = fmt.Errorf("commit message is empty from event")
-		return
+
+	// use time and commit-id together
+	e.CommitId = time.Now().Format(TimeLayout)
+	n := len(event.Commits)
+	if n > 0 {
+		if len(event.Commits[n-1].ID) >= 8 {
+			e.CommitId += "." + event.Commits[n-1].ID[:8]
+		}
+		e.Message = event.Commits[0].Message
 	}
-	e.Message = event.Commits[0].Message
+
 	e.Time = time.Now()
 
 	return
@@ -61,11 +67,16 @@ func (event *TagPushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	// e.Env = projectpkg.GetEnvFromBranch(branch) ?
 	e.UserName = event.UserUsername
 	e.UserEmail = event.UserEmail
-	// if len(event.commits) == 0 {
-	// 	err = fmt.Errorf("commit message is empty from event")
-	// 	return
-	// }
-	// e.Message = event.Commits[0].Message
+
+	// use time and commit-id together
+	e.CommitId = time.Now().Format(TimeLayout)
+	n := len(event.Commits)
+	if n > 0 {
+		if len(event.Commits[n-1].ID) >= 8 {
+			e.CommitId += "." + event.Commits[n-1].ID[:8]
+		}
+	}
+
 	e.Message = event.Message // release message
 	e.Time = time.Now()
 
@@ -86,6 +97,33 @@ func GetEventInfoToMap(event Eventer) (autoenv map[string]string, err error) {
 		return
 	}
 	return EventInfoToMap(e)
+}
+
+var projectYamlTmpl = `
+apiVersion: project.haodai.com/v1alpha1
+kind: Project
+metadata:
+  name: %v
+  namespace: %v
+spec:
+  branch: "%v"
+  userName: "%v"
+  userEmail: "%v"
+  ReleaseMessage: "%v"
+  ReleaseAt: "%v"
+  CommitId: "%v"
+`
+
+func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
+	ns, name, err := projectpkg.GetProjectName(e.Project)
+	if err != nil {
+		err = fmt.Errorf("parse project name for %q, err: %v", e.Project, err)
+		return
+	}
+	body = fmt.Sprintf(projectYamlTmpl, name, ns, e.Branch,
+		e.UserName, e.UserEmail,
+		e.Message, e.Time.Format(TimeLayout), e.CommitId)
+	return
 }
 
 func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {

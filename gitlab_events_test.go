@@ -1,10 +1,36 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 )
+
+func TestEventInfoToProjectYaml(t *testing.T) {
+	data, err := ParseEvent("push", []byte(pushEvent))
+	if err != nil {
+		t.Error("parse err", err)
+		return
+	}
+	e, ok := data.(*PushEvent)
+	if !ok {
+		t.Error("cast to push event err")
+		return
+	}
+
+	ei, err := e.GetInfo()
+	if err != nil {
+		t.Error("getinfo err", err)
+		return
+	}
+	out, err := EventInfoToProjectYaml(ei)
+	if err != nil {
+		t.Error("toyaml err", err)
+		return
+	}
+	fmt.Printf("out: %v\n", out)
+}
 
 func TestParseEvent(t *testing.T) {
 	data, err := ParseEvent("push", []byte(pushEvent))

@@ -121,6 +121,8 @@ func (p *Project) CreateHarborProjectIfNotExist() (err error) {
 // 	return
 // }
 
+// if it's test, should generate unique id? so new apply will take effects?
+
 // GetImage generate fixed image name and tag.
 func GetImage(project, tag string) string {
 	return fmt.Sprintf("harbor.haodai.net/%v:%v", project, tag)

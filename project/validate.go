@@ -50,15 +50,14 @@ unable to recognize "fstest.yaml": Get http://localhost:8080/api?timeout=32s: di
 
 */
 // validate by kubectl, filename is for error
-func ValidateByKubectl(filebody, fileName string) (out string, err error) {
+func ValidateByKubectlWithString(filebody string) (out string, err error) {
 	cmd := exec.Command("sh", "-c", "kubectl apply --dry-run -f -")
 	cmd.Stdin = strings.NewReader(filebody)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		err = fmt.Errorf("validate file: %v err: %v, \noutput: %v", fileName, err, string(output))
+		err = fmt.Errorf("validate err: %v, \noutput: %v", err, string(output))
 		return
 	}
 	out = string(output)
 	return
-
 }

@@ -448,7 +448,7 @@ func apply(ns, target string) (out string, err error) {
 	}
 
 	// auto apply by default?
-	return projectpkg.ApplyByKubectl(target, target)
+	return projectpkg.ApplyByKubectl(target)
 }
 
 const errParseRefs = "parseRefsError"

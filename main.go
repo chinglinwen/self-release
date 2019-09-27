@@ -106,18 +106,18 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// g.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
-	// 	log.Printf("url: %q, method: %v, body: %q\n", c.Request().URL, c.Request().Method, reqBody)
-	// }))
+	g.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+		log.Printf("url: %q, method: %v, body: %q\n", c.Request().URL, c.Request().Method, reqBody)
+	}))
 
 	u := g.Group("/users")
 
 	u.Use(loginCheck())
 	u.GET("/", getUserHandler)
 
-	gen := g.Group("/gen")
-
-	gen.Any("/:ns/:project/:env", genYAMLHandler)
+	g.Any("/gen/:ns/:project/:env", genYAMLHandler)
+	g.Any("/apply/:ns/:project", applyYAMLHandler)
+	g.Any("/delete/:ns/:project", deleteYAMLHandler)
 
 	p := g.Group("/projects")
 	p.Use(loginCheck())
