@@ -21,6 +21,81 @@ type Project struct {
 	State bool   `json:"state"`
 }
 
+// check if image exist
+func projectImageCheckHandler(c echo.Context) (err error) {
+	ns := c.Param("ns")
+	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
+	tag := c.FormValue("tag")
+	log.Printf("check image tag for project: %v\n ", project)
+
+	exist, err := projectpkg.ImageIsExist(project, tag)
+	if err != nil {
+		err = fmt.Errorf("check image tag for project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
+		return
+	}
+	out := map[string]bool{
+		"exist": exist,
+	}
+	return c.JSONPretty(http.StatusOK, EData(0, "check image tag ok", "ok", out), "")
+}
+
+// read values file
+func projectConfigGetHandler(c echo.Context) (err error) {
+	ns := c.Param("ns")
+	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
+	log.Printf("get values for project: %v\n ", project)
+
+	out, err := projectpkg.ReadProjectConfig(project)
+	if err != nil {
+		err = fmt.Errorf("read config file for project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
+		return
+	}
+
+	// out = projectpkg.ProjectConfig{
+	// 	devBranch: "test",
+	// }
+	out.S.DevBranch = "test"
+	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", out), "")
+}
+
+// save values file
+func projectConfigUpdateHandler(c echo.Context) (err error) {
+	ns := c.Param("ns")
+	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
+	log.Printf("write values for project: %v\n ", project)
+
+	r := c.Request()
+	body, err := readbody(r)
+	if err != nil {
+		err = fmt.Errorf("read body err: %v", err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
+		return
+	}
+	// log.Printf("body: %v", body)
+
+	v, err := projectpkg.ParseProjectConfigJson(body)
+	if err != nil {
+		err = fmt.Errorf("parse body for project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
+		return
+	}
+
+	err = projectpkg.ConfigFileWrite(project, v)
+	if err != nil {
+		err = fmt.Errorf("write config file for project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(4, err.Error(), "failed"), " ")
+		return
+	}
+	return c.JSONPretty(http.StatusOK, E(0, "saved ok", "ok"), " ")
+}
+
 // read values file
 func projectValuesGetHandler(c echo.Context) (err error) {
 	ns := c.Param("ns")
@@ -63,7 +138,7 @@ func projectValuesUpdateHandler(c echo.Context) (err error) {
 
 	v, err := projectpkg.ParseAllValuesJson(body)
 	if err != nil {
-		err = fmt.Errorf("read body for project: %v, err: %v", project, err)
+		err = fmt.Errorf("parse body for project: %v, err: %v", project, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
 		return

@@ -8,30 +8,17 @@ import (
 	"strings"
 	"wen/self-release/git"
 	"wen/self-release/pkg/harbor"
-
-	yaml "gopkg.in/yaml.v2"
 )
 
-var (
+const (
 	defaultConfigBase = "yunwei/config-deploy"
-	defaultAppName    = "self-release"
+	// defaultAppName    = "self-release"
 
-	defaultConfigName = "config.env" // later will prefix with default or customize version
-	defaultConfigYAML = "config.yaml"
+	// defaultConfigName = "config.env" // later will prefix with default or customize version
+	// defaultConfigYAML = "config.yaml"
 	// opsDir         = "_ops"
 	defaultRepoConfigPath = "_ops" // configpath becomes project path in config-deploy
 )
-
-// type File struct {
-// 	Name         string
-// 	Template     string
-// 	Final        string // generated yaml final put into config-deploy?
-// 	RepoTemplate string
-
-// 	Overwrite         bool
-// 	Perm              os.FileMode // set final file perm
-// 	ValidateFinalYaml bool        // `yaml:'validateFinalYaml'`
-// }
 
 // this will be the project config for customizing
 type Project struct {
@@ -65,16 +52,20 @@ type Project struct {
 }
 
 type ProjectConfig struct {
-	DevBranch   string `yaml:"devbranch"`   // default dev branch name
-	BuildMode   string `yaml:"buildmode"`   // used to disable auto build [default, auto, disabled]
-	ConfigVer   string `yaml:"configver"`   // specify different version
-	SelfRelease string `yaml:"selfrelease"` // enable or not for self-release on this project
-	Version     string `yaml:"version"`     // currently don't need?
+	S SelfRelease `yaml:"selfrelease" json:"selfrelease,omitempty"` // enable or not for self-release on this project
+}
+
+type SelfRelease struct {
+	Enable    string `yaml:"enable" json:"enable,omitempty"`       // flag to enable
+	DevBranch string `yaml:"devbranch" json:"devBranch,omitempty"` // default dev branch name
+	BuildMode string `yaml:"buildmode" json:"buildMode,omitempty"` // used to disable auto build [default, auto, disabled]
+	ConfigVer string `yaml:"configver" json:"configVer,omitempty"` // specify different version
+	Version   string `yaml:"version" json:"version,omitempty"`     // upgrade concern, different logic based on version?
 }
 
 func (c ProjectConfig) String() string {
-	return fmt.Sprintf("devbranch: %v\nbuildmode: %v\nconfigver: %v\nselfrelease: %v\nversion: %v\n",
-		c.DevBranch, c.BuildMode, c.ConfigVer, c.SelfRelease, c.Version)
+	return fmt.Sprintf("devbranch: %v\nbuildmode: %v\nconfigver: %v\nenable: %v\nversion: %v\n",
+		c.S.DevBranch, c.S.BuildMode, c.S.ConfigVer, c.S.Enable, c.S.Version)
 }
 
 // type buildmode string
@@ -87,9 +78,9 @@ const (
 )
 
 func (p *Project) NeedBuild() bool {
-	switch p.Config.BuildMode {
+	switch p.Config.S.BuildMode {
 	case buildmodeAuto:
-		if p.Branch == p.Config.DevBranch {
+		if p.Branch == p.Config.S.DevBranch {
 			return true
 		}
 		return !p.ImageIsExist()
@@ -102,9 +93,18 @@ func (p *Project) NeedBuild() bool {
 	}
 }
 func (p *Project) IsManual() bool {
-	return p.Config.BuildMode == buildmodeManual
+	return p.Config.S.BuildMode == buildmodeManual
 }
 
+// func CheckImageExist() (exist bool, err error) {
+// 	tag := p.Branch
+// 	if projectpkg.GetEnvFromBranch(p.Branch) == projectpkg.TEST {
+// 		tag = p.CommitId
+// 	}
+// 	return harbor.RepoTagIsExist(p.getprojectpath(), tag)
+// }
+
+// so, let's not pass extra commitid, but let branch be commitid
 func (p *Project) ImageIsExist() bool {
 	exist, err := harbor.RepoTagIsExist(p.Project, p.Branch)
 	if err != nil {
@@ -114,52 +114,17 @@ func (p *Project) ImageIsExist() bool {
 	return exist
 }
 
-// // let template store inside repo( rather than config-deploy? )
-// var defaultFiles = []File{
-// 	{
-// 		Name:         "config",
-// 		Template:     "config.yaml",      //make env specific suffix? or inside
-// 		RepoTemplate: "",                 // it can exist, default no need
-// 		Final:        "_ops/config.yaml", //Project special, just store inside repo
-// 	},
-// 	{
-// 		Name:         "build-docker.sh",
-// 		Template:     "php.v1/build-docker.sh",      //make env specific suffix? or inside
-// 		RepoTemplate: "",                            // it can exist, default no need  // most of the time, it's just template one
-// 		Final:        "projectPath/build-docker.sh", //Project special, just store inside repo
-// 	},
-// 	{
-// 		Name:         "k8s.yaml",
-// 		Template:     "php.v1/k8s.yaml",
-// 		RepoTemplate: "_ops/template/k8s.yaml", // it can exist, default no need
-// 		Final:        "projectPath/k8s.yaml",   // why not _ops/template/k8s.yaml
-// 	},
-// }
-
-// func configed(files []File, name string) bool {
-// 	for _, v := range files {
-// 		if v.Name == name {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
+func ImageIsExist(project, tag string) (exist bool, err error) {
+	return harbor.RepoTagIsExist(project, tag)
+}
 
 func BranchIsTag(branch string) bool {
 	return git.BranchIsTag(branch)
 }
 
-// func (p *Project) Inited() bool {
-// 	if p != nil {
-// 		if p.repo != nil {
-// 	return p.repo.IsExist("_ops/config.yaml")
-// 		}
-// 	}
-// 	return false
-// }
 func (p *Project) Inited() bool {
 	if p != nil {
-		config := filepath.Join(p.Project, "self-release", defaultConfigName) // relate to initk8s path
+		config := filepath.Join(p.Project, configYaml)
 		return p.configrepo.IsExist(config)
 	} // p nil should not happen
 	return false
@@ -175,10 +140,6 @@ func (p *Project) DockerInited() bool {
 	}
 	return repo.IsExist("Dockerfile")
 }
-
-// func (p *Project) GetRepo() *git.Repo {
-// 	return p.repo
-// }
 
 // func SetGitForce() func(*Project) {
 // 	return func(p *Project) {
@@ -229,27 +190,7 @@ type projectOption struct {
 	configMustExist bool
 }
 
-// type initOption struct {
-// 	autoenv map[string]string
-// }
-
-// func SetAutoEnv(autoenv map[string]string) func(*Project) {
-// 	return func(o *Project) {
-// 		o.autoenv = autoenv
-// 	}
-// }
-
-// let people replace with block?
-
-// they need manual edit?
-
-// we just generate one final (and may never change, unless overwrite(have a backup though)
-//this way they can customize the final?  using diff?
-
-// template: php.v1/docker/online.yaml  // the name can be anything
-// template: php.v1/docker/pre.yaml
-// config: _ops/config/templatename.config
-// config: _ops/config/config.yaml  //specify which template and which config file?
+// a pure concept, only build need to fetch project repo
 func NewProject(project string, options ...func(*projectOption)) (p *Project, err error) {
 	project = strings.TrimSpace(project)
 	if project == "" {
@@ -270,142 +211,42 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		// branch:    "master",
 		// devBranch: "develop",
 		// buildMode: "default",
-		configVer: GetDefaultConfigVer(),
+		configVer: GetDefaultConfigVer(), // helm/phpv1
 	}
 	for _, op := range options {
 		op(c)
 	}
 	log.Printf("project: %v, options: %#v\n", project, c)
 
-	// p = &Project{
-	// 	Project: project, // "template-before-create",
-	// 	// Branch:    "master", // TODO: default to master?
-	// 	// ConfigVer: GetDefaultConfigVer(),
-	// 	// DevBranch: "develop", // default dev branch
+	config, err := ReadProjectConfig(project, SetConfigRepo(configrepo))
+	// if err != nil && !c.configMustExist {
+	// 	log.Println("read project config err, will using default config for ", project)
+	// 	// defaultConfig, e := readTemplateConfig(configrepo, c.configVer) // using default config, can we get configver now?
+	// 	// if e != nil {
+	// 	// 	err = fmt.Errorf("get defaultConfig from config-repo err: %v", e)
+	// 	// 	return
+	// 	// }
+	// 	// config = defaultConfig
+	// 	// err = nil
 	// }
-	// // log.Printf("before options apply for repo: %q ok\n", p.Project)
-
-	// if p.Branch == "" {
-	// 	p.Branch = "master"
-	// }
-	// if p.ConfigVer == "" {
-	// 	p.ConfigVer = GetDefaultConfigVer()
-	// }
-	// if p.DevBranch == "" {
-	// 	p.DevBranch = "develop"
-	// }
-
-	// // // p variable will change multiple times, save the variable here
-	// // autoenv := p.autoenv
-
-	// // log.Printf("after options apply for repo: %q ok\n", p.Project)
-
-	// branch := p.Branch
-	// configVer := p.ConfigVer
-	// // force := p.InitForce
-
-	// // normal repo config take first
-	// repo, e := getRepo(project, c.branch, c.nopull)
-	// if e != nil {
-	// 	err = fmt.Errorf("clone or open project: %v, err: %v, configver: %v", project, e, c.configVer)
-	// 	return
-	// }
-
-	// try get config, to overwrite default config
-	config, err := readProjectConfig(configrepo, project)
-	if err != nil && !c.configMustExist {
-		log.Println("read project config err, will using default config for ", project)
-		defaultConfig, e := readTemplateConfig(configrepo, c.configVer) // using default config, can we get configver now?
-		if e != nil {
-			err = fmt.Errorf("get defaultConfig from config-repo err: %v", e)
-			return
-		}
-		config = defaultConfig
-		err = nil
-	}
 	if err != nil {
 		err = fmt.Errorf("read config failed, config may not exist, err: %v", err)
 		return
 	}
-	if config.SelfRelease != "enabled" && !c.noenablecheck {
+	if config.S.Enable != "enabled" && !c.noenablecheck {
 		err = fmt.Errorf("project disabled, try do init, if inited, try set selfrelease=enabled")
 		return
 	}
 	// two way to provide config
 	// by option setting
 	// by project config.yaml
-	log.Printf("using configver: %v, devbranch: %v, buildmode: %v", config.ConfigVer, config.DevBranch, config.BuildMode)
+	log.Printf("using configver: %v, devbranch: %v, buildmode: %v", config.S.ConfigVer, config.S.DevBranch, config.S.BuildMode)
 
 	p = &Project{
 		Project: project,
 		Branch:  c.branch,
 		Config:  config, // how to persist this config?
 	}
-
-	// we don't need config.yaml anymore
-	// if !c.noreadconfig {
-	// 	p, err = readProjectConfig(configrepo, project)
-	// 	if err != nil {
-	// 		// // not inited, using template config? or just return error,since it not inited?
-	// 		// tp, e := readTemplateConfig(configVer)
-	// 		// if e != nil {
-	// 		// 	err = fmt.Errorf("readTemplateConfig for project: %v, err: %v, configver: %v", project, e, configVer)
-	// 		// 	return
-	// 		// }
-	// 		// p = tp
-
-	// 		// // only except we don't write files to git?
-
-	// 		// // it can't be, project name have issues too?
-	// 		// // what others setting will be overwrite by template?
-	// 		// p.Project = project
-	// 		// p.Branch = branch
-
-	// 		// log.Printf("set to default config for project %q\n", project)
-	// 		// err = fmt.Errorf("project %v not inited, for branch: %v", project, branch)
-	// 		log.Printf("project %v not inited, for branch: %v", project, c.branch)
-	// 		return
-	// 	}
-
-	// 	log.Printf("reading project config for repo: %v, branch: %v ok\n", project, c.branch)
-	// } else {
-	// 	p = &Project{
-	// 		Project: project,
-	// 	}
-	// }
-
-	// var tp *Project
-
-	// spew.Dump("template config:", tp.Files)
-
-	// log.Printf("try read templateconfig for repo: %q ok\n", p.Project)
-
-	// this will overwrite option setting?
-	// if force {
-	// 	// force ignore repo config
-	// 	p = tp
-	// } else {
-
-	// }
-	// // repo config exist, merge config, is this needed?
-	// if we all come from init, it's likely that files is appending
-	// for _, v := range tp.Files {
-	// 	if configed(p.Files, v.Name) {
-	// 		continue
-	// 	}
-	// 	p.Files = append(p.Files, v)
-	// }
-
-	// clone project repo
-	// if p.NoPull {
-	// 	p.repo, err = git.New(p.Project, git.SetBranch(p.Branch), git.SetForce())
-	// } else {
-	// 	p.repo, err = git.NewWithPull(p.Project, git.SetBranch(p.Branch), git.SetForce())
-	// }
-	// if err != nil {
-	// 	err = fmt.Errorf("git clone err: %v for project: %v", err, p.Project)
-	// 	return
-	// }
 
 	p.op = *c
 	// p.ConfigVer = c.configVer
@@ -415,7 +256,7 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	// p.repo = repo
 	// p.WorkDir = p.repo.GetWorkDir()
 
-	p.configConfigPath = filepath.Join(p.Project, defaultAppName)
+	// p.configConfigPath = filepath.Join(p.Project, defaultAppName)
 
 	log.Printf("create project: %q ok\n", project)
 
@@ -456,10 +297,6 @@ func (p *Project) GetPreviousTag() (tag string, err error) {
 }
 
 func getRepo(project, branch string, nopull bool) (repo *git.Repo, err error) {
-	// p = &Project{
-	// 	Project: project,
-	// }
-	// log.Printf("try gitnew for repo: %q ok\n", p.Project)
 
 	if nopull {
 		repo, err = git.New(project, git.SetBranch(branch), git.SetForce())
@@ -473,103 +310,60 @@ func getRepo(project, branch string, nopull bool) (repo *git.Repo, err error) {
 	return
 }
 
-func readTemplateConfig(configrepo *git.Repo, configVer string) (p ProjectConfig, err error) {
-	if configVer == "" {
-		configVer = GetDefaultConfigVer()
-	}
-	f := filepath.Join("template", configVer, defaultConfigYAML)
-	tyaml, err := configrepo.GetFile(f)
-	if err != nil {
-		err = fmt.Errorf("read configrepo templateconfig: %v, err: %v", f, err)
-		return
-	}
-	return decodeConfig(tyaml)
-}
-
 // func readTemplateConfig(configrepo *git.Repo, configVer string) (p ProjectConfig, err error) {
 // 	if configVer == "" {
 // 		configVer = GetDefaultConfigVer()
 // 	}
-// 	f := filepath.Join("template", configVer, defaultConfigName)
+// 	f := filepath.Join("template", configVer, defaultConfigYAML)
 // 	tyaml, err := configrepo.GetFile(f)
 // 	if err != nil {
 // 		err = fmt.Errorf("read configrepo templateconfig: %v, err: %v", f, err)
 // 		return
 // 	}
-// 	return parseConfig(tyaml)
+// 	return decodeConfig(tyaml)
 // }
 
-func readProjectConfig(configrepo *git.Repo, project string) (c ProjectConfig, err error) {
-	f := filepath.Join(project, defaultAppName, defaultConfigYAML)
-	cyaml, err := configrepo.GetFile(f)
-	if err != nil {
-		err = fmt.Errorf("read config file: %v, err: %v", f, err)
-		return
-	}
-	return decodeConfig(cyaml)
-}
-
-func writeProjectConfig(configrepo *git.Repo, project string, c ProjectConfig) (err error) {
-	body, err := encodeConfig(c)
-	if err != nil {
-		return
-	}
-	f := filepath.Join(project, "self-release/config.yaml")
-	err = configrepo.Add(f, body)
-	if err != nil {
-		return
-	}
-	text := fmt.Sprintf("setting config.yaml for %v", project)
-	return configrepo.CommitAndPush(text)
-}
-
-// let's pass configrepo?
-// func readProjectConfig(configrepo *git.Repo, project string) (p *Project, err error) {
-// 	// configrepo, err := GetConfigRepo()
-// 	// if err != nil || configrepo == nil {
-// 	// 	err = fmt.Errorf("read config from configrepo err: %v", err)
-// 	// 	return
-// 	// }
-// 	f := filepath.Join(project, defaultConfigName)
+// func readProjectConfig(configrepo *git.Repo, project string) (c ProjectConfig, err error) {
+// 	f := getConfigFileName(project)
 // 	cyaml, err := configrepo.GetFile(f)
 // 	if err != nil {
 // 		err = fmt.Errorf("read config file: %v, err: %v", f, err)
 // 		return
 // 	}
-// 	return parseConfig(cyaml)
+// 	return decodeConfig(cyaml)
 // }
 
-// func readRepoConfig(repo *git.Repo) (p *Project, err error) {
-// 	if repo == nil {
-// 		err = fmt.Errorf("read config for err: repo not clone or open yet")
-// 		return
-// 	}
-// 	f := filepath.Join(defaultRepoConfigPath, defaultConfigName)
-// 	cyaml, err := repo.GetFile(f)
+// func writeProjectConfig(configrepo *git.Repo, project string, c ProjectConfig) (err error) {
+// 	body, err := encodeConfig(c)
 // 	if err != nil {
-// 		err = fmt.Errorf("read config file: %v, err: %v", f, err)
 // 		return
 // 	}
-// 	return parseConfig(cyaml)
+// 	f := filepath.Join(project, "self-release/config.yaml")
+// 	err = configrepo.Add(f, body)
+// 	if err != nil {
+// 		return
+// 	}
+// 	text := fmt.Sprintf("setting config.yaml for %v", project)
+// 	return configrepo.CommitAndPush(text)
 // }
 
-// unmarshal template config
-func decodeConfig(cyaml []byte) (c ProjectConfig, err error) {
-	c = ProjectConfig{}
-	err = yaml.Unmarshal(cyaml, &c)
-	if err != nil {
-		err = fmt.Errorf("unmarshal config yaml: %v, err: %v", string(cyaml), err)
-		return
-	}
-	return
-}
+// // unmarshal template config
+// func decodeConfig(cyaml []byte) (c ProjectConfig, err error) {
+// 	c = ProjectConfig{}
+// 	err = yaml.Unmarshal(cyaml, &c)
+// 	if err != nil {
+// 		err = fmt.Errorf("unmarshal config yaml: %v, err: %v", string(cyaml), err)
+// 		return
+// 	}
+// 	return
+// }
 
-func encodeConfig(c ProjectConfig) (body string, err error) {
-	b, err := yaml.Marshal(c)
-	if err != nil {
-		err = fmt.Errorf("config yaml marshal err: %v", err)
-		return
-	}
-	body = string(b)
-	return
-}
+// func encodeConfig(c ProjectConfig) (body string, err error) {
+// 	b, err := yaml.Marshal(c)
+// 	if err != nil {
+// 		err = fmt.Errorf("config yaml marshal err: %v", err)
+// 		return
+// 	}
+// 	body = string(b)
+// 	return
+// }

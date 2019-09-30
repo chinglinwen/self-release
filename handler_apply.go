@@ -28,6 +28,7 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 	ns := c.Param("ns")
 	// env := c.Param("env")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
+	env := c.Param("env")
 	log.Printf("do apply for project: %v\n ", project)
 
 	// getinfo
@@ -47,7 +48,6 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
 		return
 	}
-	env := projectpkg.GetEnvFromBranch(info.Branch)
 
 	envmap, err := EventInfoToMap(info)
 	if err != nil {

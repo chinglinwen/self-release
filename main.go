@@ -116,8 +116,9 @@ func main() {
 	u.GET("/", getUserHandler)
 
 	g.Any("/gen/:ns/:project/:env", genYAMLHandler)
-	g.Any("/apply/:ns/:project", applyYAMLHandler)
-	g.Any("/delete/:ns/:project", deleteYAMLHandler)
+	g.Any("/apply/:ns/:project/:env", applyYAMLHandler)
+	g.Any("/delete/:ns/:project/:env", deleteYAMLHandler)
+	g.Any("/imagecheck/:ns/:project", projectImageCheckHandler)
 
 	p := g.Group("/projects")
 	p.Use(loginCheck())
@@ -143,6 +144,9 @@ func main() {
 	// get and put values files
 	p.GET("/:ns/:project/values", projectValuesGetHandler)
 	p.POST("/:ns/:project/values", projectValuesUpdateHandler)
+
+	p.GET("/:ns/:project/config", projectConfigGetHandler)
+	p.POST("/:ns/:project/config", projectConfigUpdateHandler)
 
 	p.GET("/", projectListHandler)
 

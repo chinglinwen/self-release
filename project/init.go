@@ -69,7 +69,7 @@ func GetConfigRepo() (configrepo *git.Repo, err error) {
 // default is php.v1, we assume all is php?
 // this can overwrite by release tag
 func GetDefaultConfigVer() string {
-	return "php.v1"
+	return "helm/phpv1"
 }
 
 func GetDefaultVer() string {

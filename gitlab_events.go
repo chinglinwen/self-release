@@ -26,6 +26,7 @@ func ParseEvent(eventName string, payload []byte) (data interface{}, err error) 
 }
 
 const TimeLayout = "2006-1-2_15:04:05"
+const IDTimeLayout = "20060102.150405"
 
 func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	e = &sse.EventInfo{}
@@ -41,16 +42,16 @@ func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	e.UserEmail = event.UserEmail
 
 	// use time and commit-id together
-	e.CommitId = time.Now().Format(TimeLayout)
+	e.CommitID = time.Now().Format(IDTimeLayout)
 	n := len(event.Commits)
 	if n > 0 {
 		if len(event.Commits[n-1].ID) >= 8 {
-			e.CommitId += "." + event.Commits[n-1].ID[:8]
+			e.CommitID += ".id:" + event.Commits[n-1].ID[:8]
 		}
-		e.Message = event.Commits[0].Message
+		e.Message = fmt.Sprintf("[gitlab tag] %v", event.Commits[0].Message)
 	}
 
-	e.Time = time.Now()
+	e.Time = time.Now().Format(TimeLayout)
 
 	return
 }
@@ -69,16 +70,16 @@ func (event *TagPushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	e.UserEmail = event.UserEmail
 
 	// use time and commit-id together
-	e.CommitId = time.Now().Format(TimeLayout)
+	e.CommitID = time.Now().Format(IDTimeLayout)
 	n := len(event.Commits)
 	if n > 0 {
 		if len(event.Commits[n-1].ID) >= 8 {
-			e.CommitId += "." + event.Commits[n-1].ID[:8]
+			e.CommitID += ".id:" + event.Commits[n-1].ID[:8]
 		}
 	}
 
-	e.Message = event.Message // release message
-	e.Time = time.Now()
+	e.Message = fmt.Sprintf("[gitlab tag] %v", event.Message) // release message
+	e.Time = time.Now().Format(TimeLayout)
 
 	return
 }
@@ -99,30 +100,44 @@ func GetEventInfoToMap(event Eventer) (autoenv map[string]string, err error) {
 	return EventInfoToMap(e)
 }
 
+// name need to be different for different env
+// makes parse project name harder?
 var projectYamlTmpl = `
 apiVersion: project.haodai.com/v1alpha1
 kind: Project
 metadata:
-  name: %v
+  name: %v-%v
   namespace: %v
 spec:
-  branch: "%v"
+  version: "%v"
   userName: "%v"
   userEmail: "%v"
-  ReleaseMessage: "%v"
-  ReleaseAt: "%v"
-  CommitId: "%v"
+  releaseMessage: "%v"
+  releaseAt: "%v"
 `
 
+// must provide enough info for EventInfoToMap later
 func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
 	ns, name, err := projectpkg.GetProjectName(e.Project)
 	if err != nil {
 		err = fmt.Errorf("parse project name for %q, err: %v", e.Project, err)
 		return
 	}
-	body = fmt.Sprintf(projectYamlTmpl, name, ns, e.Branch,
-		e.UserName, e.UserEmail,
-		e.Message, e.Time.Format(TimeLayout), e.CommitId)
+	env := projectpkg.GetEnvFromBranch(e.Branch)
+	version := e.Branch
+	// from gitlab event and it's test env, change to commitid as tag
+	if env == projectpkg.TEST && e.CommitID != "" {
+		// so test image changed ( otherwise always the same )
+		version = e.CommitID
+	}
+
+	if e.Time == "" {
+		e.Time = time.Now().Format(TimeLayout)
+	}
+
+	// convert info to version?
+	body = fmt.Sprintf(projectYamlTmpl, name, env, ns, version,
+		e.UserName, e.UserEmail, e.Message, e.Time)
 	return
 }
 
@@ -138,25 +153,26 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 	if e.Env == "" {
 		e.Env = projectpkg.GetEnvFromBranch(e.Branch)
 	}
-	if e.Time.IsZero() {
-		e.Time = time.Now()
+	if e.Time == "" {
+		e.Time = time.Now().Format(TimeLayout)
 	}
 
 	autoenv = make(map[string]string)
 	autoenv["CI_PROJECT_PATH"] = e.Project
-	autoenv["CI_BRANCH"] = e.Branch
+	// autoenv["CI_BRANCH"] = e.Branch // don't need this anymore
 	autoenv["CI_ENV"] = e.Env
 	autoenv["CI_NAMESPACE"] = namespace
 	autoenv["CI_PROJECT_NAME"] = projectName
 	autoenv["CI_PROJECT_NAME_WITH_ENV"] = projectName + "-" + e.Env
 	autoenv["CI_REPLICAS"] = "1" // config.env has higher priority to overwrite this
 
+	// calc by version? tag or commitid
 	autoenv["CI_IMAGE"] = projectpkg.GetImage(e.Project, e.Branch) // or using project_path
 
 	autoenv["CI_USER_NAME"] = e.UserName
 	autoenv["CI_USER_EMAIL"] = e.UserEmail
 	autoenv["CI_MSG"] = e.Message
-	autoenv["CI_TIME"] = e.Time.Format(TimeLayout)
+	autoenv["CI_TIME"] = e.Time
 
 	return
 }

@@ -8,14 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"wen/self-release/git"
 
 	"github.com/chinglinwen/log"
 
 	"github.com/drone/envsubst"
-	"github.com/joho/godotenv"
 )
 
 // to match specific k8s yaml
@@ -90,34 +88,34 @@ func GetProjectName(project string) (namespace, name string, err error) {
 	return s[0], s[1], nil
 }
 
-func (p *Project) Generate(options ...func(*genOption)) (target string, err error) {
-	// if !p.Inited() {
-	// 	err = fmt.Errorf("project %v have not init", p.Project)
-	// 	return
-	// }
+// func (p *Project) Generate(options ...func(*genOption)) (target string, err error) {
+// 	// if !p.Inited() {
+// 	// 	err = fmt.Errorf("project %v have not init", p.Project)
+// 	// 	return
+// 	// }
 
-	c := genOption{}
-	for _, op := range options {
-		op(&c)
-	}
-	if c.autoenv == nil {
-		err = fmt.Errorf("autoenv is empty")
-		return
-	}
+// 	c := genOption{}
+// 	for _, op := range options {
+// 		op(&c)
+// 	}
+// 	if c.autoenv == nil {
+// 		err = fmt.Errorf("autoenv is empty")
+// 		return
+// 	}
 
-	// // var envMap map[string]string
-	// envMap, err := p.readEnvs(c.autoenv)
-	// if err != nil {
-	// 	// err = fmt.Errorf("readenvs err: %v", err)
-	// 	log.Printf("readenvs err: %v, will ignore\n", err)
-	// 	// envMap = make(map[string]string)
-	// }
-	p.envMap = c.autoenv // already merged envs
-	// p.genOption = c
+// 	// // var envMap map[string]string
+// 	// envMap, err := p.readEnvs(c.autoenv)
+// 	// if err != nil {
+// 	// 	// err = fmt.Errorf("readenvs err: %v", err)
+// 	// 	log.Printf("readenvs err: %v, will ignore\n", err)
+// 	// 	// envMap = make(map[string]string)
+// 	// }
+// 	p.envMap = c.autoenv // already merged envs
+// 	// p.genOption = c
 
-	target, err = p.genK8s(c)
-	return
-}
+// 	target, err = p.genK8s(c)
+// 	return
+// }
 
 // // generate config only? generate build files? not generate repotemplate
 // //
@@ -465,88 +463,88 @@ func injectResource(templateBody string, envMap map[string]string) string {
 // 	return godotenv.Overload(files...)
 // }
 
-// autoenv can be nil, if no env settings
-func (p *Project) ReadEnvs(autoenv map[string]string) (mergeNote []string, envMap map[string]string, err error) {
-	// for the filter
-	// envFiles := []string{}
+// // autoenv can be nil, if no env settings
+// func (p *Project) ReadEnvs(autoenv map[string]string) (mergeNote []string, envMap map[string]string, err error) {
+// 	// for the filter
+// 	// envFiles := []string{}
 
-	// read env
-	// if p.EnvFiles != nil {
-	// if len(p.EnvFiles) == 0 {
-	// defaultEnv := fmt.Sprintf("%v/config.env", p.configConfigPath)
-	// log.Printf("no env specified, setting default to %v\n", defaultEnv)
-	// envFiles = append(envFiles, defaultEnv)
-	// }
+// 	// read env
+// 	// if p.EnvFiles != nil {
+// 	// if len(p.EnvFiles) == 0 {
+// 	// defaultEnv := fmt.Sprintf("%v/config.env", p.configConfigPath)
+// 	// log.Printf("no env specified, setting default to %v\n", defaultEnv)
+// 	// envFiles = append(envFiles, defaultEnv)
+// 	// }
 
-	// if after init, this should read from config.yaml?
-	// for _, v := range envFiles {
-	// log.Println("got env file setting:", v)
-	f := filepath.Join(p.configrepo.GetWorkDir(), p.configConfigPath, "config.env") // make this configurable?
-	if !isExist(f) {
-		// envFiles = append(envFiles, f)
-		err = fmt.Errorf("env file: %v not exist", f)
-		// log.Printf("env file: %v not exist, ignore env\n", f)
-		// envMap = autoenv
-		return
-	}
-	// }
-	// }
+// 	// if after init, this should read from config.yaml?
+// 	// for _, v := range envFiles {
+// 	// log.Println("got env file setting:", v)
+// 	f := filepath.Join(p.configrepo.GetWorkDir(), p.configConfigPath, "config.env") // make this configurable?
+// 	if !isExist(f) {
+// 		// envFiles = append(envFiles, f)
+// 		err = fmt.Errorf("env file: %v not exist", f)
+// 		// log.Printf("env file: %v not exist, ignore env\n", f)
+// 		// envMap = autoenv
+// 		return
+// 	}
+// 	// }
+// 	// }
 
-	envMap, err = godotenv.Read(f) // it seems we just read env first be fore init
-	if err != nil {
-		err = fmt.Errorf("readenvfiles err: %v", err)
-		return // TODO: need ignore?
-	}
+// 	envMap, err = godotenv.Read(f) // it seems we just read env first be fore init
+// 	if err != nil {
+// 		err = fmt.Errorf("readenvfiles err: %v", err)
+// 		return // TODO: need ignore?
+// 	}
 
-	// mergeNote = "config envs:\n"
-	for k, v := range envMap {
-		mergeNote = append(mergeNote, fmt.Sprintf("configenv: %v=%v\n", k, v))
-	}
+// 	// mergeNote = "config envs:\n"
+// 	for k, v := range envMap {
+// 		mergeNote = append(mergeNote, fmt.Sprintf("configenv: %v=%v\n", k, v))
+// 	}
 
-	// for inject resources
-	r, _ := p.readResources()
-	envMap["ENV-RESOURCE"] = r.envs
-	envMap["VOLUME-RESOURCE"] = r.volumes
-	envMap["MOUNT-RESOURCE"] = r.mounts
+// 	// for inject resources
+// 	r, _ := p.readResources()
+// 	envMap["ENV-RESOURCE"] = r.envs
+// 	envMap["VOLUME-RESOURCE"] = r.volumes
+// 	envMap["MOUNT-RESOURCE"] = r.mounts
 
-	sort.Slice(mergeNote, func(i, j int) bool {
-		return mergeNote[i] < mergeNote[j] // alphabetical order
-	})
-	mergeNote = append(mergeNote, "") // append newline split
-	// for k, v := range envMap {
-	// 	if k == "devBranch" {
-	// 		p.DevBranch = v
-	// 	}
-	// 	if k == "buildMode" {
-	// 		p.BuildMode = v // read this before build is ok, no need to read for every newproject
-	// 	}
-	// }
+// 	sort.Slice(mergeNote, func(i, j int) bool {
+// 		return mergeNote[i] < mergeNote[j] // alphabetical order
+// 	})
+// 	mergeNote = append(mergeNote, "") // append newline split
+// 	// for k, v := range envMap {
+// 	// 	if k == "devBranch" {
+// 	// 		p.DevBranch = v
+// 	// 	}
+// 	// 	if k == "buildMode" {
+// 	// 		p.BuildMode = v // read this before build is ok, no need to read for every newproject
+// 	// 	}
+// 	// }
 
-	mergeNote1 := make([]string, 0)
-	split := "//----------//"
-	if autoenv != nil {
-		// append build envs
-		for k, v := range autoenv {
-			if configv, ok := envMap[k]; ok {
-				a := fmt.Sprintf("autoenv: %v=%v %v overwrite by configenv: %v to %v\n", k, configv, split, v, configv)
-				log.Printf(a)
-				mergeNote1 = append(mergeNote1, a)
-				continue
-			} else {
-				envMap[k] = v // support overwrite?
-				mergeNote1 = append(mergeNote1, fmt.Sprintf("autoenv: %v=%v\n", k, v))
-			}
-		}
-	}
+// 	mergeNote1 := make([]string, 0)
+// 	split := "//----------//"
+// 	if autoenv != nil {
+// 		// append build envs
+// 		for k, v := range autoenv {
+// 			if configv, ok := envMap[k]; ok {
+// 				a := fmt.Sprintf("autoenv: %v=%v %v overwrite by configenv: %v to %v\n", k, configv, split, v, configv)
+// 				log.Printf(a)
+// 				mergeNote1 = append(mergeNote1, a)
+// 				continue
+// 			} else {
+// 				envMap[k] = v // support overwrite?
+// 				mergeNote1 = append(mergeNote1, fmt.Sprintf("autoenv: %v=%v\n", k, v))
+// 			}
+// 		}
+// 	}
 
-	sort.Slice(mergeNote1, func(i, j int) bool {
-		return mergeNote1[i] < mergeNote1[j] // alphabetical order
-	})
+// 	sort.Slice(mergeNote1, func(i, j int) bool {
+// 		return mergeNote1[i] < mergeNote1[j] // alphabetical order
+// 	})
 
-	mergeNote = append(mergeNote, mergeNote1...)
+// 	mergeNote = append(mergeNote, mergeNote1...)
 
-	return
-}
+// 	return
+// }
 
 func isExist(file string) bool {
 	if _, err := os.Stat(file); !os.IsNotExist(err) {

@@ -19,57 +19,71 @@ import (
 // do build if buildmode is manual
 func HarborToDeploy(i *HarborEventInfo) (err error) {
 	log.Printf("got push from: %v, project: %v:%v\n", i.Name, i.Project, i.Tag)
-	project, branch, name := i.Project, i.Tag, i.Name
+	project, tag, name := i.Project, i.Tag, i.Name
 
 	d, found := getCache(i)
 	if found {
-		log.Printf("ignore cached event for project: %v:%v, expire in: %v\n", project, branch, d.Format(TimeLayout))
+		log.Printf("ignore cached event for project: %v:%v, expire in: %v\n", project, tag, d.Format(TimeLayout))
 		return
 	}
 	setCache(i)
-	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch), projectpkg.SetConfigMustExist(true))
+	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(tag), projectpkg.SetConfigMustExist(true))
 	if err != nil {
-		return
-	}
-
-	// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-	if err != nil {
-		err = fmt.Errorf("project: %v:%v, new err: %v", project, branch, err)
+		err = fmt.Errorf("project: %v:%v, new err: %v", project, tag, err)
 		return
 	}
 	if !p.IsManual() {
-		log.Printf("ignore build for project: %v:%v, buildmode is not manual\n", project, branch)
+		log.Printf("ignore build for project: %v:%v, buildmode is not manual\n", project, tag)
 		return
 	}
-	log.Printf("start harbor build for project: %v:%v\n", project, branch)
+	log.Printf("start harbor build for project: %v:%v\n", project, tag)
 
-	bo := &buildOption{
-		gen: true,
-		// nobuild:    f.nobuild,
-		buildimage: false,
-		deploy:     true,
-		// nonotify:   true,
-		p: p,
-	}
+	// bo := &buildOption{
+	// 	gen: true,
+	// 	// nobuild:    f.nobuild,
+	// 	buildimage: false,
+	// 	deploy:     true,
+	// 	// nonotify:   true,
+	// 	p: p,
+	// }
 	e := &sse.EventInfo{
-		Project: i.Project,
-		Branch:  i.Tag,
+		Project: project,
+		Branch:  tag,
 		// Env:       env, // default derive from branch
-		UserName: i.Name,
+		UserName: name,
 		// UserEmail: useremail,
-		Message: fmt.Sprintf("from harbor %v", name),
+		Message: fmt.Sprintf("[from harbor] %v", name),
 	}
 
-	b := NewBuilder(project, branch)
-	b.log("starting logs trigger by harbor image push, buildmode: manual")
-
-	err = b.startBuild(e, bo)
+	// at least update the time to togger the change
+	out, err := applyReleaseFromEvent(e)
 	if err != nil {
-		err = fmt.Errorf("startdeploy for project: %v, branch: %v, err: %v", project, branch, err)
+		err = fmt.Errorf("create k8s release for project: %v, branch: %v, err: %v", project, tag, err)
 		log.Println(err)
 		return
 	}
+
+	log.Printf("create release ok, out: %v\n", out)
+
+	// b := NewBuilder(project, branch)
+	// b.log("starting logs trigger by harbor image push, buildmode: manual")
+
+	// err = b.startBuild(e, bo)
+	// if err != nil {
+	// 	err = fmt.Errorf("startdeploy for project: %v, branch: %v, err: %v", project, branch, err)
+	// 	log.Println(err)
+	// 	return
+	// }
 	return
+}
+
+func applyReleaseFromEvent(e *sse.EventInfo) (out string, err error) {
+	r, err := EventInfoToProjectYaml(e)
+	if err != nil {
+		err = fmt.Errorf("convert event to yaml err: %v", err)
+		return
+	}
+	return projectpkg.ApplyByKubectlWithString(r)
 }
 
 var C = cache.New(1*time.Minute, 1*time.Minute)

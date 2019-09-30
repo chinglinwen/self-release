@@ -366,11 +366,13 @@ func setting(dev, args string) (out string, err error) {
 	}
 
 	c := projectpkg.ProjectConfig{
-		BuildMode:   s.buildmode,
-		DevBranch:   s.devbranch,
-		ConfigVer:   s.configver,
-		SelfRelease: s.selfrelease,
-		Version:     s.version,
+		S: projectpkg.SelfRelease{
+			BuildMode: s.buildmode,
+			DevBranch: s.devbranch,
+			ConfigVer: s.configver,
+			Enable:    s.selfrelease,
+			Version:   s.version,
+		},
 	}
 	out, err = p.Setting(c)
 	if err != nil {

@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -57,15 +56,19 @@ type Broker struct {
 	Stored     bool
 }
 
+// this type now relate to k8s project object
 type EventInfo struct {
-	Project   string    `json:"project,omitempty"` // event.Project.PathWithNamespace
-	Branch    string    `json:"branch,omitempty"`  // parseBranch(event.Ref)
-	CommitId  string    `json:"commitid,omitempty"`
-	Env       string    `json:"env,omitempty"`
-	UserName  string    `json:"user_name,omitempty"`
-	UserEmail string    `json:"user_email,omitempty"`
-	Message   string    `json:"message,omitempty"`
-	Time      time.Time `json:"time,omitempty"`
+	Project string `json:"project,omitempty"` // event.Project.PathWithNamespace
+	Branch  string `json:"version,omitempty"` // parseBranch(event.Ref)
+
+	Env string `json:"env,omitempty"` // auto detect
+
+	UserName  string `json:"userName,omitempty"`
+	UserEmail string `json:"userEmail,omitempty"`
+	Message   string `json:"releaseMessage,omitempty"`
+	Time      string `json:"releaseAt,omitempty"`
+
+	CommitID string `json:"-"`
 }
 
 func ParseEventInfoJson(body string) (event *EventInfo, err error) {
@@ -244,14 +247,15 @@ func GetBrokersFromMem() []*Broker {
 	// for _, v := range bs {
 	// 	log.Printf("ev: %v", v.Event)
 	// }
-	sort.Slice(bs, func(i, j int) bool {
-		if bs[i].Event == nil || bs[j].Event == nil {
-			log.Printf("got nil event broker, should not happen")
-			return false
-		}
-		// spew.Dump("i-ev: %v,j-ev: %v", bs[i], bs[j])
-		return bs[i].Event.Time.Before(bs[j].Event.Time) // recent first?
-	})
+
+	// sort.Slice(bs, func(i, j int) bool {
+	// 	if bs[i].Event == nil || bs[j].Event == nil {
+	// 		log.Printf("got nil event broker, should not happen")
+	// 		return false
+	// 	}
+	// 	// spew.Dump("i-ev: %v,j-ev: %v", bs[i], bs[j])
+	// 	return bs[i].Event.Time.Before(bs[j].Event.Time) // recent first?
+	// })
 	// spew.Dump("bs", bs)
 	return bs
 }

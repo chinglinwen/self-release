@@ -46,19 +46,19 @@ this error does not helpful?
 // }
 
 // ApplyByKubectl apply k8s yaml.
-func ApplyByKubectl(fileName string) (out string, err error) {
-	s := fmt.Sprintf("kubectl apply -f %v", fileName)
-	cmd := exec.Command("sh", "-c", s)
-	// cmd.Stdin = strings.NewReader(filebody)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		err = fmt.Errorf("apply file: %v err: %v, \ncmd: %v\noutput: %v", fileName, err, s, string(output))
-		return
-	}
-	log.Printf("applied cmd: %v", s)
-	out = string(output)
-	return
-}
+// func ApplyByKubectl(fileName string) (out string, err error) {
+// 	s := fmt.Sprintf("kubectl apply -f %v", fileName)
+// 	cmd := exec.Command("sh", "-c", s)
+// 	// cmd.Stdin = strings.NewReader(filebody)
+// 	output, err := cmd.CombinedOutput()
+// 	if err != nil {
+// 		err = fmt.Errorf("apply file: %v err: %v, \ncmd: %v\noutput: %v", fileName, err, s, string(output))
+// 		return
+// 	}
+// 	log.Printf("applied cmd: %v", s)
+// 	out = string(output)
+// 	return
+// }
 
 func ApplyByKubectlWithString(filebody string) (out string, err error) {
 	s := fmt.Sprintf("kubectl apply -f -")

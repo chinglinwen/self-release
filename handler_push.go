@@ -232,8 +232,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 
 	if !projectpkg.BranchIsTag(branch) {
-		if branch != p.Config.DevBranch { // tag should be release, not build?
-			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.DevBranch, project)
+		if branch != p.Config.S.DevBranch { // tag should be release, not build?
+			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.S.DevBranch, project)
 			// log.Println(a)
 			b.log(err)
 			return
@@ -270,40 +270,40 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		}
 	}
 
-	// if rollback is set, get previous tag as branch
-	if bo.rollback {
-		// e.Branch = b.p.Branch
-		// build already, no need to build again?
-		// TODO: what if no build before? let's just build it?
-		// detect k8s-online.yaml see if exist and what's the tag?
-		bo.gen = true
-		bo.deploy = true
-		b.log("this is a rollback operation")
-	}
+	// // TODO: not support yet, if rollback is set, get previous tag as branch
+	// if bo.rollback {
+	// 	// e.Branch = b.p.Branch
+	// 	// build already, no need to build again?
+	// 	// TODO: what if no build before? let's just build it?
+	// 	// detect k8s-online.yaml see if exist and what's the tag?
+	// 	bo.gen = true
+	// 	bo.deploy = true
+	// 	b.log("this is a rollback operation")
+	// }
 
-	autoenv, err := EventInfoToMap(e)
-	if err != nil {
-		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
-		b.logerr(err)
-		return
-	}
+	// envmap, err := EventInfoToMap(e)
+	// if err != nil {
+	// 	err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
+	// 	b.logerr(err)
+	// 	return
+	// }
 
-	mergenote, envMap, err := p.ReadEnvs(autoenv)
-	if err != nil {
-		// err = fmt.Errorf("readenvs err: %v", err)
-		log.Printf("readenvs err: %v, will ignore\n", err)
-		// envMap = make(map[string]string)
-	}
+	// mergenote, envMap, err := p.ReadEnvs(autoenv)
+	// if err != nil {
+	// 	// err = fmt.Errorf("readenvs err: %v", err)
+	// 	log.Printf("readenvs err: %v, will ignore\n", err)
+	// 	// envMap = make(map[string]string)
+	// }
 	// else {
 	// 	log.Printf("merged envs from config.env to autoenv: \n%v", mergenote)
 	// }
 
 	b.log("<h2>Info</h2>")
 
-	for _, v := range mergenote {
-		log.Print(v)
-		b.log(v)
-	}
+	// for _, v := range mergenote {
+	// 	log.Print(v)
+	// 	b.log(v)
+	// }
 
 	// it should be config from repo or template now
 	// if p.DevBranch == "" {
@@ -325,23 +325,23 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// }
 
 	// do gen if deploy is needed
-	if bo.deploy {
-		bo.gen = true
-	}
+	// if bo.deploy {
+	// 	bo.gen = true
+	// }
 
-	var finalyaml string
-	if bo.gen {
-		b.log("<h2>Generate k8s yaml</h2>")
+	// var finalyaml string
+	// if bo.gen {
+	// 	b.log("<h2>Generate k8s yaml</h2>")
 
-		// almost generate everytime, except config
-		finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(envMap), projectpkg.SetGenEnv(env))
-		if err != nil {
-			err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
-			b.logerr(err)
-			return
-		}
-		b.logf("done generate for project: %v", project)
-	}
+	// 	// almost generate everytime, except config
+	// 	finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(envMap), projectpkg.SetGenEnv(env))
+	// 	if err != nil {
+	// 		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
+	// 		b.logerr(err)
+	// 		return
+	// 	}
+	// 	b.logf("done generate for project: %v", project)
+	// }
 
 	// everytime build, need generate first
 
@@ -380,7 +380,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// }
 		b.log("build is ok.")
 	} else {
-		b.logf("will not build, flag nobuild: %v, buildmode: %v, needbuild: %v, buildimage: %v\n", bo.nobuild, p.Config.BuildMode, needbuild, bo.buildimage)
+		b.logf("will not build, flag nobuild: %v, buildmode: %v, needbuild: %v, buildimage: %v\n", bo.nobuild, p.Config.S.BuildMode, needbuild, bo.buildimage)
 	}
 	// check if inited or force provide, if not, init first
 
@@ -390,17 +390,20 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// is it need re-generate? provided env is change everytime though
 
 	if bo.deploy {
-		ns := autoenv["CI_NAMESPACE"]
-		out, e := apply(ns, finalyaml)
-		if e != nil {
-			err = fmt.Errorf("apply for project: %v, err: %v", project, e)
+		// ns := autoenv["CI_NAMESPACE"]
+		// out, e := apply(ns, finalyaml)
+
+		var out string
+		out, err = applyReleaseFromEvent(e)
+		if err != nil {
+			err = fmt.Errorf("create k8s release for project: %v, branch: %v, err: %v", project, branch, err)
 			b.logerr(err)
 			return
 		}
-		// b.logf("apply for %v ok\n<h2>k8s apply output:</h2>%v\n", project, out)
-		b.log("<h2>k8s apply</h2>")
-		// b.logf("apply for %v ok\n", project)
-		b.logf("k8s apply output:\n")
+		log.Printf("create release ok, out: %v\n", out)
+
+		b.log("<h2>create k8s release</h2>")
+		b.logf("create k8s release output:\n")
 		b.logf("%v\n", out)
 		b.log("<br>")
 	}
@@ -435,21 +438,21 @@ func getproject(project, branch string, rollback, init bool) (p *projectpkg.Proj
 	return
 }
 
-func apply(ns, target string) (out string, err error) {
-	// check ns or create ns first?
-	if ns != "" {
-		_, err = projectpkg.CheckOrCreateNamespace(ns)
-		if err != nil {
-			log.Printf("create namespace %v err: %v\n", ns, err)
-		}
-		log.Printf("check or create namespace ok\n")
-	} else {
-		log.Printf("got empty namespace, will not check or create ns before apply\n")
-	}
+// func apply(ns, target string) (out string, err error) {
+// 	// check ns or create ns first?
+// 	if ns != "" {
+// 		_, err = projectpkg.CheckOrCreateNamespace(ns)
+// 		if err != nil {
+// 			log.Printf("create namespace %v err: %v\n", ns, err)
+// 		}
+// 		log.Printf("check or create namespace ok\n")
+// 	} else {
+// 		log.Printf("got empty namespace, will not check or create ns before apply\n")
+// 	}
 
-	// auto apply by default?
-	return projectpkg.ApplyByKubectl(target)
-}
+// 	// auto apply by default?
+// 	return projectpkg.ApplyByKubectl(target)
+// }
 
 const errParseRefs = "parseRefsError"
 
