@@ -118,9 +118,10 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 		if c.config.S.DevBranch != "" {
 			p.Config.S.DevBranch = c.config.S.DevBranch
 		}
-		if c.config.S.Enable != "" {
-			p.Config.S.Enable = c.config.S.Enable
-		}
+		// if c.config.S.Enable != "" {
+		// 	p.Config.S.Enable = c.config.S.Enable
+		// }
+		p.Config.S.Enable = c.config.S.Enable
 		if c.config.S.Version != "" {
 			p.Config.S.Version = c.config.S.Version
 		}
@@ -131,7 +132,7 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 
 // Setting set project config
 func (p *Project) Setting(c ProjectConfig) (out string, err error) {
-	if c.S.BuildMode == "" && c.S.DevBranch == "" && c.S.ConfigVer == "" && c.S.Enable == "" && c.S.Version == "" {
+	if c.S.BuildMode == "" && c.S.DevBranch == "" && c.S.ConfigVer == "" && c.S.Enable && c.S.Version == "" {
 		err = fmt.Errorf("no config item provided,so nothing to set\n%v",
 			"expected setting [imagebuild=auto|disabled|on][devbranch=develop|test][configver=php.v1]")
 		return
@@ -186,7 +187,7 @@ func (p *Project) Setting(c ProjectConfig) (out string, err error) {
 		}
 		pc.S.DevBranch = c.S.DevBranch
 	}
-	if c.S.Enable != "" {
+	if c.S.Enable {
 		log.Printf("project: %v changed selfrelease from: %v to: %v\n", p.Project, pc.S.Enable, c.S.Enable)
 		if pc.S.Enable == c.S.Enable {
 			out = fmt.Sprintf("%v  selfrelease already set to %v\n", out, c.S.Enable)

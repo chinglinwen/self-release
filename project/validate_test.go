@@ -1,7 +1,6 @@
 package project
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -16,14 +15,14 @@ func TestValidateByKubeval(t *testing.T) {
 	spew.Dump("r", r)
 }
 
-func TestValidateByKubectl(t *testing.T) {
-	out, err := ValidateByKubectl(examplefs, "fs")
-	if err != nil {
-		t.Errorf("validate err: %v\n", err)
-		return
-	}
-	fmt.Println("out:", out)
-}
+// func TestValidateByKubectl(t *testing.T) {
+// 	out, err := ValidateByKubectl(examplefs, "fs")
+// 	if err != nil {
+// 		t.Errorf("validate err: %v\n", err)
+// 		return
+// 	}
+// 	fmt.Println("out:", out)
+// }
 
 var examplefs = `
 # Service

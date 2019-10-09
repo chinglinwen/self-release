@@ -67,6 +67,8 @@ func ReadProjectConfig(project string, options ...projectConfigOption) (config P
 
 // main config write
 func ConfigFileWrite(project string, config ProjectConfig, options ...projectConfigOption) (err error) {
+	log.Println("writted config", config, "for", project)
+	return nil
 	r, err := NewProjectConfigRepo(project, options...)
 	if err != nil {
 		return
@@ -111,10 +113,10 @@ func (v *ProjectConfigRepo) configFileWrite(config ProjectConfig) (updated bool,
 	// if no values, no create
 	if !checkConfigHasValue(config) {
 		updated = false
-		log.Printf("no need to update config file env: %v for %v\n", v.project)
+		log.Printf("no need to update config file for %v\n", v.project)
 		return
 	}
-	log.Printf("start to write config file env: %v for %v\n", v.project)
+	log.Printf("start to write config filefor %v\n", v.project)
 	d, err := yaml.Marshal(&config)
 	if err != nil {
 		err = fmt.Errorf("marshal yaml err: %v", err)

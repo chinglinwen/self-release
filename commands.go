@@ -365,12 +365,17 @@ func setting(dev, args string) (out string, err error) {
 		return
 	}
 
+	var enabled bool
+	if s.selfrelease == "enabled" {
+		enabled = true
+	}
+
 	c := projectpkg.ProjectConfig{
 		S: projectpkg.SelfRelease{
 			BuildMode: s.buildmode,
 			DevBranch: s.devbranch,
 			ConfigVer: s.configver,
-			Enable:    s.selfrelease,
+			Enable:    enabled,
 			Version:   s.version,
 		},
 	}

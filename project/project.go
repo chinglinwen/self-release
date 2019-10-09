@@ -56,7 +56,7 @@ type ProjectConfig struct {
 }
 
 type SelfRelease struct {
-	Enable    string `yaml:"enable" json:"enable,omitempty"`       // flag to enable
+	Enable    bool   `yaml:"enable" json:"enable,omitempty"`       // flag to enable
 	DevBranch string `yaml:"devbranch" json:"devBranch,omitempty"` // default dev branch name
 	BuildMode string `yaml:"buildmode" json:"buildMode,omitempty"` // used to disable auto build [default, auto, disabled]
 	ConfigVer string `yaml:"configver" json:"configVer,omitempty"` // specify different version
@@ -233,7 +233,7 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		err = fmt.Errorf("read config failed, config may not exist, err: %v", err)
 		return
 	}
-	if config.S.Enable != "enabled" && !c.noenablecheck {
+	if !config.S.Enable && !c.noenablecheck {
 		err = fmt.Errorf("project disabled, try do init, if inited, try set selfrelease=enabled")
 		return
 	}
