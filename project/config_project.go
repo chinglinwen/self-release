@@ -67,8 +67,6 @@ func ReadProjectConfig(project string, options ...projectConfigOption) (config P
 
 // main config write
 func ConfigFileWrite(project string, config ProjectConfig, options ...projectConfigOption) (err error) {
-	log.Println("writted config", config, "for", project)
-	return nil
 	r, err := NewProjectConfigRepo(project, options...)
 	if err != nil {
 		return

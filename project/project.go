@@ -56,7 +56,7 @@ type ProjectConfig struct {
 }
 
 type SelfRelease struct {
-	Enable    bool   `yaml:"enable" json:"enable,omitempty"`       // flag to enable
+	Enable    bool   `yaml:"enable" json:"enable"`                 // flag to enable
 	DevBranch string `yaml:"devbranch" json:"devBranch,omitempty"` // default dev branch name
 	BuildMode string `yaml:"buildmode" json:"buildMode,omitempty"` // used to disable auto build [default, auto, disabled]
 	ConfigVer string `yaml:"configver" json:"configVer,omitempty"` // specify different version
