@@ -16,12 +16,12 @@ const (
 )
 
 func applyYAMLHandler(c echo.Context) (err error) {
-	return c.JSONPretty(http.StatusOK, EData(0, "apply ok", "ok", nil), " ")
-	// return applyOrDelete(c, applyOp)
+	// return c.JSONPretty(http.StatusOK, EData(0, "apply ok", "ok", nil), " ")
+	return applyOrDelete(c, applyOp)
 }
 func deleteYAMLHandler(c echo.Context) (err error) {
-	return c.JSONPretty(http.StatusOK, EData(0, "delete ok", "ok", nil), " ")
-	// return applyOrDelete(c, deleteOp)
+	// return c.JSONPretty(http.StatusOK, EData(0, "delete ok", "ok", nil), " ")
+	return applyOrDelete(c, deleteOp)
 }
 
 func applyOrDelete(c echo.Context, op int) (err error) {
@@ -56,8 +56,9 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 		c.JSONPretty(http.StatusOK, E(3, err.Error(), "failed"), " ")
 		return
 	}
-	log.Println("got apply:", project, env, envmap)
-	return c.JSONPretty(http.StatusOK, EData(0, "apply ok", "ok", nil), " ")
+	log.Printf("got apply: %v, env: %v\n", project, env)
+	log.Printf("envmap: %v\n", envmap)
+	// return c.JSONPretty(http.StatusOK, EData(0, "apply ok", "ok", nil), " ")
 
 	var out string
 	if op == applyOp {

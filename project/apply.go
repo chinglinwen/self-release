@@ -60,30 +60,30 @@ this error does not helpful?
 // 	return
 // }
 
-func ApplyByKubectlWithString(filebody string) (out string, err error) {
+func ApplyByKubectlWithString(body string) (out string, err error) {
 	s := fmt.Sprintf("kubectl apply -f -")
 	cmd := exec.Command("sh", "-c", s)
-	cmd.Stdin = strings.NewReader(filebody)
+	cmd.Stdin = strings.NewReader(body)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		err = fmt.Errorf("apply filebody err: %v, \ncmd: %v\noutput: %v", err, s, string(output))
+		err = fmt.Errorf("apply body err: %v, \ncmd: %v\noutput: %v", err, s, string(output))
 		return
 	}
-	log.Printf("applied cmd: %v", s)
+	log.Printf("kubectl apply: %v\n", body)
 	out = string(output)
 	return
 }
 
-func DeleteByKubectlWithString(filebody string) (out string, err error) {
+func DeleteByKubectlWithString(body string) (out string, err error) {
 	s := fmt.Sprintf("kubectl delete -f -")
 	cmd := exec.Command("sh", "-c", s)
-	cmd.Stdin = strings.NewReader(filebody)
+	cmd.Stdin = strings.NewReader(body)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		err = fmt.Errorf("apply filebody err: %v, \ncmd: %v\noutput: %v", err, s, string(output))
+		err = fmt.Errorf("apply body err: %v, \ncmd: %v\noutput: %v", err, s, string(output))
 		return
 	}
-	log.Printf("applied cmd: %v", s)
+	log.Printf("kubectl delete: %v\n", body)
 	out = string(output)
 	return
 }

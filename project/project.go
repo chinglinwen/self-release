@@ -71,10 +71,10 @@ func (c ProjectConfig) String() string {
 // type buildmode string
 
 const (
-	buildmodeOn       = "on"
-	buildmodeAuto     = "auto"
-	buildmodeDisabled = "disabled"
-	buildmodeManual   = "manual" // for manual build
+	buildmodeOn   = "on"
+	buildmodeAuto = "auto"
+	// buildmodeDisabled = "disabled" // duplicate with manual?
+	buildmodeManual = "manual" // for manual build
 )
 
 func (p *Project) NeedBuild() bool {
@@ -84,8 +84,8 @@ func (p *Project) NeedBuild() bool {
 			return true
 		}
 		return !p.ImageIsExist()
-	case buildmodeDisabled:
-		return false
+	// case buildmodeDisabled:
+	// 	return false
 	case buildmodeManual:
 		return false
 	default:
@@ -94,6 +94,10 @@ func (p *Project) NeedBuild() bool {
 }
 func (p *Project) IsManual() bool {
 	return p.Config.S.BuildMode == buildmodeManual
+}
+
+func (p *Project) IsEnabled() bool {
+	return p.Config.S.Enable
 }
 
 // func CheckImageExist() (exist bool, err error) {
@@ -234,7 +238,7 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		return
 	}
 	if !config.S.Enable && !c.noenablecheck {
-		err = fmt.Errorf("project disabled, try do init, if inited, try set selfrelease=enabled")
+		err = fmt.Errorf("project disabled, try set selfrelease=enabled")
 		return
 	}
 	// two way to provide config

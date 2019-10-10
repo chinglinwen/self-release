@@ -15,6 +15,15 @@ func TestListProject(t *testing.T) {
 	pretty("ps", ps)
 }
 
+func TestListRepoTags(t *testing.T) {
+	ps, err := ListRepoTags("robot/project-example")
+	if err != nil {
+		t.Error("ListRepoTags err", err)
+		return
+	}
+	pretty("ps", ps)
+}
+
 // create project err request failed, status: 401 Unauthorized
 func TestCreateProject(t *testing.T) {
 	err := CreateProject("aaa1")

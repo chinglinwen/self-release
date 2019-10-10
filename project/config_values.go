@@ -166,6 +166,22 @@ func (v *ValuesRepo) ValuesFileWriteAll(all ValuesAll) (err error) {
 	return v.configrepo.CommitAndPush(commit)
 }
 
+func checkHasConfig(v ValuesConfig) bool {
+	if v.NodePort != 0 {
+		return true
+	}
+	if v.Domain != "" {
+		return true
+	}
+	if v.Deploy.Replicas != 0 {
+		return true
+	}
+	if v.Monitor.Address != "" {
+		return true
+	}
+	return false
+}
+
 func checkHasValue(v Values) bool {
 	if len(v.Codis) != 0 {
 		return true
@@ -179,7 +195,7 @@ func checkHasValue(v Values) bool {
 	if len(v.Nfs) != 0 {
 		return true
 	}
-	return false
+	return checkHasConfig(v.Config)
 }
 func (v *ValuesRepo) ValuesFileWrite(env string, value Values) (updated bool, err error) {
 	// if no values, no create

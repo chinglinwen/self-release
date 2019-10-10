@@ -26,11 +26,11 @@ func projectImageCheckHandler(c echo.Context) (err error) {
 	ns := c.Param("ns")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
 	tag := c.FormValue("tag")
-	log.Printf("check image tag for project: %v\n ", project)
+	log.Printf("check image tag for project: %v:%v\n ", project, tag)
 
 	exist, err := projectpkg.ImageIsExist(project, tag)
 	if err != nil {
-		err = fmt.Errorf("check image tag for project: %v, err: %v", project, err)
+		err = fmt.Errorf("check image tag for project: %v:%v, err: %v", project, tag, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
 		return

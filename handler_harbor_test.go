@@ -105,8 +105,43 @@ var badbody1 = `
 	]
  }`
 
+var testbody = `
+ {
+	"events": [
+	   {
+		"id": "32dbedd7-ac9c-458d-bc79-e936385e9547",
+		"timestamp": "2019-07-15T14:27:44.932143541Z",
+		"action": "push",
+		"target": {
+		 "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+		 "size": 524,
+		 "digest": "sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a",
+		 "length": 524,
+		 "repository": "robot/project-example",
+		 "url": "https://harbor.haodai.net/v2/ops/hello-world/manifests/sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a",
+		 "tag": "v1"
+		},
+		"request": {
+		 "id": "64a71f58-1d56-4dba-8f64-7db90c781899",
+		 "addr": "192.168.10.234",
+		 "host": "harbor.haodai.net",
+		 "method": "PUT",
+		 "useragent": "docker/18.06.1-ce go/go1.10.3 git-commit/e68fc7a kernel/3.10.0-957.el7.x86_64 os/linux arch/amd64 UpstreamClient(Docker-Client/18.06.1-ce (linux)"
+		},
+		"actor": {
+		 "name": "wenzhenglin"
+		},
+		"source": {
+		 "addr": "539a26a4b289:5000",
+		 "instanceID": "b0230325-bafa-4ed2-8b85-97a4c5b259bb"
+		}
+	   }
+	]
+  }
+  `
+
 func TestUnmarshalHarborEvent(t *testing.T) {
-	e, err := unmarshalHarborEvent(badbody1)
+	e, err := unmarshalHarborEvent(testbody)
 	if err != nil {
 		t.Error("unmarshal body err", err)
 		return

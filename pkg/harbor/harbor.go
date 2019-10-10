@@ -28,9 +28,10 @@ func ListProjects() (ps []harbor.Project, err error) {
 
 // repo is kind like "flow_center/8-yun"
 func ListRepoTags(repo string) (tags []harbor.TagResp, err error) {
+	log.Printf("list tags for [%s]\n", repo)
 	tags, _, e := defaultClient.Repositories.ListRepositoryTags(repo)
 	if len(e) != 0 {
-		err = fmt.Errorf("ListRepositoryTags err: %v", e)
+		err = fmt.Errorf("ListRepositoryTags got %v err: %v", len(e), e)
 		return
 	}
 	return

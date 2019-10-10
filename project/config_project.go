@@ -47,12 +47,12 @@ func NewProjectConfigRepo(project string, options ...projectConfigOption) (v *Pr
 		}
 		v.configrepo = r
 	}
-	if !v.configrepo.IsExist(project) {
-		// should we create it? only if it's write?
-		// let create for the init?
-		err = fmt.Errorf("project does not exist in config-repo")
-		return
-	}
+	// if !v.configrepo.IsExist(project) {
+	// 	// should we create it? only if it's write?
+	// 	// let create for the init?
+	// 	err = fmt.Errorf("project does not exist in config-repo")
+	// 	return
+	// }
 	return
 }
 

@@ -97,6 +97,7 @@ func (b *Buildsvc) Build(project, branch, env string) (out chan string, err erro
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	stream, err := b.client.Build(ctx, r)
 	if err != nil {
+		cancel()
 		err = fmt.Errorf("rpc call failed: %v", err)
 		return
 	}

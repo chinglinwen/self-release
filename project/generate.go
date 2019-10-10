@@ -434,7 +434,6 @@ func generateByMap(templateBody string, envMap map[string]string) (string, error
 		} else {
 			return v
 		}
-		return ""
 	})
 }
 

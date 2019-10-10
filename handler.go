@@ -250,7 +250,6 @@ func rollbackAPIHandler(c echo.Context) (err error) {
 
 	log.Println("event", e)
 	log.Println("option", bo)
-	return
 
 	b := NewBuilder(project, branch)
 	b.log("starting logs")

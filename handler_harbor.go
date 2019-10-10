@@ -32,11 +32,11 @@ func HarborToDeploy(i *HarborEventInfo) (err error) {
 		err = fmt.Errorf("project: %v:%v, new err: %v", project, tag, err)
 		return
 	}
-	if !p.IsManual() {
-		log.Printf("ignore build for project: %v:%v, buildmode is not manual\n", project, tag)
+	if !p.IsEnabled() {
+		log.Printf("ignore build for project: %v:%v, project not enabled\n", project, tag)
 		return
 	}
-	log.Printf("start harbor build for project: %v:%v\n", project, tag)
+	log.Printf("start deploy from harbor for project: %v:%v\n", project, tag)
 
 	// bo := &buildOption{
 	// 	gen: true,
@@ -63,7 +63,7 @@ func HarborToDeploy(i *HarborEventInfo) (err error) {
 		return
 	}
 
-	log.Printf("create release ok, out: %v\n", out)
+	log.Printf("created release ok, out: %v\n", out)
 
 	// b := NewBuilder(project, branch)
 	// b.log("starting logs trigger by harbor image push, buildmode: manual")
@@ -152,7 +152,11 @@ func readbody(r *http.Request) (body string, err error) {
 }
 
 func unmarshalHarborEvent(body string) (e *HarborEvent, err error) {
-	err = json.Unmarshal([]byte(body), &e)
+	e = &HarborEvent{}
+	err = json.Unmarshal([]byte(body), e)
+	if err != nil {
+		return
+	}
 	if len(e.Events) == 0 {
 		err = fmt.Errorf("no event found")
 		return
