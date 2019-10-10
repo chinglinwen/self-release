@@ -83,7 +83,7 @@ func DeleteByKubectlWithString(body string) (out string, err error) {
 		err = fmt.Errorf("apply body err: %v, \ncmd: %v\noutput: %v", err, s, string(output))
 		return
 	}
-	log.Printf("kubectl delete: %v\n", body)
+	// log.Printf("kubectl deleted\n")
 	out = string(output)
 	return
 }

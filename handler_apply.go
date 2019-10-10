@@ -56,7 +56,6 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 		c.JSONPretty(http.StatusOK, E(3, err.Error(), "failed"), " ")
 		return
 	}
-	log.Printf("got apply: %v, env: %v\n", project, env)
 	log.Printf("envinfo: \n")
 	for k, v := range envmap {
 		log.Printf("%v: %v\n", k, v)
@@ -73,6 +72,7 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 			c.JSONPretty(http.StatusOK, E(4, err.Error(), "failed"), " ")
 			return
 		}
+		log.Printf("apply project: %v, env: %v ok\n", project, env)
 		return c.JSONPretty(http.StatusOK, EData(0, "apply ok", "ok", out), " ")
 	}
 
@@ -84,5 +84,6 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 		c.JSONPretty(http.StatusOK, E(4, err.Error(), "failed"), " ")
 		return
 	}
+	log.Printf("delete project: %v, env: %v ok\n", project, env)
 	return c.JSONPretty(http.StatusOK, EData(0, "delete ok", "ok", out), " ")
 }
