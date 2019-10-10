@@ -145,7 +145,11 @@ func BranchIsPre(branch string) bool {
 // v1.0.0 is online, only includes number and dot, prefix by v, suffix by number
 func BranchIsOnline(branch string) bool {
 	// re := regexp.MustCompile(`[^v][[:alpha:]]+`)  // not branch is a tag
-	re := regexp.MustCompile(`^v[0-9|.]+[0-9]$`) // prefix with v is a tag
+	// re := regexp.MustCompile(`^v[0-9|.]+[0-9]$`) // prefix with v is a tag
+	// re := regexp.MustCompile(`^v(\d+\.)(\d+\.)(\d)$`) // prefix with v is a tag, no one dot
+
+	// prefix with v is a tag, v1,v1.0,v1.0.0 are onlines
+	re := regexp.MustCompile(`^v(\d+)?(\.)?(\d+\.)?(\d)?$`)
 	return re.Match([]byte(branch))
 }
 

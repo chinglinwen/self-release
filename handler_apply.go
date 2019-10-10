@@ -57,7 +57,10 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 		return
 	}
 	log.Printf("got apply: %v, env: %v\n", project, env)
-	log.Printf("envmap: %v\n", envmap)
+	log.Printf("envinfo: \n")
+	for k, v := range envmap {
+		log.Printf("%v: %v\n", k, v)
+	}
 	// return c.JSONPretty(http.StatusOK, EData(0, "apply ok", "ok", nil), " ")
 
 	var out string

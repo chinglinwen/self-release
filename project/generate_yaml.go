@@ -32,7 +32,7 @@ func HelmGenPrint(project, env string) (out string, err error) {
 
 // validate with example
 func HelmGenPrintFinal(project, env string, envMap map[string]string) (final string, err error) {
-	final, err = dogenFinal(project, env, envMap)
+	_, final, err = dogenFinal(project, env, envMap)
 	if err != nil {
 		return
 	}
@@ -46,15 +46,15 @@ func HelmGenPrintFinal(project, env string, envMap map[string]string) (final str
 
 var exampleEnvMap = getexampleEnvMap()
 
-func HelmGenPrintValidateYaml(project, env string) (err error) {
+func HelmGenPrintValidateYaml(project, env string) (out string, err error) {
 	exampleEnvMap["CI_TIME"] = time.Now().Format(TimeLayout)
-	final, err := dogenFinal(project, env, exampleEnvMap)
+	out, final, err := dogenFinal(project, env, exampleEnvMap)
 	if err != nil {
 		return
 	}
-	out, err := ValidateByKubectlWithString(final)
+	o, err := ValidateByKubectlWithString(final)
 	if err != nil {
-		err = fmt.Errorf("validate yaml err: %v\noutput: %v\nfinal: %v", err, out, final)
+		err = fmt.Errorf("validate yaml err: %v\noutput: %v\nfinal: %v", err, o, final)
 		return
 	}
 	return
@@ -79,13 +79,13 @@ func getexampleEnvMap() (autoenv map[string]string) {
 	return
 }
 
-func dogenFinal(project, env string, envMap map[string]string) (final string, err error) {
-	t, err := dogen(project, env, GENSHPRINT)
+func dogenFinal(project, env string, envMap map[string]string) (out, final string, err error) {
+	out, err = dogen(project, env, GENSHPRINT)
 	if err != nil {
 		err = fmt.Errorf("get yaml err: %v", err)
 		return
 	}
-	final, err = generateByMap(t, envMap)
+	final, err = generateByMap(out, envMap)
 	if err != nil {
 		err = fmt.Errorf("generate final with map err: %v", err)
 		return

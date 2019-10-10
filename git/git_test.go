@@ -43,6 +43,14 @@ func TestBranchIsOnline(t *testing.T) {
 		t.Error("v1.0.0 should be online")
 		return
 	}
+	if !BranchIsOnline("v1.0") {
+		t.Error("v1.0 should be online")
+		return
+	}
+	if !BranchIsOnline("v1") {
+		t.Error("v1 should be online")
+		return
+	}
 	if BranchIsOnline("v1.0.0.") {
 		t.Error("v1.0.0. should be online")
 		return

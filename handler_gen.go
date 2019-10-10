@@ -15,7 +15,7 @@ func genYAMLHandler(c echo.Context) (err error) {
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
 	log.Printf("gen yaml for project: %v, env: %v\n ", project, env)
 
-	y, err := projectpkg.HelmGenPrint(project, env)
+	y, err := projectpkg.HelmGenPrintValidateYaml(project, env)
 	if err != nil {
 		err = fmt.Errorf("gen yaml for project: %v, err: %v", project, err)
 		log.Println(err)
