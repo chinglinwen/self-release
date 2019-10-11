@@ -208,10 +208,11 @@ func projectListHandler(c echo.Context) (err error) {
 	var ps []Project
 	for _, v := range pss {
 		p := Project{
-			ID:    v.ID,
-			Name:  v.PathWithNamespace,
-			Git:   v.WebURL,
-			State: false,
+			ID:   v.ID,
+			Name: v.PathWithNamespace,
+			Git:  v.WebURL,
+			// to know all project status takes too long?
+			// State: false,  // no easy way to get ?
 		}
 		ps = append(ps, p)
 	}
