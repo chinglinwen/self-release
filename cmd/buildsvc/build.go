@@ -31,6 +31,7 @@ func buildAPIHandler(c echo.Context) (err error) {
 
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 	if err != nil {
+		log.Printf("NewProject err: %v\n", err)
 		return
 	}
 	workdir, err := p.GetWorkDir()

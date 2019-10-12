@@ -9,6 +9,7 @@ message Request {
   string  project =1;
   string  branch =2;
   string  env =3;
+  string  commitid =4;
 }
 
 message Response {

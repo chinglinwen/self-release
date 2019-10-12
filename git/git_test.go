@@ -143,7 +143,7 @@ func TestNew(t *testing.T) {
 	var repo *Repo
 	var err error
 	// repo, err = New("wenzhenglin/test", SetNoPull())
-	repo, err = New("wenzhenglin/test", SetBranch("develop"))
+	repo, err = New("wenzhenglin/config-deploy", SetBranch("develop"))
 	if err != nil {
 		t.Error("new err", err)
 		return

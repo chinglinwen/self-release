@@ -3,11 +3,12 @@ package project
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 	"wen/self-release/git"
 	"wen/self-release/pkg/harbor"
+
+	"github.com/chinglinwen/log"
 )
 
 const (
@@ -205,6 +206,8 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		err = fmt.Errorf("invalid format for project, should be \"group-name/repo-name\"")
 		return
 	}
+	log.Debug.Printf("try create project %v\n", project)
+
 	// not inited repo, just return
 	configrepo, err := GetConfigRepo()
 	if err != nil {

@@ -66,23 +66,24 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 	// time.Sleep(10 * time.Second)
 	// return
 
-	project, branch, env := r.Project, r.Branch, r.Env
+	project, branch, env, commitid := r.Project, r.Branch, r.Env, r.Commitid
 
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 	if err != nil {
+		log.Printf("NewProject err: %v\n", err)
 		return
 	}
 	workdir, err := p.GetWorkDir()
 	if err != nil {
 		return
 	}
-	log.Printf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
+	log.Printf("start building image for project: %v, branch: %v, env: %v, commitid: %v\n", project, branch, env, commitid)
 
 	// var wg sync.WaitGroup
 
 	out := make(chan string, 100)
 	// defer close(out)
-	err = buildpkg.BuildStreamOutput(workdir, project, branch, env, out)
+	err = buildpkg.BuildStreamOutput(workdir, project, branch, env, commitid, out)
 	// e := p.Build(project, branch, env, out)
 	if err != nil {
 		err = fmt.Errorf("build err: %v", err)

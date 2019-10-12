@@ -6,11 +6,12 @@ import (
 	// "gopkg.in/src-d/go-billy.v4"
 
 	"fmt"
-	"log"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/chinglinwen/log"
 
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -46,14 +47,17 @@ func Init(gitlabURL, user, pass, accessToken, repoDir string) {
 	gitlabAccessToken = accessToken
 	defaultRepoDir = repoDir
 
-	// cache admin projects at start
-	go func() {
-		ps, err := GetProjects(gitlabAccessToken, "yes")
-		if err != nil {
-			log.Fatal("fetch admin projects err", err)
-		}
-		log.Printf("cached admin projects at start, got %v projects\n", len(ps))
-	}()
+	if accessToken != "" {
+		// cache admin projects at start
+		go func() {
+			ps, err := GetProjects(gitlabAccessToken, "yes")
+			if err != nil {
+				log.Fatal("fetch admin projects err", err)
+			}
+			log.Printf("cached admin projects at start, got %v projects\n", len(ps))
+		}()
+	}
+
 }
 
 // func checkflag() {
@@ -190,6 +194,7 @@ func SetForce() func(*Repo) {
 }
 
 func newrepo(project string, options ...func(*Repo)) (*Repo, error) {
+	log.Debug.Println("do newrepo: ", project)
 	if defaultUser == "" {
 		return nil, fmt.Errorf("user empty")
 	}
@@ -209,6 +214,7 @@ func newrepo(project string, options ...func(*Repo)) (*Repo, error) {
 	for _, op := range options {
 		op(repo)
 	}
+	log.Debug.Println("do newrepo options ok: ", project)
 
 	if repo.Branch == "" && repo.Tag == "" {
 		SetBranch("master")(repo)
@@ -216,6 +222,7 @@ func newrepo(project string, options ...func(*Repo)) (*Repo, error) {
 		// repo.refs = fmt.Sprintf("refs/remotes/origin/%v", repo.Branch)
 		// repo.localrefs = fmt.Sprintf("refs/heads/%v", repo.Branch)
 	}
+	log.Debug.Println("do newrepo ok: ", project)
 	return repo, nil
 }
 
@@ -229,6 +236,7 @@ func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
 		return nil, err
 	}
 
+	log.Debug.Println("try clone: ", project)
 	err = repo.CLone()
 	if err != nil {
 		err = fmt.Errorf("clone err: %v", err)
@@ -274,11 +282,12 @@ func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
 }
 
 func NewWithPull(project string, options ...func(*Repo)) (repo *Repo, err error) {
-	log.Println("newwith pull", project)
+	log.Debug.Println("try newrepo: ", project)
 	repo, err = New(project, options...)
 	if err != nil {
 		return nil, err
 	}
+	log.Debug.Println("try pull: ", project)
 	err = repo.Pull()
 	return
 }
@@ -340,6 +349,8 @@ func (repo *Repo) GetWorkDir() string {
 }
 
 func (repo *Repo) CLone() (err error) {
+	log.Debug.Printf("do clone: url: %v\n", repo.URL)
+
 	var r *git.Repository
 	r, err = git.PlainOpen(repo.Local)
 	if err != nil {

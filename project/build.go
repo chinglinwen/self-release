@@ -10,9 +10,9 @@ import (
 )
 
 // Build only build develop branch?
-func (p *Project) Build(project, tag, env string) (out chan string, err error) {
-	pp.Printf("try build for project: %v, tag: %v, env: %v\n", project, tag, env)
-	return
+func (p *Project) Build(project, tag, env, commitid string) (out chan string, err error) {
+	pp.Printf("try build for project: %v, tag: %v, env: %v, commitid: %v\n", project, tag, env, commitid)
+
 	if git.BranchIsTag(tag) {
 		_, err = git.CheckTagExist(project, tag)
 		if err != nil {
@@ -43,7 +43,7 @@ func (p *Project) Build(project, tag, env string) (out chan string, err error) {
 		err = fmt.Errorf("try create harbor project err: %v", err)
 		return
 	}
-	return Build(project, tag, env)
+	return Build(project, tag, env, commitid)
 }
 
 func (p *Project) CreateHarborProjectIfNotExist() (err error) {

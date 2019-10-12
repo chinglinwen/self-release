@@ -26,7 +26,7 @@ func TestListRepoTags(t *testing.T) {
 
 // create project err request failed, status: 401 Unauthorized
 func TestCreateProject(t *testing.T) {
-	err := CreateProject("aaa1")
+	err := CreateProject("robot")
 	if err != nil {
 		t.Error("create project err", err)
 		return
@@ -42,7 +42,7 @@ func TestCreateProjectIfNotExist(t *testing.T) {
 	// }
 	// log.Println("created", created)
 
-	err = CreateProjectIfNotExist("aaa1")
+	err = CreateProjectIfNotExist("robot")
 	if err != nil {
 		t.Error("CreateProjectIfNotExist project err", err)
 		return

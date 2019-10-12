@@ -82,15 +82,17 @@ func GetEnvFromBranchOrCommitID(project, branch string) string {
 		if git.BranchIsPre(branch) {
 			return PRE
 		}
-	} else {
-		// check if branch is commitid
+	}
+	// check if branch is commitid
+	if len(branch) == 8 {
 		o, p, err := git.GetLastTagCommitID(project)
 		if err == nil {
-			if o == branch {
-				return ONLINE
-			}
-			if p == branch {
+			// pre comes out first, online later
+			if p != "" && p == branch {
 				return PRE
+			}
+			if o != "" && o == branch {
+				return ONLINE
 			}
 		}
 	}

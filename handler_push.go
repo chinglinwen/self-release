@@ -175,6 +175,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	project := e.Project
 	branch := e.Branch
 	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch)
+	commitid := e.CommitID
 
 	// check permission
 	err = git.CheckPerm(project, e.UserName, env)
@@ -193,17 +194,17 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	log.Debug.Printf(tip)
 
-	notifytext := fmt.Sprintf("%vlog url: http://release.haodai.net/logs?key=%v", tip, b.Key)
+	notifytext := fmt.Sprintf("%vlog url: %v/logs?key=%v", tip, *selfURL, b.Key)
 	b.notify(notifytext, e.UserName)
 
 	if bo == nil {
 		bo = &buildOption{
-			gen: true,
+			// gen: true,
 			// build:  true,
 			deploy: true,
 		}
 	} else {
-		if bo.gen == false && bo.deploy == false && bo.rollback == false {
+		if bo.deploy == false {
 			err = fmt.Errorf("nothing to do, gen,build,deploy and rollback are false for %q, err: %v", e.Project, err)
 			b.logerr(err)
 			return
@@ -367,12 +368,13 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	b.log("<h2>Docker build</h2>")
 
+	// is devbranch, or tag not exist yet
 	needbuild := p.NeedBuild()
 	if ((!bo.nobuild) && needbuild) || bo.buildimage {
 		// out := make(chan string, 10)
 
 		b.logf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
-		out, e := p.Build(project, branch, env)
+		out, e := p.Build(project, branch, env, commitid)
 		// e := p.Build(project, branch, env, out)
 		if e != nil {
 			err = fmt.Errorf("build err: %v", e)

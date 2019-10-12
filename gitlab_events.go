@@ -44,11 +44,11 @@ func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	e.UserEmail = event.UserEmail
 
 	// use time and commit-id together
-	e.CommitID = time.Now().Format(IDTimeLayout)
+	// e.CommitID = time.Now().Format(IDTimeLayout)
 	n := len(event.Commits)
 	if n > 0 {
 		if len(event.Commits[n-1].ID) >= 8 {
-			e.CommitID += ".id:" + event.Commits[n-1].ID[:8]
+			e.CommitID = event.Commits[n-1].ID[:8]
 		}
 		e.Message = fmt.Sprintf("[gitlab tag] %v", event.Commits[0].Message)
 	}
@@ -72,12 +72,13 @@ func (event *TagPushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	e.UserEmail = event.UserEmail
 
 	// use time and commit-id together
-	e.CommitID = time.Now().Format(IDTimeLayout)
+	// e.CommitID = time.Now().Format(IDTimeLayout)
 	n := len(event.Commits)
 	if n > 0 {
 		if len(event.Commits[n-1].ID) >= 8 {
-			e.CommitID += ".id:" + event.Commits[n-1].ID[:8]
+			e.CommitID = event.Commits[n-1].ID[:8]
 		}
+		e.Message = fmt.Sprintf("[gitlab tag] %v", event.Commits[0].Message)
 	}
 
 	e.Message = fmt.Sprintf("[gitlab tag] %v", event.Message) // release message

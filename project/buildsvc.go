@@ -84,13 +84,14 @@ func NewBuildSVC(addr string) *Buildsvc {
 	return &Buildsvc{client: client}
 }
 
-func (b *Buildsvc) Build(project, branch, env string) (out chan string, err error) {
+func (b *Buildsvc) Build(project, branch, env, commitid string) (out chan string, err error) {
 	out = make(chan string, 100) // increase to 500, will cause later deepcopy panic
 
 	r := &pb.Request{
-		Project: project,
-		Branch:  branch,
-		Env:     env,
+		Project:  project,
+		Branch:   branch,
+		Env:      env,
+		Commitid: commitid,
 	}
 
 	log.Printf("reqesting... %v", r)
@@ -122,11 +123,11 @@ func (b *Buildsvc) Build(project, branch, env string) (out chan string, err erro
 	return
 }
 
-func Build(project, branch, env string) (out chan string, err error) {
+func Build(project, branch, env, commitid string) (out chan string, err error) {
 	if defaultBuildsvc == nil {
 		err = fmt.Errorf("buildsvc not inited")
 		return
 	}
 	log.Printf("using default buildsvc for %v\n", project)
-	return defaultBuildsvc.Build(project, branch, env)
+	return defaultBuildsvc.Build(project, branch, env, commitid)
 }

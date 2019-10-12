@@ -27,12 +27,12 @@ func Build(dir, project, tag, env string) (out string, err error) {
 	return
 }
 
-func BuildStreamOutput(dir, project, tag, env string, out chan string) (err error) {
+func BuildStreamOutput(dir, project, tag, env, commitid string, out chan string) (err error) {
 	// out = make(chan string, 100)
 	// wg.Add(1)
 
-	image := GetImage(project, tag)
-	log.Printf("building for image: %v, env: %v\n", image, env)
+	image := GetImage(project, commitid)
+	log.Printf("building for image: %v, tag: %v, env: %v\n", image, tag, env)
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v %v", image, env))
 	cmd.Dir = dir
 

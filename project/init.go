@@ -20,17 +20,17 @@ type base struct {
 var defaultBase *base
 
 // pkg need init default base
-func Setting(harborkey, addr, configrepo string) {
+func Setting(harborkey, buildsvcAddr, configrepo string) {
 	defaultBase = &base{
 		harborkey:    harborkey,
-		buildsvcAddr: addr,
+		buildsvcAddr: buildsvcAddr,
 		configRepo:   configrepo,
 	}
-	defaultBuildsvc = NewBuildSVC(addr)
+	defaultBuildsvc = NewBuildSVC(buildsvcAddr)
 	log.Println("inited project base with:", defaultBase)
 }
 func (b *base) String() string {
-	return fmt.Sprintf("\nharborkey: %v\nbuildsvcAddr:%v\nconfigRepo:%v\n", b.harborkey, b.buildsvcAddr, b.configRepo)
+	return fmt.Sprintf("\n\nharborkey: %v\nbuildsvcAddr:%v\nconfigRepo:%v\n\n", b.harborkey, b.buildsvcAddr, b.configRepo)
 }
 
 // var configrepo *git.Repo
@@ -58,6 +58,8 @@ func GetConfigRepo() (configrepo *git.Repo, err error) {
 		err = fmt.Errorf("base not initialized")
 		return
 	}
+	log.Debug.Printf("try get configrepo\n")
+
 	// return git.NewWithPull(defaultBase.configRepo, git.SetBranch("templateconfig")) //, git.SetNoPull())
 	return git.NewWithPull(defaultBase.configRepo) //, git.SetNoPull())
 }
