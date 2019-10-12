@@ -78,19 +78,25 @@ const (
 	buildmodeManual = "manual" // for manual build
 )
 
-func (p *Project) NeedBuild() bool {
+// exist pass info to user, why no need
+func (p *Project) NeedBuild(commitid string) (exist, build bool) {
 	switch p.Config.S.BuildMode {
 	case buildmodeAuto:
 		if p.Branch == p.Config.S.DevBranch {
-			return true
+			build = true
+			return
 		}
-		return !p.ImageIsExist()
+		exist = p.ImageIsExist(commitid)
+		build = !exist
+		return
 	// case buildmodeDisabled:
 	// 	return false
 	case buildmodeManual:
-		return false
+		build = false
+		return
 	default:
-		return true
+		build = true
+		return
 	}
 }
 func (p *Project) IsManual() bool {
@@ -110,8 +116,8 @@ func (p *Project) IsEnabled() bool {
 // }
 
 // so, let's not pass extra commitid, but let branch be commitid
-func (p *Project) ImageIsExist() bool {
-	exist, err := harbor.RepoTagIsExist(p.Project, p.Branch)
+func (p *Project) ImageIsExist(commitid string) bool {
+	exist, err := ImageIsExist(p.Project, commitid)
 	if err != nil {
 		log.Printf("check if image: %v:%v exist err: %v", p.Project, p.Branch, err)
 		return false
@@ -120,7 +126,10 @@ func (p *Project) ImageIsExist() bool {
 }
 
 func ImageIsExist(project, tag string) (exist bool, err error) {
-	return harbor.RepoTagIsExist(project, tag)
+	log.Debug.Printf("check if image exist for: %v, tag: %v\n", project, tag)
+	exist, err = harbor.RepoTagIsExist(project, tag)
+	log.Debug.Printf("check if image exist for: %v, tag: %v, exist: %v\n", project, tag, exist)
+	return
 }
 
 func BranchIsTag(branch string) bool {

@@ -1,6 +1,7 @@
 package harbor
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -125,7 +126,7 @@ func TestRepoTagIsExist(t *testing.T) {
 		repo, tag string
 		exist     bool
 	}{
-		{repo: "wenzhenglin/project-example", tag: "v1.0.3-pre5.4dev", exist: true},
+		{repo: "robot/project-example", tag: "a3a9cbff", exist: true},
 		{repo: "wenzhenglin/project-example", tag: "v1.0.3-pre5.4dev1", exist: false},
 	}
 	for _, v := range cases {
@@ -135,6 +136,15 @@ func TestRepoTagIsExist(t *testing.T) {
 			return
 		}
 		if exist != v.exist {
+			tags, err := ListRepoTags(v.repo)
+			if err != nil {
+				t.Error("ListRepoTags err", err)
+				return
+			}
+			// pretty("tags", tags)
+			for _, v := range tags {
+				fmt.Printf("tag: %v\n", v.Name)
+			}
 			t.Errorf("%v:%v it should exist: %v, got: %v", v.repo, v.tag, v.exist, exist)
 			return
 		}

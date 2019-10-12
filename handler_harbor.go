@@ -57,10 +57,11 @@ func HarborToDeploy(i *HarborEventInfo) (err error) {
 	}
 
 	// at least update the time to togger the change
-	out, err := applyReleaseFromEvent(e)
+	yamlbody, out, err := applyReleaseFromEvent(e)
 	if err != nil {
-		err = fmt.Errorf("create k8s release for project: %v, branch: %v, err: %v", project, tag, err)
+		err = fmt.Errorf("create k8s project resource for project: %v, branch: %v, err: %v", project, tag, err)
 		log.Println(err)
+		log.Printf("yamlbody: %v\n", yamlbody)
 		return
 	}
 
@@ -78,16 +79,16 @@ func HarborToDeploy(i *HarborEventInfo) (err error) {
 	return
 }
 
-func applyReleaseFromEvent(e *sse.EventInfo) (out string, err error) {
+func applyReleaseFromEvent(e *sse.EventInfo) (yamlbody, out string, err error) {
 	pp.Printf("try apply %v\n", e)
-	r, err := EventInfoToProjectYaml(e)
+	yamlbody, err = EventInfoToProjectYaml(e)
 	if err != nil {
 		err = fmt.Errorf("convert event to yaml err: %v", err)
 		return
 	}
-	pp.Printf("yaml %v\n", r)
+	// pp.Printf("yaml %v\n", r)
+	out, err = projectpkg.ApplyByKubectlWithString(yamlbody)
 	return
-	return projectpkg.ApplyByKubectlWithString(r)
 }
 
 var C = cache.New(1*time.Minute, 1*time.Minute)

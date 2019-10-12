@@ -299,12 +299,12 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// 	b.log("this is a rollback operation")
 	// }
 
-	// envmap, err := EventInfoToMap(e)
-	// if err != nil {
-	// 	err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
-	// 	b.logerr(err)
-	// 	return
-	// }
+	envmap, err := EventInfoToMap(e)
+	if err != nil {
+		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
+		b.logerr(err)
+		return
+	}
 
 	// mergenote, envMap, err := p.ReadEnvs(autoenv)
 	// if err != nil {
@@ -317,7 +317,10 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// }
 
 	b.log("<h2>Info</h2>")
-
+	for k, v := range envmap {
+		log.Print(v)
+		b.logf("%v = %q\n", k, v)
+	}
 	// for _, v := range mergenote {
 	// 	log.Print(v)
 	// 	b.log(v)
@@ -369,7 +372,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	b.log("<h2>Docker build</h2>")
 
 	// is devbranch, or tag not exist yet
-	needbuild := p.NeedBuild()
+	imageexist, needbuild := p.NeedBuild(commitid)
 	if ((!bo.nobuild) && needbuild) || bo.buildimage {
 		// out := make(chan string, 10)
 
@@ -399,7 +402,13 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// }
 		b.log("build is ok.")
 	} else {
-		b.logf("will not build, flag nobuild: %v, buildmode: %v, needbuild: %v, buildimage: %v\n", bo.nobuild, p.Config.S.BuildMode, needbuild, bo.buildimage)
+		b.logf("will not build, :<br>")
+		b.logf("runtime options: nobuild: %v\n", bo.nobuild)
+		b.logf("runtime options: buildimage: %v\n", bo.buildimage)
+
+		b.logf("config buildmode: %v\n", p.Config.S.BuildMode)
+		b.logf("needbuild detect result: %v\n", needbuild)
+		b.logf("imageexist check result: %v\n", imageexist)
 	}
 	// check if inited or force provide, if not, init first
 
@@ -412,8 +421,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// ns := autoenv["CI_NAMESPACE"]
 		// out, e := apply(ns, finalyaml)
 
-		var out string
-		out, err = applyReleaseFromEvent(e)
+		var yamlbody, out string
+		yamlbody, out, err = applyReleaseFromEvent(e)
 		if err != nil {
 			err = fmt.Errorf("create k8s release for project: %v, branch: %v, err: %v", project, branch, err)
 			b.logerr(err)
@@ -421,8 +430,10 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		}
 		log.Printf("create release ok, out: %v\n", out)
 
-		b.log("<h2>create k8s release</h2>")
-		b.logf("create k8s release output:\n")
+		b.log("<h2>create k8s project</h2>")
+		// TODO: encode html
+		b.logf("created project yaml:%v\n", strings.ReplaceAll(yamlbody, "\n", "<br>"))
+		b.logf("apply output:\n")
 		b.logf("%v\n", out)
 		b.log("<br>")
 	}
