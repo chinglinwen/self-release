@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
+
+	"github.com/chinglinwen/log"
 
 	"github.com/davecgh/go-spew/spew"
 	prettyjson "github.com/hokaccha/go-prettyjson"
@@ -20,6 +21,8 @@ import (
 // https://github.com/google/logger
 
 func hookHandler(c echo.Context) (err error) {
+	log.Debug.Println("start hook handler")
+
 	// spew.Dump("c.header", c.Request().Header)
 	// header: X-Gitlab-Event: "System Hook"
 	payload, err := ioutil.ReadAll(c.Request().Body)
@@ -51,7 +54,7 @@ func hookHandler(c echo.Context) (err error) {
 	}
 	// log.Println("marshal ok")
 
-	// fmt.Printf("out: %s\n", out)
+	// log.Printf("out: %s\n", out)
 
 	projectName := gjson.GetBytes(payload, "project.name").String()
 	if projectName == "config-deploy" || projectName == "self-release" {
@@ -62,12 +65,15 @@ func hookHandler(c echo.Context) (err error) {
 
 	// project := gjson.GetBytes(payload, "project.path_with_namespace").String()
 	ns := gjson.GetBytes(payload, "project.namespace").String()
-	if ns != "wenzhenglin" && ns != "donglintong" && ns != "yuzongwei" {
+
+	log.Printf("got gitlab event for project: %v/%v\n", ns, projectName)
+
+	if ns != "wenzhenglin" && ns != "donglintong" && ns != "yuzongwei" && ns != "robot" {
 		log.Println("ignore non-test projects")
 		c.JSONPretty(http.StatusOK, E(0, "ignore non-test projects", "ok"), " ")
 		return
 	}
-	fmt.Printf("out: %s\n", out)
+	log.Printf("out: %s\n", out)
 
 	// log.Printf("===event_name: %v\n", a["event_name"])
 	// log.Printf("===message: %v\n", a["message"])
@@ -81,6 +87,9 @@ func hookHandler(c echo.Context) (err error) {
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 		return
 	}
+
+	log.Debug.Println("got event: ", eventName)
+
 	// spew.Dump("event:", data)
 	// pp.Print("data", data)
 
@@ -98,11 +107,11 @@ func hookHandler(c echo.Context) (err error) {
 			}
 		}
 
-		fmt.Println("got push event")
+		log.Println("got push event")
 		for _, v := range event1.Commits {
 			pp.Print("modified", v.Modified)
 		}
-		fmt.Printf("commits: %v\n", len(event1.Commits))
+		log.Printf("commits: %v\n", len(event1.Commits))
 		// spew.Dump("details:", event1.Commits)
 
 		// PathWithNamespace is better, name or namespace maybe chinese chars
@@ -136,11 +145,11 @@ func hookHandler(c echo.Context) (err error) {
 			return c.JSONPretty(http.StatusOK, E(0, "project init commits", "ok"), " ")
 		}
 
-		fmt.Println("got tag push event")
+		log.Println("got tag push event")
 		for _, v := range event2.Commits {
 			pp.Print("modified", v.Modified)
 		}
-		fmt.Printf("commits: %v\n", len(event2.Commits))
+		log.Printf("commits: %v\n", len(event2.Commits))
 		// spew.Dump("details:", event2.Commits)
 
 		// if event2.Project.Namespace == "wenzhenglin" || event2.Project.Namespace == "donglintong" {
@@ -173,7 +182,7 @@ func hookHandler(c echo.Context) (err error) {
 
 	// event, err := gitlab.ParseWebhook(gitlab.EventType(eventType), payload)
 	// if err != nil {
-	// 	err = fmt.Errorf("parse event err: %v", err)
+	// 	err = log.Errorf("parse event err: %v", err)
 	// 	log.Println(err)
 	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 	// 	return
@@ -184,7 +193,7 @@ func hookHandler(c echo.Context) (err error) {
 	// // case *gitlab.MergeEvent:
 	// // 	processMergeEvent(event)
 	// default:
-	// 	// msg := fmt.Sprintf("ignore event: %v\n", event)
+	// 	// msg := log.Sprintf("ignore event: %v\n", event)
 	// 	return c.JSONPretty(http.StatusOK, E(0, "ignore event", "ok"), " ")
 	// }
 

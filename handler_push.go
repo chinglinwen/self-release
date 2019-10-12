@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 	"wen/self-release/git"
 	"wen/self-release/pkg/notify"
 	"wen/self-release/pkg/sse"
+
+	"github.com/chinglinwen/log"
 
 	projectpkg "wen/self-release/project"
 )
@@ -41,12 +42,14 @@ func handlePush(event *PushEvent) (err error) {
 	branch := parseBranch(event.Ref)
 	log.Printf("got push for project %v to build for test env\n", project)
 
+	log.Debug.Println("try lock for project", project)
 	err = sse.Lock(project, branch)
 	if err != nil {
 		return
 	}
 	defer sse.UnLock(project, branch)
 
+	log.Debug.Println("start new builder for project", project)
 	b := NewBuilder(project, branch)
 	b.log("starting logs")
 
@@ -70,6 +73,8 @@ func handleRelease(event *TagPushEvent) (err error) {
 		return
 	}
 	defer sse.UnLock(project, branch)
+
+	log.Debug.Println("start new builder for project", project)
 
 	b := NewBuilder(project, branch)
 	b.log("starting logs")
@@ -98,6 +103,7 @@ type builder struct {
 
 // try grab the event too, so it can trigger again, or even changed event
 func NewBuilder(project, branch string) (b *builder) {
+	log.Debug.Println("creating builder for project", project)
 	b = &builder{
 		Broker: sse.New(project, branch),
 	}
@@ -141,7 +147,10 @@ func (b *builder) notify(msg, username string) {
 
 func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	defer func() {
-		if bo.nonotify {
+		log.Debug.Printf("try close broker now\n")
+		b.Close()
+		log.Debug.Printf("try close broker ok\n")
+		if bo != nil && bo.nonotify {
 			return
 		}
 		if err != nil {
@@ -150,6 +159,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			text := fmt.Sprintf("release for project: %v, branch: %v, env: %v ok", b.Project, b.Branch, b.Event.Env)
 			b.notify(text, b.Event.UserName)
 		}
+		log.Debug.Printf("exit startBuild now\n")
 	}()
 	e, err := event.GetInfo()
 	if err != nil {
@@ -170,13 +180,18 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		err = fmt.Errorf("check permission for %q, user: %v, err: %v", project, e.UserName, err)
 		return
 	}
+	log.Debug.Printf("check permission for %q, user: %v ok\n", project, e.UserName)
 
 	// bname := strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
 	// b := NewBuilder(bname)
-	defer b.Close()
+	// defer b.Close()
 
 	tip := fmt.Sprintf("start build for project %v, branch: %v, env: %v\n", project, branch, env)
 	b.logf(tip)
+
+	log.Debug.Printf(tip)
+
+	return
 
 	notifytext := fmt.Sprintf("%vlog url: http://release.haodai.net/logs?key=%v", tip, b.Key)
 	b.notify(notifytext, e.UserName)

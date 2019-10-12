@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/chinglinwen/log"
 
 	"github.com/mohae/deepcopy"
 )
@@ -351,6 +352,7 @@ func (b *Broker) Close() {
 	log.Println("closing brocker for ", b.Project, b.Branch)
 	if b.PWriter != nil {
 		b.PWriter.Close()
+		log.Debug.Println("writer close ok")
 	}
 
 	// copy as backup, the name is the same? how to distinguish later

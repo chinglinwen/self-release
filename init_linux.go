@@ -14,7 +14,7 @@ import (
 func init() {
 	if os.Getenv("GODEBUG") != "" {
 		log.SetLevel("debug")
-		log.Println("got debug env, set log level to ", "debug")
+		log.Debug.Println("got debug env, set log level to ", "debug")
 	}
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGUSR1) //SIGUSR1 doesn't work on windows
