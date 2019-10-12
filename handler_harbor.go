@@ -12,6 +12,7 @@ import (
 
 	"github.com/chinglinwen/log"
 	prettyjson "github.com/hokaccha/go-prettyjson"
+	"github.com/k0kubun/pp"
 	"github.com/labstack/echo"
 	cache "github.com/patrickmn/go-cache"
 )
@@ -78,11 +79,14 @@ func HarborToDeploy(i *HarborEventInfo) (err error) {
 }
 
 func applyReleaseFromEvent(e *sse.EventInfo) (out string, err error) {
+	pp.Printf("try apply %v\n", e)
 	r, err := EventInfoToProjectYaml(e)
 	if err != nil {
 		err = fmt.Errorf("convert event to yaml err: %v", err)
 		return
 	}
+	pp.Printf("yaml %v\n", r)
+	return
 	return projectpkg.ApplyByKubectlWithString(r)
 }
 

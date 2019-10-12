@@ -6,6 +6,8 @@ import (
 	"time"
 	"wen/self-release/pkg/sse"
 	projectpkg "wen/self-release/project"
+
+	"github.com/chinglinwen/log"
 )
 
 func ParseEvent(eventName string, payload []byte) (data interface{}, err error) {
@@ -123,9 +125,10 @@ func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
 		err = fmt.Errorf("parse project name for %q, err: %v", e.Project, err)
 		return
 	}
-	env := projectpkg.GetEnvFromBranch(e.Branch)
+	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch)
 	version := e.Branch
-	// from gitlab event and it's test env, change to commitid as tag
+
+	// for test env, change version to commitid if from gitlab event
 	if env == projectpkg.TEST && e.CommitID != "" {
 		// so test image changed ( otherwise always the same )
 		version = e.CommitID
@@ -134,6 +137,7 @@ func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
 	if e.Time == "" {
 		e.Time = time.Now().Format(TimeLayout)
 	}
+	log.Printf("construct yaml: project: %v, env: %v, version: %v\n", e.Project, env, version)
 
 	// convert info to version?
 	body = fmt.Sprintf(projectYamlTmpl, name, env, ns, version,
@@ -151,7 +155,7 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 
 	// is this needed, we often don't need overwrite env by manual?
 	if e.Env == "" {
-		e.Env = projectpkg.GetEnvFromBranch(e.Branch)
+		e.Env = projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch)
 	}
 	if e.Time == "" {
 		e.Time = time.Now().Format(TimeLayout)

@@ -5,11 +5,14 @@ import (
 	"strings"
 	"wen/self-release/git"
 	"wen/self-release/pkg/harbor"
+
+	"github.com/k0kubun/pp"
 )
 
 // Build only build develop branch?
 func (p *Project) Build(project, tag, env string) (out chan string, err error) {
-
+	pp.Printf("try build for project: %v, tag: %v, env: %v\n", project, tag, env)
+	return
 	if git.BranchIsTag(tag) {
 		_, err = git.CheckTagExist(project, tag)
 		if err != nil {

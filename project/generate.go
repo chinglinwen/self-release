@@ -21,7 +21,7 @@ const (
 	DEV    = "develop"
 	TEST   = "test"
 	PRE    = "pre" // TODO: pre branch is same as master branch?
-	ONLINE = "master"
+	ONLINE = "online"
 )
 
 // an api call to test?
@@ -64,15 +64,37 @@ func SetGenEnv(env string) func(*genOption) {
 
 // get env by parse tag?
 // default is test env
-func GetEnvFromBranch(branch string) string {
-	env := TEST
-	if git.BranchIsOnline(branch) {
-		env = ONLINE
+// func GetEnvFromBranch(branch string) string {
+// 	if git.BranchIsOnline(branch) {
+// 		return ONLINE
+// 	}
+// 	if git.BranchIsPre(branch) {
+// 		return PRE
+// 	}
+// 	return TEST
+// }
+
+func GetEnvFromBranchOrCommitID(project, branch string) string {
+	if git.BranchIsTag(branch) {
+		if git.BranchIsOnline(branch) {
+			return ONLINE
+		}
+		if git.BranchIsPre(branch) {
+			return PRE
+		}
+	} else {
+		// check if branch is commitid
+		o, p, err := git.GetLastTagCommitID(project)
+		if err == nil {
+			if o == branch {
+				return ONLINE
+			}
+			if p == branch {
+				return PRE
+			}
+		}
 	}
-	if git.BranchIsPre(branch) {
-		env = PRE
-	}
-	return env
+	return TEST
 }
 
 func GetProjectName(project string) (namespace, name string, err error) {

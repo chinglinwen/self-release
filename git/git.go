@@ -131,7 +131,11 @@ func SetBranch(branch string) func(*Repo) {
 func BranchIsTag(branch string) bool {
 	// re := regexp.MustCompile(`[^v][[:alpha:]]+`)  // not branch is a tag
 	re := regexp.MustCompile(`^v.+`) // prefix with v is a tag
-	return re.Match([]byte(branch))
+	if !re.Match([]byte(branch)) {
+		return false
+	}
+	// we may include commit id, so to distinguish it from tag
+	return strings.Contains(branch, ".")
 }
 
 // pre is a tag, and not online is pre

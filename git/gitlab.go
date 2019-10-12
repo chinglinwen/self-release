@@ -636,6 +636,84 @@ func CheckTagExist(projectPath, tag string) (t *gitlab.Tag, err error) {
 	return
 }
 
+func GetLastCommitID(projectPath, tag string) (t *gitlab.Commit, err error) {
+	p, err := GetProject(projectPath)
+	if err != nil {
+		err = fmt.Errorf("get project err: %v", err)
+		return
+	}
+	t, _, err = adminclient().Commits.GetCommit(p.ID, tag)
+	if err != nil {
+		if strings.Contains(err.Error(), "Not Found") {
+			err = fmt.Errorf("commit not found")
+		}
+		err = fmt.Errorf("get commit %v err: %v", tag, err)
+		return
+	}
+	return
+}
+
+func listAllTags(projectPath string) (ts []*gitlab.Tag, err error) {
+	p, err := GetProject(projectPath)
+	if err != nil {
+		err = fmt.Errorf("get project err: %v", err)
+		return
+	}
+	list := gitlab.ListOptions{Page: 1, PerPage: 10000}
+	ts, _, err = adminclient().Tags.ListTags(p.ID, &gitlab.ListTagsOptions{
+		ListOptions: list,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "Not Found") {
+			err = fmt.Errorf("commit not found")
+		}
+		err = fmt.Errorf("list tags for %v err: %v", projectPath, err)
+		return
+	}
+	if len(ts) == 0 {
+		err = fmt.Errorf("empty tags for %v", projectPath)
+		return
+	}
+	return
+}
+
+func GetLastTagCommitID(projectPath string) (onlineid, preid string, err error) {
+	o, p, err := GetLastTag(projectPath)
+	if err != nil {
+		return
+	}
+	if o != nil {
+		onlineid = o.Commit.ShortID
+	}
+	if p != nil {
+		preid = p.Commit.ShortID
+	}
+	return
+}
+func GetLastTag(projectPath string) (online, pre *gitlab.Tag, err error) {
+	ts, err := listAllTags(projectPath)
+	if err != nil {
+		err = fmt.Errorf("get last tag err: %v", err)
+		return
+	}
+	preTags := []*gitlab.Tag{}
+	onlineTags := []*gitlab.Tag{}
+	for _, v := range ts {
+		if BranchIsOnline(v.Name) {
+			onlineTags = append(onlineTags, v)
+		} else {
+			preTags = append(preTags, v)
+		}
+	}
+	if len(onlineTags) != 0 {
+		online = onlineTags[0]
+	}
+	if len(preTags) != 0 {
+		pre = preTags[0]
+	}
+	return
+}
+
 func CheckPerm(projectPath, user, env string) (err error) {
 	u, err := GetUser(user)
 	if err != nil {

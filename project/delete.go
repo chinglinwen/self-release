@@ -18,7 +18,7 @@ func DeleteByKubectl(project, branch, env string) (out string, err error) {
 		branch = "develop" // get this config?
 	}
 	if env == "" {
-		env = GetEnvFromBranch(branch)
+		env = GetEnvFromBranchOrCommitID(project, branch)
 	}
 	ns, p, err := GetProjectName(project)
 	if err != nil {

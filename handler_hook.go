@@ -108,10 +108,11 @@ func hookHandler(c echo.Context) (err error) {
 		}
 
 		log.Println("got push event")
-		for _, v := range event1.Commits {
-			pp.Print("modified", v.Modified)
-		}
+		// for _, v := range event1.Commits {
+		// 	pp.Print("modified", v.Modified)
+		// }
 		log.Printf("commits: %v\n", len(event1.Commits))
+
 		// spew.Dump("details:", event1.Commits)
 
 		// PathWithNamespace is better, name or namespace maybe chinese chars

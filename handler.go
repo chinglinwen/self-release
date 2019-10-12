@@ -192,96 +192,96 @@ func contains(slice []string, item string) bool {
 	return ok
 }
 
-func rollbackAPIHandler(c echo.Context) (err error) {
-	// r := c.Request()
-	// r.ParseForm()
-	// booptions := r.Form["booptions"]
+// func rollbackAPIHandler(c echo.Context) (err error) {
+// 	// r := c.Request()
+// 	// r.ParseForm()
+// 	// booptions := r.Form["booptions"]
 
-	project := c.FormValue("project")
-	branch := c.FormValue("tag") // optional, tag only?
-	env := c.FormValue("env")    // optional
-	// file := c.FormValue("file")
-	// if branch == "" {
-	// 	branch =
-	// }
+// 	project := c.FormValue("project")
+// 	branch := c.FormValue("tag") // optional, tag only?
+// 	env := c.FormValue("env")    // optional
+// 	// file := c.FormValue("file")
+// 	// if branch == "" {
+// 	// 	branch =
+// 	// }
 
-	username, useremail, msg := getUserInfo(c)
+// 	username, useremail, msg := getUserInfo(c)
 
-	if project == "" {
-		brocker, e := sse.GetBrokerFromPerson(username)
-		if e != nil {
-			err = fmt.Errorf("cant find previous released project name to rollback, " +
-				"try provide project name for rollback")
-			return
-		}
-		// spew.Dump("retry brocker:", brocker)
+// 	if project == "" {
+// 		brocker, e := sse.GetBrokerFromPerson(username)
+// 		if e != nil {
+// 			err = fmt.Errorf("cant find previous released project name to rollback, " +
+// 				"try provide project name for rollback")
+// 			return
+// 		}
+// 		// spew.Dump("retry brocker:", brocker)
 
-		b := &builder{
-			Broker: sse.NewExist(brocker),
-		}
-		project = b.Event.Project
-		log.Println("will try rollback project: ", project)
-	}
+// 		b := &builder{
+// 			Broker: sse.NewExist(brocker),
+// 		}
+// 		project = b.Event.Project
+// 		log.Println("will try rollback project: ", project)
+// 	}
 
-	var p *projectpkg.Project
-	if branch == "" {
-		p, err = getproject(project, branch, true, false)
-		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-		if err != nil {
-			err = fmt.Errorf("project: %v, new err: %v", project, err)
-			return
-		}
-		branch = p.Branch
-	}
+// 	var p *projectpkg.Project
+// 	if branch == "" {
+// 		p, err = getproject(project, branch, true, false)
+// 		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+// 		if err != nil {
+// 			err = fmt.Errorf("project: %v, new err: %v", project, err)
+// 			return
+// 		}
+// 		branch = p.Branch
+// 	}
 
-	e := &sse.EventInfo{
-		Project:   project,
-		Branch:    branch,
-		Env:       env, // default derive from branch
-		UserName:  username,
-		UserEmail: useremail,
-		Message:   msg,
-	}
+// 	e := &sse.EventInfo{
+// 		Project:   project,
+// 		Branch:    branch,
+// 		Env:       env, // default derive from branch
+// 		UserName:  username,
+// 		UserEmail: useremail,
+// 		Message:   msg,
+// 	}
 
-	bo := &buildOption{
-		rollback: true,
-		p:        p,
-	}
+// 	bo := &buildOption{
+// 		rollback: true,
+// 		p:        p,
+// 	}
 
-	log.Println("event", e)
-	log.Println("option", bo)
+// 	log.Println("event", e)
+// 	log.Println("option", bo)
 
-	b := NewBuilder(project, branch)
-	b.log("starting logs")
+// 	b := NewBuilder(project, branch)
+// 	b.log("starting logs")
 
-	err = b.startBuild(e, bo)
-	if err != nil {
-		err = fmt.Errorf("startBuild for project: %v, branch: %v, err: %v", project, branch, err)
-		log.Println(err)
-		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-		return
-	}
+// 	err = b.startBuild(e, bo)
+// 	if err != nil {
+// 		err = fmt.Errorf("startBuild for project: %v, branch: %v, err: %v", project, branch, err)
+// 		log.Println(err)
+// 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 		return
+// 	}
 
-	// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-	// if err != nil {
-	// 	err = fmt.Errorf("new project: %v, err: %v", project, err)
-	// 	log.Println(err)
-	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	// }
-	// if file != "" {
-	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
-	// } else {
-	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
-	// }
+// 	// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+// 	// if err != nil {
+// 	// 	err = fmt.Errorf("new project: %v, err: %v", project, err)
+// 	// 	log.Println(err)
+// 	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 	// }
+// 	// if file != "" {
+// 	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
+// 	// } else {
+// 	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+// 	// }
 
-	// if err != nil {
-	// 	err = fmt.Errorf("gen api err: %v", err)
-	// 	log.Println(err)
-	// 	return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	// }
+// 	// if err != nil {
+// 	// 	err = fmt.Errorf("gen api err: %v", err)
+// 	// 	log.Println(err)
+// 	// 	return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 	// }
 
-	return c.String(http.StatusOK, "generate ok")
-}
+// 	return c.String(http.StatusOK, "generate ok")
+// }
 
 // func deployAPIHandler(c echo.Context) error {
 // 	project := c.FormValue("project")

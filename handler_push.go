@@ -9,6 +9,7 @@ import (
 	"wen/self-release/pkg/sse"
 
 	"github.com/chinglinwen/log"
+	"github.com/k0kubun/pp"
 
 	projectpkg "wen/self-release/project"
 )
@@ -168,11 +169,12 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 	b.Event = e
 
+	pp.Printf("commitid: %v\n", e.CommitID)
 	// spew.Dump("build event", e)
 
 	project := e.Project
 	branch := e.Branch
-	env := projectpkg.GetEnvFromBranch(e.Branch)
+	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch)
 
 	// check permission
 	err = git.CheckPerm(project, e.UserName, env)
@@ -190,8 +192,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	b.logf(tip)
 
 	log.Debug.Printf(tip)
-
-	return
 
 	notifytext := fmt.Sprintf("%vlog url: http://release.haodai.net/logs?key=%v", tip, b.Key)
 	b.notify(notifytext, e.UserName)
@@ -218,25 +218,27 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	var p *projectpkg.Project
 
-	// create project need to distinguish if it's a init
-	var init, forceinit bool
-	if !projectpkg.BranchIsTag(branch) {
-		if strings.Contains(e.Message, "/helpdocker") {
-			b.log("will do init")
-			init = true
-		}
-		if strings.Contains(e.Message, "/forcehelpdocker") {
-			b.log("will do forceinit")
-			forceinit = true
-		}
-	}
+	// since we have ui, let's ignore here
+
+	// // create project need to distinguish if it's a init
+	// var init, forceinit bool
+	// if !projectpkg.BranchIsTag(branch) {
+	// 	if strings.Contains(e.Message, "/helpdocker") {
+	// 		b.log("will do init")
+	// 		init = true
+	// 	}
+	// 	if strings.Contains(e.Message, "/forcehelpdocker") {
+	// 		b.log("will do forceinit")
+	// 		forceinit = true
+	// 	}
+	// }
 
 	if bo.p == nil {
 		// if not inited, just using default setting?
-		p, err = getproject(project, branch, bo.rollback, init || forceinit)
+		p, err = getproject(project, branch)
 		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 		if err != nil {
-			err = fmt.Errorf("project: %v, new err: %v", project, err)
+			err = fmt.Errorf("get project: %v, err: %v", project, err)
 			b.logerr(err)
 			return
 		}
@@ -260,29 +262,29 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 		// how people trigger init at first place? release text or commit text?
 
-		if !p.Inited() && init {
-			b.log("<h2>Init project</h2>")
-			err = p.Init()
-			if err != nil {
-				err = fmt.Errorf("project: %v, init err: %v", project, err)
-				b.logerr(err)
-				return
-			}
-			// log.Printf("inited for project: %v", project)
-			b.logf("inited for project: %v", project)
-			// return // return for init operation?
-		}
-		if forceinit {
-			b.log("<h2>Force Init project</h2>")
-			err = p.Init(projectpkg.SetInitForce())
-			if err != nil {
-				err = fmt.Errorf("project: %v, forceinit err: %v", project, err)
-				b.logerr(err)
-				return
-			}
-			b.logf("forceinit for project: %v ok", project)
-			// return // return for init operation?
-		}
+		// if !p.Inited() && init {
+		// 	b.log("<h2>Init project</h2>")
+		// 	err = p.Init()
+		// 	if err != nil {
+		// 		err = fmt.Errorf("project: %v, init err: %v", project, err)
+		// 		b.logerr(err)
+		// 		return
+		// 	}
+		// 	// log.Printf("inited for project: %v", project)
+		// 	b.logf("inited for project: %v", project)
+		// 	// return // return for init operation?
+		// }
+		// if forceinit {
+		// 	b.log("<h2>Force Init project</h2>")
+		// 	err = p.Init(projectpkg.SetInitForce())
+		// 	if err != nil {
+		// 		err = fmt.Errorf("project: %v, forceinit err: %v", project, err)
+		// 		b.logerr(err)
+		// 		return
+		// 	}
+		// 	b.logf("forceinit for project: %v ok", project)
+		// 	// return // return for init operation?
+		// }
 	}
 
 	// // TODO: not support yet, if rollback is set, get previous tag as branch
@@ -427,30 +429,31 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	return
 }
 
-func getproject(project, branch string, rollback, init bool) (p *projectpkg.Project, err error) {
-	p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-	if err != nil {
-		return
-	}
-	if rollback {
-		argBranch := branch
-		branch, err = p.GetPreviousTag() // rollback before specific tag, just redeploy then?
-		if err != nil {
-			err = fmt.Errorf("get previous tag err: %v", err)
-			return
-		}
+func getproject(project, branch string) (p *projectpkg.Project, err error) {
+	return projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+	// p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+	// if err != nil {
+	// 	return
+	// }
+	// if rollback {
+	// 	argBranch := branch
+	// 	branch, err = p.GetPreviousTag() // rollback before specific tag, just redeploy then?
+	// 	if err != nil {
+	// 		err = fmt.Errorf("get previous tag err: %v", err)
+	// 		return
+	// 	}
 
-		if argBranch != branch {
-			// re-open the branch
-			p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch), projectpkg.SetNoEnableCheck(init))
-			if err != nil {
-				err = fmt.Errorf("project: %v, branch: %v, new(rollback ) err: %v", project, branch, err)
-				return
-			}
-		}
-		p.Branch = branch
-	}
-	return
+	// 	if argBranch != branch {
+	// 		// re-open the branch
+	// 		p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch), projectpkg.SetNoEnableCheck(tr))
+	// 		if err != nil {
+	// 			err = fmt.Errorf("project: %v, branch: %v, new(rollback ) err: %v", project, branch, err)
+	// 			return
+	// 		}
+	// 	}
+	// 	p.Branch = branch
+	// }
+	// return
 }
 
 // func apply(ns, target string) (out string, err error) {

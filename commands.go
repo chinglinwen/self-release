@@ -39,7 +39,7 @@ var (
 		{name: "hi", fn: hi, help: "say hi."},
 		{name: "deploy", fn: deploy, help: "deploy project.", eg: "/deploy group/project [branch][nobuild|buildimage]"},
 		{name: "deldeploy", fn: deldeploy, help: "delete deploy project.", eg: "/deldeploy group/project [branch]"},
-		{name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
+		// {name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
 		{name: "retry", fn: retry, help: "retry last time deployed project.", eg: "/retry [nobuild|buildimage]"},
 		{name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
 		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [buildmode=auto|disabled|on|manual][devbranch=develop|test]" +
@@ -428,67 +428,67 @@ func reapply(dev, args string) (out string, err error) {
 // rollbacks, need to get last tag? support online only?
 // rollback to just pre-version or to any specific version
 // kind of redeploy? but auto get the last tag?
-func rollback(dev, args string) (out string, err error) {
-	log.Printf("got rollback from: %v, args: %v\n", dev, args)
-	project, branch, _ := parseProject(args) // ignore no project provide error
+// func rollback(dev, args string) (out string, err error) {
+// 	log.Printf("got rollback from: %v, args: %v\n", dev, args)
+// 	project, branch, _ := parseProject(args) // ignore no project provide error
 
-	if project == "" {
-		brocker, e := sse.GetBrokerFromPerson(dev)
-		if e != nil {
-			err = fmt.Errorf("cant find previous released project name to rollback, " +
-				"try provide project name for rollback")
-			return
-		}
-		// spew.Dump("retry brocker:", brocker)
+// 	if project == "" {
+// 		brocker, e := sse.GetBrokerFromPerson(dev)
+// 		if e != nil {
+// 			err = fmt.Errorf("cant find previous released project name to rollback, " +
+// 				"try provide project name for rollback")
+// 			return
+// 		}
+// 		// spew.Dump("retry brocker:", brocker)
 
-		b := &builder{
-			Broker: sse.NewExist(brocker),
-		}
-		project = b.Event.Project
-		log.Println("will try rollback project: ", project)
-	}
+// 		b := &builder{
+// 			Broker: sse.NewExist(brocker),
+// 		}
+// 		project = b.Event.Project
+// 		log.Println("will try rollback project: ", project)
+// 	}
 
-	var p *projectpkg.Project
-	if branch == "" {
-		p, err = getproject(project, branch, true, false)
-		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-		if err != nil {
-			err = fmt.Errorf("project: %v, new err: %v", project, err)
-			return
-		}
-		branch = p.Branch
-	}
+// 	var p *projectpkg.Project
+// 	if branch == "" {
+// 		p, err = getproject(project, branch, true, false)
+// 		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+// 		if err != nil {
+// 			err = fmt.Errorf("project: %v, new err: %v", project, err)
+// 			return
+// 		}
+// 		branch = p.Branch
+// 	}
 
-	// booptions := []string{"gen", "build", "deploy"}
-	bo := &buildOption{
-		// gen:      contains(booptions, "gen"),
-		// build:    contains(booptions, "build"),
-		// deploy:   contains(booptions, "deploy"),
-		rollback: true,
-		nonotify: true,
-		p:        p,
-	}
-	e := &sse.EventInfo{
-		Project: project,
-		Branch:  branch, // get branch automatic here if not specified
-		// Env:       env, // default derive from branch
-		UserName: dev,
-		// UserEmail: useremail,
-		Message: fmt.Sprintf("from %v, args: ", args),
-	}
+// 	// booptions := []string{"gen", "build", "deploy"}
+// 	bo := &buildOption{
+// 		// gen:      contains(booptions, "gen"),
+// 		// build:    contains(booptions, "build"),
+// 		// deploy:   contains(booptions, "deploy"),
+// 		rollback: true,
+// 		nonotify: true,
+// 		p:        p,
+// 	}
+// 	e := &sse.EventInfo{
+// 		Project: project,
+// 		Branch:  branch, // get branch automatic here if not specified
+// 		// Env:       env, // default derive from branch
+// 		UserName: dev,
+// 		// UserEmail: useremail,
+// 		Message: fmt.Sprintf("from %v, args: ", args),
+// 	}
 
-	b := NewBuilder(project, branch)
-	b.log("starting logs")
+// 	b := NewBuilder(project, branch)
+// 	b.log("starting logs")
 
-	err = b.startBuild(e, bo)
-	if err != nil {
-		err = fmt.Errorf("rollback for project: %v, branch: %v, err: %v", project, branch, err)
-		log.Println(err)
-		return
-	}
-	if err == nil {
-		out = "rollback ok"
-		log.Printf("rollback from %v ok\n", dev)
-	}
-	return
-}
+// 	err = b.startBuild(e, bo)
+// 	if err != nil {
+// 		err = fmt.Errorf("rollback for project: %v, branch: %v, err: %v", project, branch, err)
+// 		log.Println(err)
+// 		return
+// 	}
+// 	if err == nil {
+// 		out = "rollback ok"
+// 		log.Printf("rollback from %v ok\n", dev)
+// 	}
+// 	return
+// }

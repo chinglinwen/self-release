@@ -103,7 +103,7 @@ func TestFetch(t *testing.T) {
 }
 
 func TestTags(t *testing.T) {
-	repo, err := NewWithPull("wenzhenglin/test", SetBranch("v1.0.1"))
+	repo, err := NewWithPull("wenzhenglin/project-example", SetBranch("v1.0.1"))
 	if err != nil {
 		t.Error("new err", err)
 		return
