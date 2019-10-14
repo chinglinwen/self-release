@@ -416,18 +416,6 @@ func (b *Broker) Start() {
 			b.Messages <- msg
 		}
 
-		// p := make([]byte, 256) // make it long enough to not split lines
-		// for {
-		// 	n, err := b.PReader.Read(p)
-		// 	if err == io.EOF {
-		// 		break
-		// 	}
-		// 	msg := string(p[:n])
-		// 	// log.Printf("%v --> msg: %q \n", b.Key, msg)
-		// 	b.ExistMsg = append(b.ExistMsg, msg)
-		// 	b.Messages <- msg
-		// }
-
 		// store msg into local fs, for later retrive? or just stay with branch
 	}()
 

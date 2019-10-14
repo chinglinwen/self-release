@@ -17,7 +17,7 @@ import (
 
 // get autoenv from events
 
-const DevBranch = "develop"
+// const DevBranch = "develop"
 
 /*
 existing env
@@ -450,30 +450,14 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			return
 		}
 		log.Printf("create release ok, out: %v\n", out)
-
-		// pretty(yamlbody)
-		// pretty(strings.ReplaceAll(yamlbody, "\n", "<br>"))
-		// pretty("yamlbody: ", yamlbody)
-
-		// outyaml := fmt.Sprintf("<pre>%v</pre>", strings.ReplaceAll(yamlbody, "\n", "<br>"))
-
-		// outyaml := html.EscapeString(strings.ReplaceAll(yamlbody, "\n", "<br>"))
 		outyaml := strings.ReplaceAll(html.EscapeString(yamlbody), "\n", "<br>")
-		// pretty(outyaml)
-
-		// TODO: encode html
-		// b.logf("created project yaml: <pre>%v</pre>\n", strings.ReplaceAll(yamlbody, "\n", "<br>"))
-		// b.logf("created project yaml: <pre>%v</pre>\n", outyaml)
 		b.logf("created project yaml: <pre>%v</pre>", outyaml)
-		// b.logf("%v:\n")
-
 		b.logf("apply output:")
 		b.logf("%v", out)
 		b.log("<br>")
 	} else {
 		err = fmt.Errorf("deploy flag not set, skip.")
 		b.logerr(err)
-
 	}
 
 	b.logf("<hr>end at %v .", time.Now().Format(TimeLayout))
