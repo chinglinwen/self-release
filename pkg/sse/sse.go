@@ -1,6 +1,7 @@
 package sse
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -407,17 +408,25 @@ func (b *Broker) Start() {
 	go func() {
 		log.Println("try reading msg into brocker for ", b.Key)
 
-		p := make([]byte, 256) // make it long enough to not split lines
-		for {
-			n, err := b.PReader.Read(p)
-			if err == io.EOF {
-				break
-			}
-			msg := string(p[:n])
+		scanner := bufio.NewScanner(b.PReader)
+		for scanner.Scan() {
+			msg := scanner.Text()
 			// log.Printf("%v --> msg: %q \n", b.Key, msg)
 			b.ExistMsg = append(b.ExistMsg, msg)
 			b.Messages <- msg
 		}
+
+		// p := make([]byte, 256) // make it long enough to not split lines
+		// for {
+		// 	n, err := b.PReader.Read(p)
+		// 	if err == io.EOF {
+		// 		break
+		// 	}
+		// 	msg := string(p[:n])
+		// 	// log.Printf("%v --> msg: %q \n", b.Key, msg)
+		// 	b.ExistMsg = append(b.ExistMsg, msg)
+		// 	b.Messages <- msg
+		// }
 
 		// store msg into local fs, for later retrive? or just stay with branch
 	}()
