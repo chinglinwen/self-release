@@ -636,7 +636,15 @@ func CheckTagExist(projectPath, tag string) (t *gitlab.Tag, err error) {
 	return
 }
 
-func GetLastCommitID(projectPath, tag string) (t *gitlab.Commit, err error) {
+func GetCommitIDFromTag(projectPath, tag string) (id string, err error) {
+	t, err := GetCommitFromTag(projectPath, tag)
+	if err != nil {
+		return
+	}
+	id = t.ID
+	return
+}
+func GetCommitFromTag(projectPath, tag string) (t *gitlab.Commit, err error) {
 	p, err := GetProject(projectPath)
 	if err != nil {
 		err = fmt.Errorf("get project err: %v", err)

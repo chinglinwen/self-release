@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"wen/self-release/git"
 	"wen/self-release/pkg/sse"
 	projectpkg "wen/self-release/project"
 
@@ -50,7 +51,20 @@ func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 		if len(event.Commits[n-1].ID) >= 8 {
 			e.CommitID = event.Commits[n-1].ID[:8]
 		}
-		e.Message = fmt.Sprintf("[gitlab tag] %v", event.Commits[0].Message)
+		e.Message = fmt.Sprintf("[gitlab push] %v", event.Commits[0].Message)
+	}
+
+	// auto fetch commitid, mostly not need this for test
+	if e.CommitID == "" {
+		e.CommitID, err = git.GetCommitIDFromTag(e.Project, e.Branch)
+		if err != nil {
+			err = fmt.Errorf("try get commitid for project %v:%v, err: %v", e.Project, e.Branch, err)
+			return
+		}
+		if len(e.CommitID) >= 8 {
+			e.CommitID = e.CommitID[:8]
+		}
+		log.Printf("fetched commitid: %v for %v:%v", e.CommitID, e.Project, e.Branch)
 	}
 
 	e.Time = time.Now().Format(TimeLayout)
@@ -79,6 +93,19 @@ func (event *TagPushEvent) GetInfo() (e *sse.EventInfo, err error) {
 			e.CommitID = event.Commits[n-1].ID[:8]
 		}
 		e.Message = fmt.Sprintf("[gitlab tag] %v", event.Commits[0].Message)
+	}
+
+	// auto fetch commitid
+	if e.CommitID == "" {
+		e.CommitID, err = git.GetCommitIDFromTag(e.Project, e.Branch)
+		if err != nil {
+			err = fmt.Errorf("try get commitid for project %v:%v, err: %v", e.Project, e.Branch, err)
+			return
+		}
+		if len(e.CommitID) >= 8 {
+			e.CommitID = e.CommitID[:8]
+		}
+		log.Printf("fetched commitid: %v for %v:%v", e.CommitID, e.Project, e.Branch)
 	}
 
 	e.Message = fmt.Sprintf("[gitlab tag] %v", event.Message) // release message
@@ -147,7 +174,7 @@ func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
 }
 
 func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
-
+	log.Debug.Printf("try convert event to infomap\n")
 	namespace, projectName, err := projectpkg.GetProjectName(e.Project)
 	if err != nil {
 		err = fmt.Errorf("parse project name for %q, err: %v", e.Project, err)
@@ -172,7 +199,7 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 	autoenv["CI_REPLICAS"] = "1" // config.env has higher priority to overwrite this
 
 	// calc by version? tag or commitid
-	autoenv["CI_IMAGE"] = projectpkg.GetImage(e.Project, e.Branch) // or using project_path
+	autoenv["CI_IMAGE"] = projectpkg.GetImage(e.Project, e.CommitID) // or using project_path
 
 	autoenv["CI_USER_NAME"] = e.UserName
 	autoenv["CI_USER_EMAIL"] = e.UserEmail

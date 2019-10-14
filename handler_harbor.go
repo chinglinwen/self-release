@@ -55,6 +55,8 @@ func HarborToDeploy(i *HarborEventInfo) (err error) {
 		// UserEmail: useremail,
 		Message: fmt.Sprintf("[from harbor] %v", name),
 	}
+	log.Printf("ignore harbor event for now, it has duplicate evenets\n")
+	return
 
 	// at least update the time to togger the change
 	yamlbody, out, err := applyReleaseFromEvent(e)

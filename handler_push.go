@@ -164,11 +164,15 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}()
 	e, err := event.GetInfo()
 	if err != nil {
-		err = fmt.Errorf("GetInfo for %q, err: %v", e.Project, err)
+		err = fmt.Errorf("GetInfo for %v, err: %v", e.Project, err)
 		return
 	}
 	b.Event = e
 
+	if e.CommitID == "" {
+		err = fmt.Errorf("commit id is empty for %v", e.Project)
+		return
+	}
 	pp.Printf("commitid: %v\n", e.CommitID)
 	// spew.Dump("build event", e)
 
@@ -243,7 +247,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			b.logerr(err)
 			return
 		}
-		b.log("clone or open project ok")
+		// b.log("clone or open project ok")
 
 	} else {
 		p = bo.p
@@ -318,7 +322,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	b.log("<h2>Info</h2>")
 	for k, v := range envmap {
-		log.Print(v)
+		log.Printf("env: %v = %q\n", k, v)
 		b.logf("%v = %q\n", k, v)
 	}
 	// for _, v := range mergenote {
@@ -385,12 +389,20 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			return
 		}
 		b.log("docker build outputs:<br>")
+
+		// some error not retuned, so let's detect it
+		detector := "digest: sha256"
+		var buildSuccess bool
 		for text := range out {
+			if strings.Contains(text, detector) {
+				buildSuccess = true
+			}
 			b.log(text)
 		}
 		// build need to check image to see if it success, or parse log?
 
 		log.Println("done of receiving build outputs")
+
 		// scanner := bufio.NewScanner(strings.NewReader(out))
 		// // scanner.Split(bufio.ScanLines)
 		// for scanner.Scan() {
@@ -400,9 +412,15 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// for v := range out {
 		// 	b.log("output:", v)
 		// }
-		b.log("build is ok.")
+		if buildSuccess {
+			b.log("build is ok.")
+		} else {
+			err = fmt.Errorf("build is failed, maybe internal error, or build-script error.")
+			b.logerr(err)
+			return
+		}
 	} else {
-		b.logf("will not build, :<br>")
+		b.logf("will not build, for flags:<br>")
 		b.logf("runtime options: nobuild: %v\n", bo.nobuild)
 		b.logf("runtime options: buildimage: %v\n", bo.buildimage)
 
@@ -417,6 +435,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// have a apply script to do that? passing same tag to it, for the image part?
 	// is it need re-generate? provided env is change everytime though
 
+	b.log("<h2>K8s project</h2>")
+
 	if bo.deploy {
 		// ns := autoenv["CI_NAMESPACE"]
 		// out, e := apply(ns, finalyaml)
@@ -430,12 +450,15 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		}
 		log.Printf("create release ok, out: %v\n", out)
 
-		b.log("<h2>create k8s project</h2>")
 		// TODO: encode html
-		b.logf("created project yaml:%v\n", strings.ReplaceAll(yamlbody, "\n", "<br>"))
+		b.logf("created project yaml:<pre>%v</pre>\n", strings.ReplaceAll(yamlbody, "\n", "<br>"))
 		b.logf("apply output:\n")
 		b.logf("%v\n", out)
 		b.log("<br>")
+	} else {
+		err = fmt.Errorf("deploy flag not set, skip.\n")
+		b.logerr(err)
+
 	}
 
 	b.logf("<hr>end at %v .", time.Now().Format(TimeLayout))

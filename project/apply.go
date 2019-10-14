@@ -9,6 +9,7 @@ import (
 )
 
 func Apply(project, env string, envMap map[string]string) (out string, err error) {
+	log.Debug.Printf("try kubectl apply for project: %v, env: %v", project, env)
 	final, err := HelmGenPrintFinal(project, env, envMap)
 	if err != nil {
 		return
@@ -17,6 +18,7 @@ func Apply(project, env string, envMap map[string]string) (out string, err error
 }
 
 func Delete(project, env string, envMap map[string]string) (out string, err error) {
+	log.Debug.Printf("try kubectl delete for project: %v, env: %v", project, env)
 	final, err := HelmGenPrintFinal(project, env, envMap)
 	if err != nil {
 		return
@@ -61,6 +63,8 @@ this error does not helpful?
 // }
 
 func ApplyByKubectlWithString(body string) (out string, err error) {
+	return // TODO: disbale it
+
 	s := fmt.Sprintf("kubectl apply -f -")
 	cmd := exec.Command("sh", "-c", s)
 	cmd.Stdin = strings.NewReader(body)

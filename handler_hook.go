@@ -54,8 +54,6 @@ func hookHandler(c echo.Context) (err error) {
 	}
 	// log.Println("marshal ok")
 
-	// log.Printf("out: %s\n", out)
-
 	projectName := gjson.GetBytes(payload, "project.name").String()
 	if projectName == "config-deploy" || projectName == "self-release" {
 		log.Println("ignore config-deploy projects")
@@ -136,10 +134,12 @@ func hookHandler(c echo.Context) (err error) {
 		// 	log.Println("ignore 0 commits event")
 		// 	return c.JSONPretty(http.StatusOK, E(0, "zero commits", "ok"), " ")
 		// }
-		if event2.Message == "" && event2.TotalCommitsCount == 0 {
-			log.Println("ignore empty message for tag event")
-			return c.JSONPretty(http.StatusOK, E(0, "empty message for tag event", "ok"), " ")
-		}
+
+		// TODO(wen): need to recheck?
+		// if event2.Message == "" && event2.TotalCommitsCount == 0 {
+		// 	log.Println("ignore empty message for tag event")
+		// 	return c.JSONPretty(http.StatusOK, E(0, "empty message for tag event", "ok"), " ")
+		// }
 
 		if strings.Contains(event2.Message, "by self-release") {
 			log.Println("ignore project init commits event")

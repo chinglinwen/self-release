@@ -51,6 +51,10 @@ type buildServer struct {
 func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err error) {
 	log.Printf("start build %v:%v:%v", r.Project, r.Branch, r.Env)
 
+	// err = fmt.Errorf("(testerrorreturn)build image failed, checkout logs")
+	// log.Println(err)
+	// return
+
 	key := fmt.Sprintf("%v:%v:%v", r.Project, r.Branch, r.Env)
 	if _, ok := s.cache[key]; ok {
 		err = fmt.Errorf("request is already in build for %v, you may try later", key)
@@ -87,9 +91,11 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 	// e := p.Build(project, branch, env, out)
 	if err != nil {
 		err = fmt.Errorf("build err: %v", err)
+		log.Println(err)
 		return
 	}
 
+	log.Debug.Printf("build is started, checking symbol exist\n")
 	detector := "digest: sha256"
 	var success bool
 
@@ -101,6 +107,8 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 			success = true
 		}
 		if err := stream.Send(&pb.Response{Output: text}); err != nil {
+			err = fmt.Errorf("send stream err: %v", err)
+			log.Println(err)
 			return err
 		}
 	}

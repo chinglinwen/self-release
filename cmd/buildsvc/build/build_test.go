@@ -22,6 +22,13 @@ func TestBuild(t *testing.T) {
 	// }
 }
 
+func TestGetDefaultBuildScript(t *testing.T) {
+	project, commitid, env := "wenzhenglin/project-example", "af0dcab65", "test"
+	image := GetImage(project, commitid)
+	out := getDefaultBuildScript(image, env)
+	fmt.Println("output:", out)
+}
+
 // go test -timeout 60s wen/self-release/project -run TestBuild -v -count=1
 // func TestBuild2(t *testing.T) {
 // 	dir, project, tag, env := "/home/wen/t/repos/wenzhenglin/project-example", "wenzhenglin/project-example", "develop", "test"

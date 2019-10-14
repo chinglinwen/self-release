@@ -93,7 +93,7 @@ func main() {
 	// e.HTTPErrorHandler = customHTTPErrorHandler
 	// e.Pre(middleware.AddTrailingSlash())
 
-	e.Use(middleware.Logger())
+	// e.Use(middleware.Logger()) // too many harbor log
 	// e.Use(middleware.Recover()) // comments out for testing
 	// e.Use(middleware.Logger())
 	//e.Use(middleware.Static("/data"))

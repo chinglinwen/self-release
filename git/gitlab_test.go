@@ -83,9 +83,9 @@ commit: {
   "title": "Merge branch 'develop' into 'master'"
 }
 */
-func TestGetLastCommitID(t *testing.T) {
+func TestGetCommitFromTag(t *testing.T) {
 
-	u, err := GetLastCommitID("wenzhenglin/project-example", "master")
+	u, err := GetCommitFromTag("wenzhenglin/project-example", "master")
 	if err != nil {
 		t.Error("check tag err ", err)
 		return
@@ -93,28 +93,28 @@ func TestGetLastCommitID(t *testing.T) {
 	fmt.Println("commit:", u.ShortID, u.Title)
 	pretty("commit", u)
 
-	u, err = GetLastCommitID("robot/project-example", "v1.0.3-pre5.4dev")
+	u, err = GetCommitFromTag("robot/project-example", "v1.0.3-pre5.4dev")
 	if err != nil {
 		t.Error("check tag err ", err)
 		return
 	}
 	fmt.Println("commit:", u.ShortID, u.Title)
 
-	u, err = GetLastCommitID("robot/project-example", "v1.0.4-pre")
+	u, err = GetCommitFromTag("robot/project-example", "v1.0.4-pre")
 	if err != nil {
 		t.Error("check tag err ", err)
 		return
 	}
 	fmt.Println("commit:", u.ShortID, u.Title)
 
-	u, err = GetLastCommitID("robot/project-example", "v1.0.4-pre")
+	u, err = GetCommitFromTag("robot/project-example", "v1.0.4-pre")
 	if err != nil {
 		t.Error("check tag err ", err)
 		return
 	}
 	fmt.Println("commit:", u.ShortID, u.Title)
 
-	// u, err = GetLastCommitID("robot/project-example", "v1.a.3-pre5.4dev")
+	// u, err = GetCommitFromTag("robot/project-example", "v1.a.3-pre5.4dev")
 	// if err == nil {
 	// 	t.Error("check tag err ", err)
 	// 	return

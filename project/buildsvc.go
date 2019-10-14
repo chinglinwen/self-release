@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"time"
+
+	"github.com/chinglinwen/log"
 
 	pb "wen/self-release/pkg/proto/build"
 
@@ -94,7 +95,7 @@ func (b *Buildsvc) Build(project, branch, env, commitid string) (out chan string
 		Commitid: commitid,
 	}
 
-	log.Printf("reqesting... %v", r)
+	log.Debug.Printf("requesting... %v", r)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	stream, err := b.client.Build(ctx, r)
 	if err != nil {
@@ -102,9 +103,11 @@ func (b *Buildsvc) Build(project, branch, env, commitid string) (out chan string
 		err = fmt.Errorf("rpc call failed: %v", err)
 		return
 	}
+
 	go func() {
 		defer cancel()
 		defer close(out)
+		log.Debug.Printf("start receive output...")
 		for {
 			output, e := stream.Recv()
 			if e == io.EOF {
@@ -117,9 +120,9 @@ func (b *Buildsvc) Build(project, branch, env, commitid string) (out chan string
 			// log.Printf("%v", output.GetOutput())
 			out <- output.GetOutput()
 		}
-		log.Printf("done of rpc call for %v\n", project)
+		log.Debug.Printf("done of rpc call for %v\n", project)
 	}()
-	log.Printf("made rpc call for %v, receiving output now...\n", project)
+	log.Debug.Printf("made rpc call for %v, receiving output now...\n", project)
 	return
 }
 
@@ -128,6 +131,6 @@ func Build(project, branch, env, commitid string) (out chan string, err error) {
 		err = fmt.Errorf("buildsvc not inited")
 		return
 	}
-	log.Printf("using default buildsvc for %v\n", project)
+	// log.Printf("using default buildsvc for %v\n", project)
 	return defaultBuildsvc.Build(project, branch, env, commitid)
 }
