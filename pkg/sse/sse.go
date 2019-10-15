@@ -63,15 +63,14 @@ type EventInfo struct {
 	Project string `json:"project,omitempty"` // event.Project.PathWithNamespace
 	Branch  string `json:"version,omitempty"` // parseBranch(event.Ref)
 
-	Env string `json:"env,omitempty"` // auto detect
-
 	UserName  string `json:"userName,omitempty"`
 	UserEmail string `json:"userEmail,omitempty"`
 	Message   string `json:"releaseMessage,omitempty"`
 	Time      string `json:"releaseAt,omitempty"`
 
-	CommitID   string `json:"-"`
-	FromHarbor bool   `json:"-"`
+	Env      string `json:"env,omitempty"` // auto detect
+	CommitID string `json:"-"`
+	// FromHarbor bool   `json:"-"`
 }
 
 func ParseEventInfoJson(body string) (event *EventInfo, err error) {

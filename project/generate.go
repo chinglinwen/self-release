@@ -74,7 +74,7 @@ func SetGenEnv(env string) func(*genOption) {
 // 	return TEST
 // }
 
-func GetEnvFromBranchOrCommitID(project, branch string) string {
+func GetEnvFromBranchOrCommitID(project, branch string, fromGitlab bool) string {
 	if git.BranchIsTag(branch) {
 		if git.BranchIsOnline(branch) {
 			return ONLINE
@@ -83,6 +83,14 @@ func GetEnvFromBranchOrCommitID(project, branch string) string {
 			return PRE
 		}
 	}
+	// if it's commitid, and from gitlab, it's a test env
+	if fromGitlab {
+		return TEST
+	}
+
+	// if it's from harbor ( means from human, or trx )
+	//  we detect the last commitid to know the env
+	//
 	// check if branch is commitid, manual build should not use this type of tag
 	if len(branch) == 8 {
 		// should we check this? compatible with trx?

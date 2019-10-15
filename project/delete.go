@@ -15,10 +15,12 @@ this error does not helpful?
 // how to apply
 func DeleteByKubectl(project, branch, env string) (out string, err error) {
 	if branch == "" {
-		branch = "develop" // get this config?
+		err = fmt.Errorf("branch is empty")
+		return
 	}
 	if env == "" {
-		env = GetEnvFromBranchOrCommitID(project, branch)
+		err = fmt.Errorf("env is empty")
+		return
 	}
 	ns, p, err := GetProjectName(project)
 	if err != nil {

@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 	"wen/self-release/pkg/sse"
 
 	"github.com/davecgh/go-spew/spew"
 )
 
-var applyBody = `
+var applyPreBody = `
 {
   "project": "robot/mileage-planet",
   "releaseAt": "2019-10-14_16:33:04",
@@ -19,8 +18,19 @@ var applyBody = `
 }
 `
 
+var applyTestBody = `
+{
+  "project": "robot/mileage-planet",
+  "releaseAt": "2019-10-14_16:26:11",
+  "releaseMessage": "[gitlab tag] Update devtest.txt",
+  "userEmail": "374207808@qq.com",
+  "userName": "robot",
+  "version": "af0dcab6"
+}
+`
+
 func TestEventInfoToMap(t *testing.T) {
-	info, err := sse.ParseEventInfoJson(applyBody)
+	info, err := sse.ParseEventInfoJson(applyTestBody)
 	if err != nil {
 		t.Errorf("parse apply body err: %v", err)
 		return
@@ -35,30 +45,30 @@ func TestEventInfoToMap(t *testing.T) {
 	pretty("envmap: ", envmap)
 }
 
-func TestEventInfoToProjectYaml(t *testing.T) {
-	data, err := ParseEvent("push", []byte(pushEvent))
-	if err != nil {
-		t.Error("parse err", err)
-		return
-	}
-	e, ok := data.(*PushEvent)
-	if !ok {
-		t.Error("cast to push event err")
-		return
-	}
+// func TestEventInfoToProjectYaml(t *testing.T) {
+// 	data, err := ParseEvent("push", []byte(pushEvent))
+// 	if err != nil {
+// 		t.Error("parse err", err)
+// 		return
+// 	}
+// 	e, ok := data.(*PushEvent)
+// 	if !ok {
+// 		t.Error("cast to push event err")
+// 		return
+// 	}
 
-	ei, err := e.GetInfo()
-	if err != nil {
-		t.Error("getinfo err", err)
-		return
-	}
-	out, err := EventInfoToProjectYaml(ei)
-	if err != nil {
-		t.Error("toyaml err", err)
-		return
-	}
-	fmt.Printf("out: %v\n", out)
-}
+// 	ei, err := e.GetInfo()
+// 	if err != nil {
+// 		t.Error("getinfo err", err)
+// 		return
+// 	}
+// 	out, err := EventInfoToProjectYaml(ei)
+// 	if err != nil {
+// 		t.Error("toyaml err", err)
+// 		return
+// 	}
+// 	fmt.Printf("out: %v\n", out)
+// }
 
 func TestParseEvent(t *testing.T) {
 	data, err := ParseEvent("push", []byte(pushEvent))

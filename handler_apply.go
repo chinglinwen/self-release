@@ -7,7 +7,6 @@ import (
 	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
-	"github.com/k0kubun/pp"
 	"github.com/labstack/echo"
 )
 
@@ -30,12 +29,15 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 	// env := c.Param("env")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
 	env := c.Param("env")
-	log.Printf("do apply for project: %v\n ", project)
+
+	log.Printf("do apply for project: %v, env: %v\n ", project, env)
+
+	projectenv := fmt.Sprintf("%v-%v", project, env)
 
 	// getinfo
 	body, err := readbody(c.Request())
 	if err != nil {
-		err = fmt.Errorf("read body for %v-%v err: %v", project, env, err)
+		err = fmt.Errorf("read body for %v err: %v", projectenv, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
 		return
@@ -44,7 +46,7 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 	// parse info
 	info, err := sse.ParseEventInfoJson(body)
 	if err != nil {
-		err = fmt.Errorf("parse apply body for %v-%v err: %v", project, env, err)
+		err = fmt.Errorf("parse apply body for %v err: %v", projectenv, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
 		return
@@ -54,16 +56,17 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 
 	envmap, err := EventInfoToMap(info)
 	if err != nil {
-		err = fmt.Errorf("parse event for %v-%v err: %v", project, env, err)
+		err = fmt.Errorf("parse event for %v err: %v", projectenv, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusOK, E(3, err.Error(), "failed"), " ")
 		return
 	}
 
-	log.Printf("envinfo: \n")
-	for k, v := range envmap {
-		pp.Printf("%v: %v\n", k, v)
-	}
+	// log.Printf("envinfo: \n")
+	// for k, v := range envmap {
+	// 	pp.Printf("%v: %v\n", k, v)
+	// }
+	pretty("envinfo", envmap)
 
 	// return c.JSONPretty(http.StatusOK, EData(0, "apply ok", "ok", nil), " ")
 
@@ -72,7 +75,7 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 		// do apply
 		out, err = projectpkg.Apply(project, env, envmap)
 		if err != nil {
-			err = fmt.Errorf("apply for project: %v-%v, err: %v", project, env, err)
+			err = fmt.Errorf("apply for project: %v, err: %v", projectenv, err)
 			log.Println(err)
 			c.JSONPretty(http.StatusOK, E(4, err.Error(), "failed"), " ")
 			return
@@ -84,11 +87,11 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 	// do delete
 	out, err = projectpkg.Delete(project, env, envmap)
 	if err != nil {
-		err = fmt.Errorf("delete for project: %v, err: %v", project, err)
+		err = fmt.Errorf("delete for project: %v, err: %v", projectenv, err)
 		log.Println(err)
 		c.JSONPretty(http.StatusOK, E(4, err.Error(), "failed"), " ")
 		return
 	}
-	log.Printf("delete project: %v, env: %v ok\n", project, env)
+	log.Printf("delete project: %v, env: %v ok\n", projectenv, env)
 	return c.JSONPretty(http.StatusOK, EData(0, "delete ok", "ok", out), " ")
 }

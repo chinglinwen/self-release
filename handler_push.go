@@ -171,19 +171,20 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 	b.Event = e
 
-	// check if from harbor
-	e.FromHarbor = strings.Contains(e.Message, "harbor")
+	// // check if from harbor
+	// fromHarbor := strings.Contains(e.Message, "harbor")
 
-	if e.CommitID == "" && !e.FromHarbor {
-		err = fmt.Errorf("commit id is empty for %v", e.Project)
-		return
-	}
-	pp.Printf("commitid: %v, fromharbor: %v\n", e.CommitID, e.FromHarbor)
+	// if e.CommitID == "" && !fromHarbor {
+	// 	err = fmt.Errorf("commit id is empty for %v", e.Project)
+	// 	return
+	// }
+	pp.Printf("commitid: %v\n", e.CommitID)
 	// spew.Dump("build event", e)
 
 	project := e.Project
 	branch := e.Branch
-	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch)
+	// from gitlab true
+	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, true)
 	commitid := e.CommitID
 
 	// check permission
@@ -253,12 +254,13 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			return
 		}
 		// b.log("clone or open project ok")
-
 	} else {
 		p = bo.p
 	}
 
-	if !projectpkg.BranchIsTag(branch) {
+	// branch is not tag
+	// TODO(wen): build image only for test?
+	if env == projectpkg.TEST {
 		if branch != p.Config.S.DevBranch { // tag should be release, not build?
 			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.S.DevBranch, project)
 			// log.Println(a)
@@ -393,12 +395,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	b.log("<h2>Docker build</h2>")
 
 	// is devbranch, or tag not exist yet
-	var imageexist, needbuild bool
-	if e.FromHarbor {
-		imageexist, needbuild = true, false
-	} else {
-		imageexist, needbuild = p.NeedBuild(commitid)
-	}
+
+	imageexist, needbuild := p.NeedBuild(commitid)
 
 	if ((!bo.nobuild) && needbuild) || bo.buildimage {
 		// out := make(chan string, 10)
@@ -426,15 +424,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 		log.Println("done of receiving build outputs")
 
-		// scanner := bufio.NewScanner(strings.NewReader(out))
-		// // scanner.Split(bufio.ScanLines)
-		// for scanner.Scan() {
-		// 	b.log(scanner.Text())
-		// }
-
-		// for v := range out {
-		// 	b.log("output:", v)
-		// }
 		if buildSuccess {
 			b.log("build is ok.")
 		} else {
@@ -451,19 +440,9 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		b.logf("needbuild detect result: %v\n", needbuild)
 		b.logf("imageexist check result: %v\n", imageexist)
 	}
-	// check if inited or force provide, if not, init first
-
-	// builded, how to relate the image?
-
-	// have a apply script to do that? passing same tag to it, for the image part?
-	// is it need re-generate? provided env is change everytime though
-
 	b.log("<h2>K8s project</h2>")
 
 	if bo.deploy {
-		// ns := autoenv["CI_NAMESPACE"]
-		// out, e := apply(ns, finalyaml)
-
 		var yamlbody, out string
 		yamlbody, out, err = applyReleaseFromEvent(e)
 		if err != nil {

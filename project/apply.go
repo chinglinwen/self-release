@@ -71,9 +71,10 @@ func ApplyByKubectlWithString(body string) (out string, err error) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("apply body err: %v, \ncmd: %v\noutput: %v", err, s, string(output))
+		log.Printf("kubectl apply yaml: \n%v\n", body)
 		return
 	}
-	log.Printf("kubectl apply: %v\n", body)
+	// log.Printf("kubectl apply: %v\n", body)
 	out = string(output)
 	return
 }

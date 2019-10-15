@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"wen/self-release/pkg/sse"
 	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
@@ -16,97 +15,6 @@ import (
 	"github.com/labstack/echo"
 	cache "github.com/patrickmn/go-cache"
 )
-
-// do build if buildmode is manual
-func HarborToDeploy(i *HarborEventInfo) (err error) {
-	log.Printf("got push from: %v, project: %v:%v\n", i.Name, i.Project, i.Tag)
-	project, tag, name := i.Project, i.Tag, i.Name
-
-	d, found := getCache(i)
-	if found {
-		log.Printf("ignore cached event for project: %v:%v, expire in: %v\n", project, tag, d.Format(TimeLayout))
-		return
-	}
-	setCache(i)
-	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(tag), projectpkg.SetConfigMustExist(true))
-	if err != nil {
-		err = fmt.Errorf("project: %v:%v, new err: %v", project, tag, err)
-		return
-	}
-	if !p.IsEnabled() {
-		log.Printf("ignore build for project: %v:%v, project not enabled\n", project, tag)
-		return
-	}
-	log.Printf("start deploy from harbor for project: %v:%v\n", project, tag)
-
-	// bo := &buildOption{
-	// 	gen: true,
-	// 	// nobuild:    f.nobuild,
-	// 	buildimage: false,
-	// 	deploy:     true,
-	// 	// nonotify:   true,
-	// 	p: p,
-	// }
-	e := &sse.EventInfo{
-		Project: project,
-		Branch:  tag,
-		// Env:       env, // default derive from branch
-		UserName: name,
-		// UserEmail: useremail,
-		// harbor keyword is used to distinguish harbor event
-		Message: fmt.Sprintf("[from harbor] %v", name),
-		// FromHarbor: true, // useless to set, since we don't pass to k8s project
-	}
-	log.Printf("ignore harbor event for now, it has duplicate evenets\n")
-
-	// at least update the time to togger the change
-	yamlbody, out, err := applyReleaseFromEvent(e)
-	if err != nil {
-		err = fmt.Errorf("create k8s project resource for project: %v, branch: %v, err: %v", project, tag, err)
-		log.Println(err)
-		log.Printf("yamlbody: %v\n", yamlbody)
-		return
-	}
-
-	log.Printf("created release ok, out: %v\n", out)
-
-	// b := NewBuilder(project, branch)
-	// b.log("starting logs trigger by harbor image push, buildmode: manual")
-
-	// err = b.startBuild(e, bo)
-	// if err != nil {
-	// 	err = fmt.Errorf("startdeploy for project: %v, branch: %v, err: %v", project, branch, err)
-	// 	log.Println(err)
-	// 	return
-	// }
-	return
-}
-
-func applyReleaseFromEvent(e *sse.EventInfo) (yamlbody, out string, err error) {
-	pp.Printf("try apply %v\n", e)
-	yamlbody, err = EventInfoToProjectYaml(e)
-	if err != nil {
-		err = fmt.Errorf("convert event to yaml err: %v", err)
-		return
-	}
-	// pp.Printf("yaml %v\n", r)
-	out, err = projectpkg.ApplyByKubectlWithString(yamlbody)
-	return
-}
-
-var C = cache.New(1*time.Minute, 1*time.Minute)
-
-func setCache(i *HarborEventInfo) {
-	key := fmt.Sprintf("%v:%v-%v", i.Project, i.Tag, i.Name)
-	d, _ := time.ParseDuration("1m")
-	C.Set(key, i, d)
-}
-
-func getCache(i *HarborEventInfo) (d time.Time, found bool) {
-	key := fmt.Sprintf("%v:%v-%v", i.Project, i.Tag, i.Name)
-	_, d, found = C.GetWithExpiration(key)
-	return
-}
 
 func harborHandler(c echo.Context) (err error) {
 	//may do redirect later?
@@ -148,6 +56,182 @@ func harborHandler(c echo.Context) (err error) {
 		return
 	}
 	return c.JSONPretty(http.StatusOK, E(0, "push event handle ok", "ok"), " ")
+}
+
+// type HarborEvent struct {
+// 	Project string
+// 	Branch  string
+// 	// Env:       env, // default derive from branch
+// 	UserName string
+// 	// UserEmail: useremail,
+// 	// harbor keyword is used to distinguish harbor event
+// 	Message string
+// }
+
+// do build if buildmode is manual
+func HarborToDeploy(e *HarborEventInfo) (err error) {
+	log.Printf("got push from: %v, project: %v:%v\n", e.Name, e.Project, e.Tag)
+	project, tag := e.Project, e.Tag
+
+	d, found := getCache(e)
+	if found {
+		log.Printf("ignore cached event for project: %v:%v, expire in: %v\n", project, tag, d.Format(TimeLayout))
+		return
+	}
+	setCache(e)
+	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(tag), projectpkg.SetConfigMustExist(true))
+	if err != nil {
+		err = fmt.Errorf("project: %v:%v, new err: %v", project, tag, err)
+		return
+	}
+	if !p.IsEnabled() {
+		log.Printf("ignore build for project: %v:%v, project not enabled\n", project, tag)
+		return
+	}
+	log.Printf("start deploy from harbor for project: %v:%v\n", project, tag)
+
+	// bo := &buildOption{
+	// 	gen: true,
+	// 	// nobuild:    f.nobuild,
+	// 	buildimage: false,
+	// 	deploy:     true,
+	// 	// nonotify:   true,
+	// 	p: p,
+	// }
+	// e := &sse.EventInfo{
+	// 	Project: project,
+	// 	Branch:  tag,
+	// 	// Env:       env, // default derive from branch
+	// 	UserName: name,
+	// 	// UserEmail: useremail,
+	// 	// harbor keyword is used to distinguish harbor event
+	// 	Message: fmt.Sprintf("[from harbor] %v", name),
+	// 	// FromHarbor: true, // useless to set, since we don't pass to k8s project
+	// }
+
+	// at least update the time to togger the change
+	yamlbody, out, err := e.applyReleaseFromEvent()
+	if err != nil {
+		err = fmt.Errorf("create k8s project resource for project: %v, branch: %v, err: %v", project, tag, err)
+		log.Println(err)
+		log.Printf("yamlbody: %v\n", yamlbody)
+		return
+	}
+
+	log.Printf("created release ok, out: %v\n", out)
+
+	// b := NewBuilder(project, branch)
+	// b.log("starting logs trigger by harbor image push, buildmode: manual")
+
+	// err = b.startBuild(e, bo)
+	// if err != nil {
+	// 	err = fmt.Errorf("startdeploy for project: %v, branch: %v, err: %v", project, branch, err)
+	// 	log.Println(err)
+	// 	return
+	// }
+	return
+}
+
+func (e *HarborEventInfo) applyReleaseFromEvent() (yamlbody, out string, err error) {
+	pp.Printf("try apply %v\n", e)
+	yamlbody, err = e.ToProjectYaml()
+	if err != nil {
+		err = fmt.Errorf("convert event to yaml err: %v", err)
+		return
+	}
+	out, err = applyRelease(yamlbody)
+	return
+}
+
+func applyRelease(yamlbody string) (out string, err error) {
+	return projectpkg.ApplyByKubectlWithString(yamlbody)
+}
+
+// name need to be different for different env
+// we don't know the email from harbor
+var projectYamlTmpl = `
+apiVersion: project.haodai.com/v1alpha1
+kind: Project
+metadata:
+  name: %v-%v
+  namespace: %v
+spec:
+  version: "%v"
+  userName: "%v"
+  userEmail: "%v"
+  releaseMessage: "%v"
+  releaseAt: "%v"
+`
+
+type projectYaml struct {
+	name    string
+	env     string
+	ns      string
+	version string
+	user    string
+	mail    string
+	msg     string
+	time    string
+}
+
+func (p *projectYaml) ToProjectYaml() (body string) {
+	time := time.Now().Format(TimeLayout)
+	log.Printf("construct yaml: project: %v, env: %v, version: %v\n", p.name, p.env, p.version)
+	body = fmt.Sprintf(projectYamlTmpl, p.name, p.env, p.ns, p.version,
+		p.user, p.mail, p.msg, time)
+	return
+}
+
+func (e *HarborEventInfo) ToProjectYaml() (body string, err error) {
+	ns, name, err := projectpkg.GetProjectName(e.Project)
+	if err != nil {
+		err = fmt.Errorf("parse project name for %q, err: %v", e.Project, err)
+		return
+	}
+
+	// is this needed, we often don't need overwrite env by manual?
+	// fromGitlab is false
+	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Tag, false)
+	log.Printf("got env: %v for %v:%v\n", env, e.Project, e.Tag)
+
+	version := e.Tag
+
+	// // for test env, change version to commitid if from gitlab event
+	// if env == projectpkg.TEST && e.CommitID != "" {
+	// 	// so test image changed ( otherwise always the same )
+	// 	version = e.CommitID
+	// }
+
+	msg := fmt.Sprintf("[from harbor] %v", name)
+	// time := time.Now().Format(TimeLayout)
+
+	log.Printf("construct yaml: project: %v, env: %v, version: %v\n", e.Project, env, version)
+
+	// convert info to version?
+	p := projectYaml{
+		name:    name,
+		env:     env,
+		ns:      ns,
+		version: version,
+		user:    e.User,
+		msg:     msg,
+	}
+	body = p.ToProjectYaml()
+	return
+}
+
+var C = cache.New(1*time.Minute, 1*time.Minute)
+
+func setCache(i *HarborEventInfo) {
+	key := fmt.Sprintf("%v:%v-%v", i.Project, i.Tag, i.Name)
+	d, _ := time.ParseDuration("1m")
+	C.Set(key, i, d)
+}
+
+func getCache(i *HarborEventInfo) (d time.Time, found bool) {
+	key := fmt.Sprintf("%v:%v-%v", i.Project, i.Tag, i.Name)
+	_, d, found = C.GetWithExpiration(key)
+	return
 }
 
 func readbody(r *http.Request) (body string, err error) {
@@ -199,6 +283,7 @@ type HarborEventInfo struct {
 	IP      string
 	Project string
 	Tag     string
+	User    string
 
 	e *HarborEvent
 }
@@ -209,6 +294,7 @@ func (e *HarborEvent) HarborEventInfo() (i *HarborEventInfo) {
 		Name:    e.Events[0].Actor.Name,
 		Project: e.Events[0].Target.Repository,
 		IP:      e.Events[0].Request.Addr,
+		User:    e.Events[0].Actor.Name,
 		e:       e,
 	}
 	return

@@ -10,6 +10,7 @@ import (
 	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
+	"github.com/k0kubun/pp"
 )
 
 func ParseEvent(eventName string, payload []byte) (data interface{}, err error) {
@@ -48,25 +49,27 @@ func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	// use time and commit-id together
 	// e.CommitID = time.Now().Format(IDTimeLayout)
 	n := len(event.Commits)
-	if n > 0 {
-		if len(event.Commits[n-1].ID) >= 8 {
-			e.CommitID = event.Commits[n-1].ID[:8]
-		}
-		e.Message = fmt.Sprintf("[gitlab push] %v", event.Commits[0].Message)
+	if n == 0 {
+		err = fmt.Errorf("project: %v, commitid not found, got 0 commit", e.Project)
+		return
 	}
+	if len(event.Commits[n-1].ID) >= 8 {
+		e.CommitID = event.Commits[n-1].ID[:8]
+	}
+	e.Message = fmt.Sprintf("[gitlab push] %v", event.Commits[0].Message)
 
-	// auto fetch commitid, mostly not need this for test
-	if e.CommitID == "" {
-		e.CommitID, err = git.GetCommitIDFromTag(e.Project, e.Branch)
-		if err != nil {
-			err = fmt.Errorf("try get commitid for project %v:%v, err: %v", e.Project, e.Branch, err)
-			return
-		}
-		if len(e.CommitID) >= 8 {
-			e.CommitID = e.CommitID[:8]
-		}
-		log.Printf("fetched commitid: %v for %v:%v", e.CommitID, e.Project, e.Branch)
-	}
+	// // auto fetch commitid, mostly not need this for test
+	// if e.CommitID == "" {
+	// 	e.CommitID, err = git.GetCommitIDFromTag(e.Project, e.Branch)
+	// 	if err != nil {
+	// 		err = fmt.Errorf("try get commitid for project %v:%v, err: %v", e.Project, e.Branch, err)
+	// 		return
+	// 	}
+	// 	if len(e.CommitID) >= 8 {
+	// 		e.CommitID = e.CommitID[:8]
+	// 	}
+	// 	log.Printf("fetched commitid: %v for %v:%v", e.CommitID, e.Project, e.Branch)
+	// }
 
 	e.Time = time.Now().Format(TimeLayout)
 
@@ -89,12 +92,14 @@ func (event *TagPushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	// use time and commit-id together
 	// e.CommitID = time.Now().Format(IDTimeLayout)
 	n := len(event.Commits)
-	if n > 0 {
-		if len(event.Commits[n-1].ID) >= 8 {
-			e.CommitID = event.Commits[n-1].ID[:8]
-		}
-		e.Message = fmt.Sprintf("[gitlab tag] %v", event.Commits[0].Message)
+	if n == 0 {
+		err = fmt.Errorf("project: %v, commitid not found, got 0 commit", e.Project)
+		return
 	}
+	if len(event.Commits[n-1].ID) >= 8 {
+		e.CommitID = event.Commits[n-1].ID[:8]
+	}
+	e.Message = fmt.Sprintf("[gitlab tag] %v", event.Commits[0].Message)
 
 	// auto fetch commitid
 	if e.CommitID == "" {
@@ -131,46 +136,87 @@ func GetEventInfoToMap(event Eventer) (autoenv map[string]string, err error) {
 	return EventInfoToMap(e)
 }
 
-// name need to be different for different env
-// makes parse project name harder?
-var projectYamlTmpl = `
-apiVersion: project.haodai.com/v1alpha1
-kind: Project
-metadata:
-  name: %v-%v
-  namespace: %v
-spec:
-  version: "%v"
-  userName: "%v"
-  userEmail: "%v"
-  releaseMessage: "%v"
-  releaseAt: "%v"
-`
+// // must provide enough info for EventInfoToMap later
+// func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
+// 	ns, name, err := projectpkg.GetProjectName(e.Project)
+// 	if err != nil {
+// 		err = fmt.Errorf("parse project name for %q, err: %v", e.Project, err)
+// 		return
+// 	}
+// 	fromGitlab := strings.Contains(e.Message, "gitlab")
 
-// must provide enough info for EventInfoToMap later
+// 	// is this needed, we often don't need overwrite env by manual?
+// 	if e.Env == "" {
+// 		e.Env = projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, fromGitlab)
+// 		log.Printf("got env: %v for %v:%v\n", e.Env, e.Project, e.Branch)
+// 	}
+
+// 	version := e.Branch
+
+// 	// for test env, change version to commitid if from gitlab event
+// 	if env == projectpkg.TEST && e.CommitID != "" {
+// 		// so test image changed ( otherwise always the same )
+// 		version = e.CommitID
+// 	}
+
+// 	if e.Time == "" {
+// 		e.Time = time.Now().Format(TimeLayout)
+// 	}
+// 	log.Printf("construct yaml: project: %v, env: %v, version: %v\n", e.Project, env, version)
+
+// 	// convert info to version?
+// 	body = fmt.Sprintf(projectYamlTmpl, name, env, ns, version,
+// 		e.UserName, e.UserEmail, e.Message, e.Time)
+// 	return
+// }
+
 func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
 	ns, name, err := projectpkg.GetProjectName(e.Project)
 	if err != nil {
 		err = fmt.Errorf("parse project name for %q, err: %v", e.Project, err)
 		return
 	}
-	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch)
+
+	// is this needed, we often don't need overwrite env by manual?
+	// fromGitlab is false
+	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, true)
+	log.Printf("got env: %v for %v:%v\n", env, e.Project, e.Branch)
+
 	version := e.Branch
 
-	// for test env, change version to commitid if from gitlab event
-	if env == projectpkg.TEST && e.CommitID != "" {
+	// // for test env, change version to commitid if from gitlab event
+	if env == projectpkg.TEST {
 		// so test image changed ( otherwise always the same )
 		version = e.CommitID
 	}
 
-	if e.Time == "" {
-		e.Time = time.Now().Format(TimeLayout)
-	}
+	msg := e.Message
+	// time := time.Now().Format(TimeLayout)
+
 	log.Printf("construct yaml: project: %v, env: %v, version: %v\n", e.Project, env, version)
 
 	// convert info to version?
-	body = fmt.Sprintf(projectYamlTmpl, name, env, ns, version,
-		e.UserName, e.UserEmail, e.Message, e.Time)
+	p := projectYaml{
+		name:    name,
+		env:     env,
+		ns:      ns,
+		version: version,
+		user:    e.UserName,
+		mail:    e.UserEmail,
+		msg:     msg,
+	}
+	body = p.ToProjectYaml()
+	return
+}
+
+func applyReleaseFromEvent(e *sse.EventInfo) (yamlbody, out string, err error) {
+	pp.Printf("try apply %v\n", e)
+	yamlbody, err = EventInfoToProjectYaml(e)
+	if err != nil {
+		err = fmt.Errorf("convert event to yaml err: %v", err)
+		return
+	}
+	out, err = applyRelease(yamlbody)
 	return
 }
 
@@ -183,33 +229,39 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 	}
 
 	// check if from harbor, so to change image tag
-	e.FromHarbor = strings.Contains(e.Message, "harbor")
+	fromHarbor := strings.Contains(e.Message, "harbor")
+	fromGitlab := strings.Contains(e.Message, "gitlab")
+
 	// is this needed, we often don't need overwrite env by manual?
 	if e.Env == "" {
-		e.Env = projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch)
+		e.Env = projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, fromGitlab)
+		log.Printf("got env: %v for %v:%v\n", e.Env, e.Project, e.Branch)
 	}
 	if e.Time == "" {
 		e.Time = time.Now().Format(TimeLayout)
 	}
 
+	projectenv := fmt.Sprintf("%v-%v", e.Project, e.Env)
+
 	imagetag := e.CommitID
-	if e.FromHarbor {
+	if fromHarbor {
 		log.Debug.Printf("harbor event use version: %v as imagetag\n", e.Branch)
 		imagetag = e.Branch
 	} else {
 		// get commitid from tag, for test env, just use branch as id
-		log.Debug.Printf("try get commitid from tag: %v as imagetag, oldcommitid: %v\n", e.Branch, e.CommitID)
+		log.Debug.Printf("try get commitid from tag: %v as imagetag\n", e.Branch)
 		imagetag, err = projectpkg.GetCommitIDFromBranch(e.Project, e.Branch)
 		if err != nil {
-			err = fmt.Errorf("getimagetag for project: %v, err: %v", e.Project, err)
+			err = fmt.Errorf("getimagetag for project: %v, err: %v", projectenv, err)
 			return
 		}
+		log.Printf("got commitid: %v for %v\n", imagetag, projectenv)
 	}
 
 	// it will check commitid exists
 	image, err := projectpkg.GetImage(e.Project, imagetag)
 	if err != nil {
-		err = fmt.Errorf("getimage string for project: %v, err: %v", e.Project, err)
+		err = fmt.Errorf("getimage string for project: %v, err: %v", projectenv, err)
 		return
 	}
 
