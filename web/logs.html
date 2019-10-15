@@ -67,7 +67,8 @@
         source.onmessage = function(e) {
 
             // Append the `data` attribute of the message to the DOM.
-            document.body.innerHTML += e.data + '<br>';
+            // document.body.innerHTML += e.data + '<br>';
+            document.body.innerHTML += e.data;
         };
     </script>
     {{end}} {{end}}

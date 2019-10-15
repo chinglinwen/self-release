@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"regexp"
 	"strings"
 	"time"
 	"wen/self-release/git"
@@ -117,22 +118,32 @@ func NewBuilder(project, branch string) (b *builder) {
 func (b *builder) logf(s string, msgs ...interface{}) {
 	msg := fmt.Sprintf(s, msgs...)
 	// log.Println(msg)
-	fmt.Fprint(b.PWriter, msg)
+	b.write(msg)
 	// b.Messages <- msg
 }
 
 func (b *builder) log(msgs ...interface{}) {
 	msg := fmt.Sprint(msgs...)
 	// log.Println(msg)
-	fmt.Fprint(b.PWriter, msg)
+	b.write(msg)
 	// b.Messages <- msg
 }
 
 func (b *builder) logerr(msgs ...interface{}) {
 	msg := fmt.Sprint(msgs...)
 	log.Println(msg)
-	fmt.Fprint(b.PWriter, msg)
+	b.write(msg)
 	// b.Messages <- msg
+}
+
+func (b *builder) write(msg string) {
+	if !checkIsHeader(msg) {
+		msg += "\n"
+	}
+	fmt.Fprint(b.PWriter, msg)
+}
+func checkIsHeader(text string) bool {
+	return regexp.MustCompile(`<h.+</h`).MatchString(text)
 }
 
 func (b *builder) notify(msg, username string) {
@@ -432,13 +443,13 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			return
 		}
 	} else {
-		b.logf("will not build, for flags:<br>")
-		b.logf("runtime options: nobuild: %v\n", bo.nobuild)
-		b.logf("runtime options: buildimage: %v\n", bo.buildimage)
+		b.logf("will not build, for flags:")
+		b.logf("runtime options: nobuild: %v", bo.nobuild)
+		b.logf("runtime options: buildimage: %v", bo.buildimage)
 
-		b.logf("config buildmode: %v\n", p.Config.S.BuildMode)
-		b.logf("needbuild detect result: %v\n", needbuild)
-		b.logf("imageexist check result: %v\n", imageexist)
+		b.logf("config buildmode: %v", p.Config.S.BuildMode)
+		b.logf("needbuild detect result: %v", needbuild)
+		b.logf("imageexist check result: %v", imageexist)
 	}
 	b.log("<h2>K8s project</h2>")
 
@@ -450,7 +461,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			b.logerr(err)
 			return
 		}
-		log.Printf("create release ok, out: %v\n", out)
+		log.Printf("create release ok, out: %v", out)
 		outyaml := strings.ReplaceAll(html.EscapeString(yamlbody), "\n", "<br>")
 		b.logf("created project yaml: <pre>%v</pre>", outyaml)
 		b.logf("apply output:")
