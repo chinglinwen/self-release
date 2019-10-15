@@ -148,5 +148,5 @@ func TestUnmarshalHarborEvent(t *testing.T) {
 	}
 	fmt.Printf("type: %v\n", e.Events[0].Target.MediaType)
 	fmt.Printf("tag: %v\n", e.Events[0].Target.Tag)
-	pretty(e)
+	pretty("e", e)
 }

@@ -3,9 +3,37 @@ package main
 import (
 	"fmt"
 	"testing"
+	"wen/self-release/pkg/sse"
 
 	"github.com/davecgh/go-spew/spew"
 )
+
+var applyBody = `
+{
+  "project": "robot/mileage-planet",
+  "releaseAt": "2019-10-14_16:33:04",
+  "releaseMessage": "[gitlab tag] v1.0.0-pre1",
+  "userEmail": "374207808@qq.com",
+  "userName": "robot",
+  "version": "v1.0.0-pre1"
+}
+`
+
+func TestEventInfoToMap(t *testing.T) {
+	info, err := sse.ParseEventInfoJson(applyBody)
+	if err != nil {
+		t.Errorf("parse apply body err: %v", err)
+		return
+	}
+
+	pretty("got project: ", info)
+	envmap, err := EventInfoToMap(info)
+	if err != nil {
+		t.Errorf("EventInfoToMap err: %v", err)
+		return
+	}
+	pretty("envmap: ", envmap)
+}
 
 func TestEventInfoToProjectYaml(t *testing.T) {
 	data, err := ParseEvent("push", []byte(pushEvent))

@@ -127,6 +127,16 @@ func (p *Project) CreateHarborProjectIfNotExist() (err error) {
 // if it's test, should generate unique id? so new apply will take effects?
 
 // GetImage generate fixed image name and tag.
-func GetImage(project, tag string) string {
-	return fmt.Sprintf("harbor.haodai.net/%v:%v", project, tag)
+// share with build package ( code must be the same )
+func GetImage(project, tag string) (image string, err error) {
+	if project == "" {
+		err = fmt.Errorf("project is empty")
+		return
+	}
+	if tag == "" {
+		err = fmt.Errorf("tag is empty")
+		return
+	}
+	image = fmt.Sprintf("harbor.haodai.net/%v:%v", project, tag)
+	return
 }

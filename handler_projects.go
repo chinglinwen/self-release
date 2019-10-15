@@ -160,9 +160,9 @@ func projectValuesUpdateHandler(c echo.Context) (err error) {
 	return c.JSONPretty(http.StatusOK, E(0, "saved ok", "ok"), " ")
 }
 
-func pretty(a interface{}) {
+func pretty(prefix string, a interface{}) {
 	out, _ := prettyjson.Marshal(a)
-	fmt.Printf("pretty: %s\n", out)
+	fmt.Printf("%v: %s\n", prefix, out)
 }
 
 func projectUpdateHandler(c echo.Context) (err error) {

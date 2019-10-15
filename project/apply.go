@@ -63,7 +63,7 @@ this error does not helpful?
 // }
 
 func ApplyByKubectlWithString(body string) (out string, err error) {
-	return // TODO: disbale it
+	// return // TODO: disbale it
 
 	s := fmt.Sprintf("kubectl apply -f -")
 	cmd := exec.Command("sh", "-c", s)

@@ -83,8 +83,9 @@ func GetEnvFromBranchOrCommitID(project, branch string) string {
 			return PRE
 		}
 	}
-	// check if branch is commitid
+	// check if branch is commitid, manual build should not use this type of tag
 	if len(branch) == 8 {
+		// should we check this? compatible with trx?
 		o, p, err := git.GetLastTagCommitID(project)
 		if err == nil {
 			// pre comes out first, online later
@@ -97,6 +98,16 @@ func GetEnvFromBranchOrCommitID(project, branch string) string {
 		}
 	}
 	return TEST
+}
+
+func GetCommitIDFromBranch(project, branch string) (commitid string, err error) {
+	if !git.BranchIsTag(branch) {
+		commitid = branch
+		return
+	}
+	// what if tag not exist? filterout by harbor event
+	// harbor event don't need this id
+	return git.GetCommitIDFromTag(project, branch)
 }
 
 func GetProjectName(project string) (namespace, name string, err error) {

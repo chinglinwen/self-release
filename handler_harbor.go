@@ -53,11 +53,11 @@ func HarborToDeploy(i *HarborEventInfo) (err error) {
 		// Env:       env, // default derive from branch
 		UserName: name,
 		// UserEmail: useremail,
-		Message:    fmt.Sprintf("[from harbor] %v", name),
-		FromHarbor: true,
+		// harbor keyword is used to distinguish harbor event
+		Message: fmt.Sprintf("[from harbor] %v", name),
+		// FromHarbor: true, // useless to set, since we don't pass to k8s project
 	}
 	log.Printf("ignore harbor event for now, it has duplicate evenets\n")
-	return
 
 	// at least update the time to togger the change
 	yamlbody, out, err := applyReleaseFromEvent(e)

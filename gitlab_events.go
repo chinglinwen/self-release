@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 	"wen/self-release/git"
 	"wen/self-release/pkg/sse"
@@ -181,12 +182,35 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 		return
 	}
 
+	// check if from harbor, so to change image tag
+	e.FromHarbor = strings.Contains(e.Message, "harbor")
 	// is this needed, we often don't need overwrite env by manual?
 	if e.Env == "" {
 		e.Env = projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch)
 	}
 	if e.Time == "" {
 		e.Time = time.Now().Format(TimeLayout)
+	}
+
+	imagetag := e.CommitID
+	if e.FromHarbor {
+		log.Debug.Printf("harbor event use version: %v as imagetag\n", e.Branch)
+		imagetag = e.Branch
+	} else {
+		// get commitid from tag, for test env, just use branch as id
+		log.Debug.Printf("try get commitid from tag: %v as imagetag, oldcommitid: %v\n", e.Branch, e.CommitID)
+		imagetag, err = projectpkg.GetCommitIDFromBranch(e.Project, e.Branch)
+		if err != nil {
+			err = fmt.Errorf("getimagetag for project: %v, err: %v", e.Project, err)
+			return
+		}
+	}
+
+	// it will check commitid exists
+	image, err := projectpkg.GetImage(e.Project, imagetag)
+	if err != nil {
+		err = fmt.Errorf("getimage string for project: %v, err: %v", e.Project, err)
+		return
 	}
 
 	autoenv = make(map[string]string)
@@ -199,7 +223,7 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 	autoenv["CI_REPLICAS"] = "1" // config.env has higher priority to overwrite this
 
 	// calc by version? tag or commitid
-	autoenv["CI_IMAGE"] = projectpkg.GetImage(e.Project, e.CommitID) // or using project_path
+	autoenv["CI_IMAGE"] = image
 
 	autoenv["CI_USER_NAME"] = e.UserName
 	autoenv["CI_USER_EMAIL"] = e.UserEmail

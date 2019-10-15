@@ -19,7 +19,11 @@ const (
 
 // this function can use for testing purpose
 func Build(dir, project, tag, env string) (out string, err error) {
-	image := GetImage(project, tag)
+	image, err := GetImage(project, tag)
+	if err != nil {
+		err = fmt.Errorf("getimage string err: %v", err)
+		return
+	}
 	log.Printf("building for image: %v, env: %v\n", image, env)
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v %v", image, env))
 	cmd.Dir = dir
@@ -38,7 +42,11 @@ func BuildStreamOutput(dir, project, tag, env, commitid string, out chan string)
 	// out = make(chan string, 100)
 	// wg.Add(1)
 
-	image := GetImage(project, commitid)
+	image, err := GetImage(project, commitid)
+	if err != nil {
+		err = fmt.Errorf("getimage string err: %v", err)
+		return
+	}
 	log.Printf("building for image: %v, tag: %v, env: %v\n", image, tag, env)
 
 	var cmd *exec.Cmd
@@ -74,8 +82,17 @@ func BuildStreamOutput(dir, project, tag, env, commitid string, out chan string)
 	return
 }
 
-func GetImage(project, tag string) string {
-	return fmt.Sprintf("harbor.haodai.net/%v:%v", project, tag)
+func GetImage(project, tag string) (image string, err error) {
+	if project == "" {
+		err = fmt.Errorf("project is empty")
+		return
+	}
+	if tag == "" {
+		err = fmt.Errorf("tag is empty")
+		return
+	}
+	image = fmt.Sprintf("harbor.haodai.net/%v:%v", project, tag)
+	return
 }
 
 func isBuildScriptExist(dir string) bool {

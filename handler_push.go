@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html"
 	"strings"
@@ -170,6 +171,9 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 	b.Event = e
 
+	// check if from harbor
+	e.FromHarbor = strings.Contains(e.Message, "harbor")
+
 	if e.CommitID == "" && !e.FromHarbor {
 		err = fmt.Errorf("commit id is empty for %v", e.Project)
 		return
@@ -304,12 +308,12 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// 	b.log("this is a rollback operation")
 	// }
 
-	envmap, err := EventInfoToMap(e)
-	if err != nil {
-		err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
-		b.logerr(err)
-		return
-	}
+	// envmap, err := EventInfoToMap(e)
+	// if err != nil {
+	// 	err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
+	// 	b.logerr(err)
+	// 	return
+	// }
 
 	// mergenote, envMap, err := p.ReadEnvs(autoenv)
 	// if err != nil {
@@ -322,10 +326,22 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// }
 
 	b.log("<h2>Info</h2>")
-	for k, v := range envmap {
-		log.Printf("env: %v = %q\n", k, v)
-		b.logf("%v = %q\n", k, v)
+
+	ebytes, err := json.MarshalIndent(e, "", "  ")
+	if err != nil {
+		err = fmt.Errorf("marshal event to json for %v err: %v", project, err)
+		b.logerr(err)
+		return
 	}
+
+	eventstr := strings.ReplaceAll(html.EscapeString(string(ebytes)), "\n", "<br>")
+	b.logf("<pre>%v</pre>", eventstr)
+
+	// for k, v := range envmap {
+	// 	log.Printf("env: %v = %q\n", k, v)
+	// 	b.logf("%v = %q\n", k, v)
+	// }
+
 	// for _, v := range mergenote {
 	// 	log.Print(v)
 	// 	b.log(v)

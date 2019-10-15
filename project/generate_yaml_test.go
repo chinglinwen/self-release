@@ -15,6 +15,15 @@ func TestHelmGen(t *testing.T) {
 	fmt.Println("out: ", out)
 }
 
+func TestHelmGenPrintValidateYaml(t *testing.T) {
+	out, err := HelmGenPrintValidateYaml("robot/mileage-planet", "pre")
+	if err != nil {
+		t.Error("HelmGenPrintValidateYaml err", err)
+		return
+	}
+	fmt.Println("out: ", out)
+}
+
 /*
     /home/wen/gocode/src/wen/self-release/project/generate_yaml_test.go:22: HelmGen err "\x1b[\xae": unknown escape sequence
 		"\x1b[\xae": unknown escape sequence

@@ -641,7 +641,8 @@ func GetCommitIDFromTag(projectPath, tag string) (id string, err error) {
 	if err != nil {
 		return
 	}
-	id = t.ID
+	// we only use first 8 bytes
+	id = t.ID[:8]
 	return
 }
 func GetCommitFromTag(projectPath, tag string) (t *gitlab.Commit, err error) {

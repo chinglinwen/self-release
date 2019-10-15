@@ -2,9 +2,11 @@
 package project
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	// "github.com/acarl005/stripansi"
@@ -39,9 +41,21 @@ func HelmGenPrintFinal(project, env string, envMap map[string]string) (final str
 	_, err = ValidateByKubectlWithString(final)
 	if err != nil {
 		err = fmt.Errorf("validate yaml err: %v", err)
+		log.Printf("following is invalidate yaml:")
+		printYamlWithNumber(final)
 		return
 	}
 	return
+}
+
+func printYamlWithNumber(final string) {
+	scanner := bufio.NewScanner(strings.NewReader(final))
+	scanner.Split(bufio.ScanLines)
+	i := 1
+	for scanner.Scan() {
+		log.Printf("%v: %v\n", i, scanner.Text())
+		i++
+	}
 }
 
 var exampleEnvMap = getexampleEnvMap()
@@ -64,10 +78,10 @@ const TimeLayout = "2006-1-2_15:04:05"
 
 func getexampleEnvMap() (autoenv map[string]string) {
 	autoenv = make(map[string]string)
-	autoenv["CI_PROJECT_PATH"] = "demo/hello"
+	autoenv["CI_PROJECT_PATH"] = "default/hello"
 	autoenv["CI_BRANCH"] = "v1.0.0"
 	autoenv["CI_ENV"] = "online"
-	autoenv["CI_NAMESPACE"] = "demo"
+	autoenv["CI_NAMESPACE"] = "default"
 	autoenv["CI_PROJECT_NAME"] = "hello"
 	autoenv["CI_PROJECT_NAME_WITH_ENV"] = "hello" + "-" + "online"
 	autoenv["CI_REPLICAS"] = "1"
