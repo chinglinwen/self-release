@@ -70,7 +70,8 @@ type EventInfo struct {
 	Message   string `json:"releaseMessage,omitempty"`
 	Time      string `json:"releaseAt,omitempty"`
 
-	CommitID string `json:"-"`
+	CommitID   string `json:"-"`
+	FromHarbor bool   `json:"-"`
 }
 
 func ParseEventInfoJson(body string) (event *EventInfo, err error) {

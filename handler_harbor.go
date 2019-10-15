@@ -53,7 +53,8 @@ func HarborToDeploy(i *HarborEventInfo) (err error) {
 		// Env:       env, // default derive from branch
 		UserName: name,
 		// UserEmail: useremail,
-		Message: fmt.Sprintf("[from harbor] %v", name),
+		Message:    fmt.Sprintf("[from harbor] %v", name),
+		FromHarbor: true,
 	}
 	log.Printf("ignore harbor event for now, it has duplicate evenets\n")
 	return

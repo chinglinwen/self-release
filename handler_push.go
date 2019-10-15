@@ -170,11 +170,11 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 	b.Event = e
 
-	if e.CommitID == "" {
+	if e.CommitID == "" && !e.FromHarbor {
 		err = fmt.Errorf("commit id is empty for %v", e.Project)
 		return
 	}
-	pp.Printf("commitid: %v\n", e.CommitID)
+	pp.Printf("commitid: %v, fromharbor: %v\n", e.CommitID, e.FromHarbor)
 	// spew.Dump("build event", e)
 
 	project := e.Project
@@ -377,7 +377,13 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	b.log("<h2>Docker build</h2>")
 
 	// is devbranch, or tag not exist yet
-	imageexist, needbuild := p.NeedBuild(commitid)
+	var imageexist, needbuild bool
+	if e.FromHarbor {
+		imageexist, needbuild = true, false
+	} else {
+		imageexist, needbuild = p.NeedBuild(commitid)
+	}
+
 	if ((!bo.nobuild) && needbuild) || bo.buildimage {
 		// out := make(chan string, 10)
 
