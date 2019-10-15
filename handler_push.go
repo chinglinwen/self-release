@@ -17,6 +17,8 @@ import (
 	projectpkg "wen/self-release/project"
 )
 
+const ingressSuffix = "newops.haodai.net"
+
 // get autoenv from events
 
 // const DevBranch = "develop"
@@ -160,21 +162,6 @@ func (b *builder) notify(msg, username string) {
 }
 
 func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
-	defer func() {
-		log.Debug.Printf("try close broker now\n")
-		b.Close()
-		log.Debug.Printf("try close broker ok\n")
-		if bo != nil && bo.nonotify {
-			return
-		}
-		if err != nil {
-			b.notify("build err:\n"+err.Error(), b.Event.UserName)
-		} else {
-			text := fmt.Sprintf("release for project: %v, branch: %v, env: %v ok", b.Project, b.Branch, b.Event.Env)
-			b.notify(text, b.Event.UserName)
-		}
-		log.Debug.Printf("exit startBuild now\n")
-	}()
 	e, err := event.GetInfo()
 	if err != nil {
 		err = fmt.Errorf("GetInfo for %v, err: %v", e.Project, err)
@@ -198,14 +185,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, true)
 	commitid := e.CommitID
 
-	// check permission
-	err = git.CheckPerm(project, e.UserName, env)
-	if err != nil {
-		err = fmt.Errorf("check permission for %q, user: %v, err: %v", project, e.UserName, err)
-		return
-	}
-	log.Debug.Printf("check permission for %q, user: %v ok\n", project, e.UserName)
-
 	// bname := strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
 	// b := NewBuilder(bname)
 	// defer b.Close()
@@ -217,6 +196,32 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	notifytext := fmt.Sprintf("%vlog url: %v/logs?key=%v", tip, *selfURL, b.Key)
 	b.notify(notifytext, e.UserName)
+
+	defer func() {
+		log.Debug.Printf("try close broker now\n")
+		b.Close()
+		log.Debug.Printf("try close broker ok\n")
+		if bo != nil && bo.nonotify {
+			return
+		}
+		if err != nil {
+			b.notify("build err:\n"+err.Error(), b.Event.UserName)
+		} else {
+			url := getProjectURL(project, env)
+			text := fmt.Sprintf("release for project: %v, branch: %v, env: %v ok\nurl: %v", b.Project, b.Branch, env, url)
+			b.notify(text, b.Event.UserName)
+
+		}
+		log.Debug.Printf("exit startBuild now\n")
+	}()
+
+	// check permission
+	err = git.CheckPerm(project, e.UserName, env)
+	if err != nil {
+		err = fmt.Errorf("check permission for %q, user: %v, err: %v", project, e.UserName, err)
+		return
+	}
+	log.Debug.Printf("check permission for %q, user: %v ok\n", project, e.UserName)
 
 	if bo == nil {
 		bo = &buildOption{
@@ -474,6 +479,11 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	b.logf("<hr>end at %v .", time.Now().Format(TimeLayout))
 	return
+}
+
+func getProjectURL(project, env string) string {
+	project = strings.Replace(project, "/", "-", -1)
+	return fmt.Sprintf("https://%v-%v.%v", project, env, ingressSuffix)
 }
 
 func getproject(project, branch string) (p *projectpkg.Project, err error) {

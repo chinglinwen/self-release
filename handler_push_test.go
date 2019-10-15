@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -16,4 +17,9 @@ func TestCheckIsHeader(t *testing.T) {
 		t.Error("checkIsHeader err, should be false, got true")
 		return
 	}
+}
+
+func TestGetProjectURL(t *testing.T) {
+	fmt.Printf("url: %v\n", getProjectURL("robot/mileage-planet", "pre"))
+	fmt.Printf("url: %v\n", getProjectURL("robot/mileage-planet", "test"))
 }
