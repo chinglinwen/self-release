@@ -208,7 +208,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			b.notify("build err:\n"+err.Error(), b.Event.UserName)
 		} else {
 			url := getProjectURL(project, env)
-			text := fmt.Sprintf("release for project: %v, branch: %v, env: %v ok\nurl: %v", b.Project, b.Branch, env, url)
+			text := fmt.Sprintf("release for project: %v, branch: %v, env: %v ok\n项目访问地址: %v", b.Project, b.Branch, env, url)
 			b.notify(text, b.Event.UserName)
 
 		}
