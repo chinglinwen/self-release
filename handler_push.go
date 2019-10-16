@@ -185,6 +185,29 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, true)
 	commitid := e.CommitID
 
+	logurl := fmt.Sprintf("%v/logs?key=%v", *selfURL, b.Key)
+
+	go func() {
+		_, err := git.SetCommitStatusRunning(project, commitid, logurl)
+		if err != nil {
+			log.Println("SetCommitStatusRunning err: ", err)
+		}
+	}()
+
+	defer func() {
+		if err != nil {
+			_, err := git.SetCommitStatusFailed(project, commitid, logurl)
+			if err != nil {
+				log.Println("SetCommitStatusFailed err: ", err)
+			}
+		} else {
+			_, err := git.SetCommitStatusSuccess(project, commitid, logurl)
+			if err != nil {
+				log.Println("SetCommitStatusSuccess err: ", err)
+			}
+		}
+	}()
+
 	// bname := strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
 	// b := NewBuilder(bname)
 	// defer b.Close()
@@ -194,7 +217,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	log.Debug.Printf(tip)
 
-	notifytext := fmt.Sprintf("%vlog url: %v/logs?key=%v", tip, *selfURL, b.Key)
+	notifytext := fmt.Sprintf("%vlog url: %v", tip, logurl)
 	b.notify(notifytext, e.UserName)
 
 	defer func() {

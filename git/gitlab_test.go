@@ -83,16 +83,39 @@ commit: {
   "title": "Merge branch 'develop' into 'master'"
 }
 */
+
+func TestSetCommitStatus(t *testing.T) {
+	u, err := GetCommitFromTag("robot/project-example", "a748c3b3")
+	if err != nil {
+		t.Error("check tag err ", err)
+		return
+	}
+	pretty("commit", u)
+
+	x, err := SetCommitStatusSuccess("robot/project-example", "a748c3b3")
+	if err != nil {
+		t.Error("set state err ", err)
+		return
+	}
+	pretty("commit", x)
+
+	u, err = GetCommitFromTag("robot/project-example", "a748c3b3")
+	if err != nil {
+		t.Error("check tag err ", err)
+		return
+	}
+	pretty("commit", u)
+}
 func TestGetCommitFromTag(t *testing.T) {
 
-	u, err := GetCommitFromTag("wenzhenglin/project-example", "master")
+	u, err := GetCommitFromTag("robot/mileage-planet", "828ead19253b7e6214b6e29db83646c1f3167b1f")
 	if err != nil {
 		t.Error("check tag err ", err)
 		return
 	}
 	fmt.Println("commit:", u.ShortID, u.Title)
 	pretty("commit", u)
-
+	return
 	u, err = GetCommitFromTag("robot/project-example", "v1.0.3-pre5.4dev")
 	if err != nil {
 		t.Error("check tag err ", err)

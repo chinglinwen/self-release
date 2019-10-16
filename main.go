@@ -47,7 +47,7 @@ var (
 	gitlabAccessToken = flag.String("gitlab-token", "", "gitlab admin access token")
 	defaultRepoDir    = flag.String("repoDir", "repos", "default path to store cloned projects")
 
-	selfURL = flag.String("self-url", "http://release.newops.haodai.net", "self URL for log view")
+	selfURL = flag.String("self-url", "http://release.haodai.net", "self URL for log view")
 )
 
 func checkFlag() {

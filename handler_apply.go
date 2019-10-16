@@ -80,6 +80,12 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 			c.JSONPretty(http.StatusOK, E(4, err.Error(), "failed"), " ")
 			return
 		}
+		// go func() {
+		// 	_, err := git.SetCommitStatusSuccess(project, info.Branch)
+		// 	if err != nil {
+		// 		log.Println("SetCommitStatusSuccess err: ", err)
+		// 	}
+		// }()
 		log.Printf("apply project: %v-%v ok\n", project, env)
 		return c.JSONPretty(http.StatusOK, EData(0, "apply ok", "ok", out), " ")
 	}
@@ -92,6 +98,14 @@ func applyOrDelete(c echo.Context, op int) (err error) {
 		c.JSONPretty(http.StatusOK, E(4, err.Error(), "failed"), " ")
 		return
 	}
+
+	// go func() {
+	// 	_, err := git.SetCommitStatusFailed(project, info.Branch)
+	// 	if err != nil {
+	// 		log.Println("SetCommitStatusFailed err: ", err)
+	// 	}
+	// }()
+
 	log.Printf("delete project: %v, env: %v ok\n", projectenv, env)
 	return c.JSONPretty(http.StatusOK, EData(0, "delete ok", "ok", out), " ")
 }

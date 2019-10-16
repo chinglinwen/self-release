@@ -635,6 +635,45 @@ func CheckTagExist(projectPath, tag string) (t *gitlab.Tag, err error) {
 	}
 	return
 }
+func SetCommitStatusSuccess(projectPath, tag, logurl string) (t *gitlab.CommitStatus, err error) {
+	return SetCommitStatus(projectPath, tag, logurl, string(gitlab.Success))
+}
+func SetCommitStatusPending(projectPath, tag, logurl string) (t *gitlab.CommitStatus, err error) {
+	return SetCommitStatus(projectPath, tag, logurl, string(gitlab.Pending))
+}
+func SetCommitStatusRunning(projectPath, tag, logurl string) (t *gitlab.CommitStatus, err error) {
+	return SetCommitStatus(projectPath, tag, logurl, string(gitlab.Running))
+}
+func SetCommitStatusFailed(projectPath, tag, logurl string) (t *gitlab.CommitStatus, err error) {
+	return SetCommitStatus(projectPath, tag, logurl, string(gitlab.Failed))
+}
+
+// it can be tag
+func SetCommitStatus(projectPath, tag, logurl, state string) (t *gitlab.CommitStatus, err error) {
+	p, err := GetProject(projectPath)
+	if err != nil {
+		err = fmt.Errorf("get project err: %v", err)
+		return
+	}
+	name := "self-release"
+	t, _, err = adminclient().Commits.SetCommitStatus(p.ID, tag, &gitlab.SetCommitStatusOptions{
+		State:     gitlab.BuildStateValue(state),
+		Name:      &name,
+		TargetURL: &logurl,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "Not Found") {
+			err = fmt.Errorf("commit not found")
+		}
+		err = fmt.Errorf("get commit %v err: %v", tag, err)
+		return
+	}
+	if t.Status != state {
+		err = fmt.Errorf("set commit status to %v failed, got %v", state, t.Status)
+		return
+	}
+	return
+}
 
 func GetCommitIDFromTag(projectPath, tag string) (id string, err error) {
 	t, err := GetCommitFromTag(projectPath, tag)
@@ -645,6 +684,7 @@ func GetCommitIDFromTag(projectPath, tag string) (id string, err error) {
 	id = t.ID[:8]
 	return
 }
+
 func GetCommitFromTag(projectPath, tag string) (t *gitlab.Commit, err error) {
 	p, err := GetProject(projectPath)
 	if err != nil {

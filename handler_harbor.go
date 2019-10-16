@@ -84,8 +84,8 @@ func HarborToDeploy(e *HarborEventInfo) (err error) {
 		err = fmt.Errorf("project: %v:%v, new err: %v", project, tag, err)
 		return
 	}
-	if !p.IsEnabled() {
-		log.Printf("ignore build for project: %v:%v, project not enabled\n", project, tag)
+	if !p.IsEnabled() || !p.IsManual() {
+		log.Printf("ignore build for project: %v:%v, project not enabled or buildmode is not manual \n", project, tag)
 		return
 	}
 	log.Printf("start deploy from harbor for project: %v:%v\n", project, tag)
