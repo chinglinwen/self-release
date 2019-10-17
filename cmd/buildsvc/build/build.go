@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	projectpkg "wen/self-release/project"
+
 	"github.com/pborman/ansi"
 	// "github.com/acarl005/stripansi"
 	"github.com/chinglinwen/log"
@@ -19,7 +21,7 @@ const (
 
 // this function can use for testing purpose
 func Build(dir, project, tag, env string) (out string, err error) {
-	image, err := GetImage(project, tag)
+	image, err := projectpkg.GetImage(project, tag)
 	if err != nil {
 		err = fmt.Errorf("getimage string err: %v", err)
 		return
@@ -42,7 +44,7 @@ func BuildStreamOutput(dir, project, tag, env, commitid string, out chan string)
 	// out = make(chan string, 100)
 	// wg.Add(1)
 
-	image, err := GetImage(project, commitid)
+	image, err := projectpkg.GetImage(project, commitid)
 	if err != nil {
 		err = fmt.Errorf("getimage string err: %v", err)
 		return
@@ -82,18 +84,18 @@ func BuildStreamOutput(dir, project, tag, env, commitid string, out chan string)
 	return
 }
 
-func GetImage(project, tag string) (image string, err error) {
-	if project == "" {
-		err = fmt.Errorf("project is empty")
-		return
-	}
-	if tag == "" {
-		err = fmt.Errorf("tag is empty")
-		return
-	}
-	image = fmt.Sprintf("harbor.haodai.net/%v:%v", project, tag)
-	return
-}
+// func GetImage(project, commitid string) (image string, err error) {
+// 	if project == "" {
+// 		err = fmt.Errorf("project is empty")
+// 		return
+// 	}
+// 	if commitid == "" {
+// 		err = fmt.Errorf("commitid is empty")
+// 		return
+// 	}
+// 	image = fmt.Sprintf("harbor.haodai.net/%v:%v", project, commitid)
+// 	return
+// }
 
 func isBuildScriptExist(dir string) bool {
 	f := filepath.Join(dir, BuildScriptName)

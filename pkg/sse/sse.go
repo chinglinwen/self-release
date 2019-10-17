@@ -59,15 +59,15 @@ type Broker struct {
 
 // this type now relate to k8s project object
 type EventInfo struct {
-	Project string `json:"project,omitempty"` // event.Project.PathWithNamespace
-	Branch  string `json:"version,omitempty"` // parseBranch(event.Ref)
+	Project string `json:"project"` // event.Project.PathWithNamespace
+	Branch  string `json:"version"` // parseBranch(event.Ref)
 
-	UserName  string `json:"userName,omitempty"`
-	UserEmail string `json:"userEmail,omitempty"`
-	Message   string `json:"releaseMessage,omitempty"`
-	Time      string `json:"releaseAt,omitempty"`
+	UserName  string `json:"userName"`
+	UserEmail string `json:"userEmail"`
+	Message   string `json:"releaseMessage"`
+	Time      string `json:"releaseAt"`
 
-	Env      string `json:"env,omitempty"` // auto detect
+	Env      string `json:"env"` // auto detect
 	CommitID string `json:"-"`
 	// FromHarbor bool   `json:"-"`
 }

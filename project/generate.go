@@ -109,6 +109,7 @@ func GetEnvFromBranchOrCommitID(project, branch string, fromGitlab bool) string 
 }
 
 func GetCommitIDFromBranch(project, branch string) (commitid string, err error) {
+	// not tag maybe it's commitid, or branch name?
 	if !git.BranchIsTag(branch) {
 		commitid = branch
 		return

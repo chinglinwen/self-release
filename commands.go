@@ -189,7 +189,7 @@ func deploy(dev, args string) (out string, err error) {
 	}
 	f := parseFlag(args)
 	bo := &buildOption{
-		gen:        true,
+		// gen:        true,
 		nobuild:    f.nobuild,
 		buildimage: f.buildimage,
 		deploy:     true,
@@ -201,7 +201,7 @@ func deploy(dev, args string) (out string, err error) {
 		// Env:       env, // default derive from branch
 		UserName: dev,
 		// UserEmail: useremail,
-		Message: fmt.Sprintf("from %v, args: %v ", dev, args),
+		Message: fmt.Sprintf("from wechat %v, args: %v ", dev, args),
 	}
 
 	b := NewBuilder(project, branch)

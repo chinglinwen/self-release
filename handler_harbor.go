@@ -178,7 +178,39 @@ type projectYaml struct {
 	time    string
 }
 
-func (p *projectYaml) ToProjectYaml() (body string) {
+func (p *projectYaml) validate() (err error) {
+	if p.name == "" {
+		return fmt.Errorf("project is empty")
+	}
+	if p.ns == "" {
+		return fmt.Errorf("namespace is empty")
+	}
+	if p.version == "" {
+		return fmt.Errorf("branch or commitid is empty")
+	}
+	if p.env == "" {
+		return fmt.Errorf("env is empty")
+	}
+	if p.user == "" {
+		return fmt.Errorf("user or commitid is empty")
+	}
+	// ignored, msg, time, and email
+	return
+}
+
+func (p *projectYaml) ToProjectYamlSkipValidate() (body string) {
+	return p.toProjectYaml()
+}
+
+func (p *projectYaml) ToProjectYaml() (body string, err error) {
+	if err = p.validate(); err != nil {
+		return
+	}
+	body = p.toProjectYaml()
+	return
+}
+
+func (p *projectYaml) toProjectYaml() (body string) {
 	time := time.Now().Format(TimeLayout)
 	log.Printf("construct yaml: project: %v, env: %v, version: %v\n", p.name, p.env, p.version)
 	body = fmt.Sprintf(projectYamlTmpl, p.name, p.env, p.ns, p.version,
@@ -220,8 +252,7 @@ func (e *HarborEventInfo) ToProjectYaml() (body string, err error) {
 		user:    e.User,
 		msg:     msg,
 	}
-	body = p.ToProjectYaml()
-	return
+	return p.ToProjectYaml()
 }
 
 var C = cache.New(1*time.Minute, 1*time.Minute)

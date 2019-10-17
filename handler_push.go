@@ -161,6 +161,24 @@ func (b *builder) notify(msg, username string) {
 	return
 }
 
+func validateRequest(project, branch, env, commitid string) (err error) {
+	if project == "" {
+		return fmt.Errorf("project is empty")
+	}
+	if branch == "" {
+		return fmt.Errorf("branch is empty")
+	}
+
+	if env == "" {
+		return fmt.Errorf("env is empty")
+	}
+
+	if commitid == "" {
+		return fmt.Errorf("commitid is empty")
+	}
+	return
+}
+
 func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	e, err := event.GetInfo()
 	if err != nil {
@@ -169,13 +187,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 	b.Event = e
 
-	// // check if from harbor
-	// fromHarbor := strings.Contains(e.Message, "harbor")
+	// not from gitlab, maybe from harbor or from wechat
 
-	// if e.CommitID == "" && !fromHarbor {
-	// 	err = fmt.Errorf("commit id is empty for %v", e.Project)
-	// 	return
-	// }
 	pp.Printf("commitid: %v\n", e.CommitID)
 	// spew.Dump("build event", e)
 
@@ -184,6 +197,19 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// from gitlab true
 	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, true)
 	commitid := e.CommitID
+
+	// empty means not from gitlab
+	fromHarbor := strings.Contains(e.Message, "harbor")
+	if commitid == "" && !fromHarbor {
+		commitid, err = git.GetCommitIDFromTag(project, branch)
+		if err != nil {
+			return
+		}
+	}
+
+	if err = validateRequest(project, branch, env, commitid); err != nil {
+		return
+	}
 
 	logurl := fmt.Sprintf("%v/logs?key=%v", *selfURL, b.Key)
 
@@ -224,16 +250,16 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		log.Debug.Printf("try close broker now\n")
 		b.Close()
 		log.Debug.Printf("try close broker ok\n")
-		if bo != nil && bo.nonotify {
-			return
-		}
 		if err != nil {
+			if bo != nil && bo.nonotify {
+				return
+			}
 			b.notify("build err:\n"+err.Error(), b.Event.UserName)
+
 		} else {
 			url := getProjectURL(project, env)
 			text := fmt.Sprintf("release for project: %v, branch: %v, env: %v ok\n项目访问地址: %v", b.Project, b.Branch, env, url)
 			b.notify(text, b.Event.UserName)
-
 		}
 		log.Debug.Printf("exit startBuild now\n")
 	}()
@@ -466,7 +492,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		if buildSuccess {
 			b.log("build is ok.")
 		} else {
-			err = fmt.Errorf("build is failed, maybe internal error, or build-script error.")
+			err = fmt.Errorf("no keyword digest in build logs,so build is failed")
 			b.logerr(err)
 			return
 		}

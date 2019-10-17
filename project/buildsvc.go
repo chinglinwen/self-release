@@ -86,6 +86,9 @@ func NewBuildSVC(addr string) *Buildsvc {
 }
 
 func (b *Buildsvc) Build(project, branch, env, commitid string) (out chan string, err error) {
+	log.Debug.Printf("start build for %v, branch: %v, env: %v, commitid: %v\n",
+		project, branch, env, commitid)
+
 	out = make(chan string, 100) // increase to 500, will cause later deepcopy panic
 
 	r := &pb.Request{
@@ -95,11 +98,9 @@ func (b *Buildsvc) Build(project, branch, env, commitid string) (out chan string
 		Commitid: commitid,
 	}
 
-	log.Debug.Printf("requesting... %v", r)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	stream, err := b.client.Build(ctx, r)
 	if err != nil {
-		cancel()
 		err = fmt.Errorf("rpc call failed: %v", err)
 		return
 	}
@@ -120,7 +121,7 @@ func (b *Buildsvc) Build(project, branch, env, commitid string) (out chan string
 			// log.Printf("%v", output.GetOutput())
 			out <- output.GetOutput()
 		}
-		log.Debug.Printf("done of rpc call for %v\n", project)
+		log.Debug.Printf("done of receive output for %v\n", project)
 	}()
 	log.Debug.Printf("made rpc call for %v, receiving output now...\n", project)
 	return

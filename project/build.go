@@ -128,15 +128,15 @@ func (p *Project) CreateHarborProjectIfNotExist() (err error) {
 
 // GetImage generate fixed image name and tag.
 // share with build package ( code must be the same )
-func GetImage(project, tag string) (image string, err error) {
+func GetImage(project, commitid string) (image string, err error) {
 	if project == "" {
 		err = fmt.Errorf("project is empty")
 		return
 	}
-	if tag == "" {
-		err = fmt.Errorf("tag is empty")
+	if commitid == "" {
+		err = fmt.Errorf("commitid is empty")
 		return
 	}
-	image = fmt.Sprintf("harbor.haodai.net/%v:%v", project, tag)
+	image = fmt.Sprintf("harbor.haodai.net/%v:%v", project, commitid)
 	return
 }

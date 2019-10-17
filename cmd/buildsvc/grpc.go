@@ -17,6 +17,7 @@ import (
 	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
+	prettyjson "github.com/hokaccha/go-prettyjson"
 	"google.golang.org/grpc"
 )
 
@@ -48,12 +49,40 @@ type buildServer struct {
 // 	return true
 // }
 
-func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err error) {
-	log.Printf("start build %v:%v:%v", r.Project, r.Branch, r.Env)
+func pretty(prefix string, a interface{}) {
+	out, _ := prettyjson.Marshal(a)
+	fmt.Printf("%v: %s\n", prefix, out)
+}
 
+func validateRequest(r *pb.Request) (err error) {
+	if r.Project == "" {
+		return fmt.Errorf("project is empty")
+	}
+	if r.Branch == "" {
+		return fmt.Errorf("branch is empty")
+	}
+
+	if r.Env == "" {
+		return fmt.Errorf("env is empty")
+	}
+
+	if r.Commitid == "" {
+		return fmt.Errorf("commitid is empty")
+	}
+	return
+}
+func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err error) {
+	// log.Printf("start build %v:%v:%v", r.Project, r.Branch, r.Env)
+
+	pretty("start build:", r)
 	// err = fmt.Errorf("(testerrorreturn)build image failed, checkout logs")
 	// log.Println(err)
 	// return
+
+	if err = validateRequest(r); err != nil {
+		log.Println(err)
+		return
+	}
 
 	key := fmt.Sprintf("%v:%v:%v", r.Project, r.Branch, r.Env)
 	if _, ok := s.cache[key]; ok {

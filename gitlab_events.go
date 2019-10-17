@@ -188,6 +188,14 @@ func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
 	if env == projectpkg.TEST {
 		// so test image changed ( otherwise always the same )
 		version = e.CommitID
+
+		// from wechat or id is lost in k8s project
+		if version == "" {
+			version, err = git.GetCommitIDFromTag(e.Project, e.Branch)
+			if err != nil {
+				return
+			}
+		}
 	}
 
 	msg := e.Message
@@ -205,8 +213,7 @@ func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
 		mail:    e.UserEmail,
 		msg:     msg,
 	}
-	body = p.ToProjectYaml()
-	return
+	return p.ToProjectYaml()
 }
 
 func applyReleaseFromEvent(e *sse.EventInfo) (yamlbody, out string, err error) {
@@ -233,7 +240,7 @@ func deleteReleaseFromCommand(project, branch string) (out string, err error) {
 		env:  env,
 		ns:   ns,
 	}
-	yamlbody := p.ToProjectYaml()
+	yamlbody := p.ToProjectYamlSkipValidate()
 	out, err = deleteRelease(yamlbody)
 	return
 }
@@ -275,7 +282,10 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 		}
 		log.Printf("got commitid: %v for %v\n", imagetag, projectenv)
 	}
-
+	if imagetag == "" {
+		err = fmt.Errorf("imagetag is empty for %v", projectenv)
+		return
+	}
 	// it will check commitid exists
 	image, err := projectpkg.GetImage(e.Project, imagetag)
 	if err != nil {
