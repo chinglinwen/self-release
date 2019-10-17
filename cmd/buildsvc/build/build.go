@@ -27,7 +27,7 @@ func Build(dir, project, tag, env string) (out string, err error) {
 		return
 	}
 	log.Printf("building for image: %v, env: %v\n", image, env)
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("./build-docker.sh %v %v", image, env))
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("./%v %v %v", BuildScriptName, image, env))
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -53,8 +53,10 @@ func BuildStreamOutput(dir, project, tag, env, commitid string, out chan string)
 
 	var cmd *exec.Cmd
 	if isBuildScriptExist(dir) {
+		log.Printf("buildscript exist, use it now\n")
 		cmd = exec.Command("sh", "-c", fmt.Sprintf("./%v %v %v", BuildScriptName, image, env))
 	} else {
+		log.Printf("buildscript not exist, use default build scripts\n")
 		log.Printf("using internal build script")
 		cmd = exec.Command("sh", "-c", getDefaultBuildScript(image, env))
 	}
@@ -129,6 +131,7 @@ func getDefaultBuildScript(image, env string) string {
 
 var defaultBuildScript = `
 #!/bin/sh
+# build-docker.sh
 
 image="%v"
 env="%v"
