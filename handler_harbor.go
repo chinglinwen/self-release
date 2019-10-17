@@ -147,6 +147,10 @@ func applyRelease(yamlbody string) (out string, err error) {
 	return projectpkg.ApplyByKubectlWithString(yamlbody)
 }
 
+func deleteRelease(yamlbody string) (out string, err error) {
+	return projectpkg.DeleteByKubectlWithString(yamlbody)
+}
+
 // name need to be different for different env
 // we don't know the email from harbor
 var projectYamlTmpl = `

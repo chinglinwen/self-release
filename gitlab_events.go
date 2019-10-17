@@ -220,6 +220,24 @@ func applyReleaseFromEvent(e *sse.EventInfo) (yamlbody, out string, err error) {
 	return
 }
 
+func deleteReleaseFromCommand(project, branch string) (out string, err error) {
+	env := projectpkg.GetEnvFromBranchOrCommitID(project, branch, true)
+	pp.Printf("try delete %v-%v\n", project, env)
+	ns, name, err := projectpkg.GetProjectName(project)
+	if err != nil {
+		err = fmt.Errorf("parse project name for %q, err: %v", project, err)
+		return
+	}
+	p := projectYaml{
+		name: name,
+		env:  env,
+		ns:   ns,
+	}
+	yamlbody := p.ToProjectYaml()
+	out, err = deleteRelease(yamlbody)
+	return
+}
+
 func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 	log.Debug.Printf("try convert event to infomap\n")
 	namespace, projectName, err := projectpkg.GetProjectName(e.Project)

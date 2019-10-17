@@ -41,10 +41,10 @@ var (
 		{name: "deldeploy", fn: deldeploy, help: "delete deploy project.", eg: "/deldeploy group/project [branch]"},
 		// {name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
 		{name: "retry", fn: retry, help: "retry last time deployed project.", eg: "/retry [nobuild|buildimage]"},
-		{name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
+		// {name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
 		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [buildmode=auto|disabled|on|manual][devbranch=develop|test]" +
 			"[configver=php.v1][selfrelease=enabled|disabled][viewsetting]"},
-		{name: "gen", fn: gen, help: "generate files(yaml) only last time deployed project.", eg: "/gen [group/project] [branch]"},
+		// {name: "gen", fn: gen, help: "generate files(yaml) only last time deployed project.", eg: "/gen [group/project] [branch]"},
 		{name: "myproject", fn: myproject, help: "show last time project."},
 		{name: "helpdocker", fn: helpdocker, help: "help to generate docker files(in branch develop).", eg: "/helpdocker group/project [force]"},
 		{name: "init", fn: projectinit, help: "enable project by init config-repo.", eg: "/init group/project [force]"},
@@ -258,6 +258,26 @@ func gen(dev, args string) (out string, err error) {
 	return
 }
 
+// // automatic support specify env(no need specific tag) as second args
+// func deldeploy(dev, args string) (out string, err error) {
+// 	log.Printf("got deldeploy from: %v, args: %v\n", dev, args)
+// 	project, branch, err := parseProject(args)
+// 	if err != nil {
+// 		return
+// 	}
+// 	out, err = projectpkg.DeleteByKubectl(project, branch, "")
+// 	if err != nil {
+// 		err = fmt.Errorf("deldeploy for project: %v, branch: %v, err: %v", project, branch, err)
+// 		log.Println(err)
+// 		return
+// 	}
+// 	if err == nil {
+// 		out = "deldeploy ok"
+// 		log.Printf("deldeploy from %v ok\n", dev)
+// 	}
+// 	return
+// }
+
 // automatic support specify env(no need specific tag) as second args
 func deldeploy(dev, args string) (out string, err error) {
 	log.Printf("got deldeploy from: %v, args: %v\n", dev, args)
@@ -265,7 +285,7 @@ func deldeploy(dev, args string) (out string, err error) {
 	if err != nil {
 		return
 	}
-	out, err = projectpkg.DeleteByKubectl(project, branch, "")
+	out, err = deleteReleaseFromCommand(project, branch)
 	if err != nil {
 		err = fmt.Errorf("deldeploy for project: %v, branch: %v, err: %v", project, branch, err)
 		log.Println(err)

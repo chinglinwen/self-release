@@ -9,6 +9,7 @@ import (
 	"wen/self-release/pkg/harbor"
 
 	"github.com/chinglinwen/log"
+	prettyjson "github.com/hokaccha/go-prettyjson"
 )
 
 const (
@@ -249,6 +250,8 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		err = fmt.Errorf("read config failed, config may not exist, err: %v", err)
 		return
 	}
+	prefix := fmt.Sprintf("%v branch: %v projectconfig", project, c.branch)
+	pretty(prefix, config)
 	if !config.S.Enable && !c.noenablecheck {
 		err = fmt.Errorf("project disabled, try set selfrelease=enabled")
 		return
@@ -277,6 +280,11 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	log.Printf("create project: %q ok\n", project)
 
 	return
+}
+
+func pretty(prefix string, a interface{}) {
+	out, _ := prettyjson.Marshal(a)
+	fmt.Printf("%v: %s\n", prefix, out)
 }
 
 func (p *Project) GetRepo() (repo *git.Repo, err error) {
