@@ -9,9 +9,10 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"sort"
 	"time"
+
+	"github.com/chinglinwen/log"
 
 	"github.com/peterbourgon/diskv"
 )
@@ -76,6 +77,7 @@ func GetBrokersFromDisk() (bs []*Broker, err error) {
 }
 
 func readfilenames() (keys []string, err error) {
+	log.Debug.Printf("read logs from logspath: %v\n", *logsPath)
 	files, err := ioutil.ReadDir(*logsPath)
 	if err != nil {
 		return

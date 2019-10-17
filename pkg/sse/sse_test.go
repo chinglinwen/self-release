@@ -5,10 +5,18 @@ import (
 	"os"
 	"testing"
 
+	"github.com/chinglinwen/log"
 	"github.com/peterbourgon/diskv"
 )
 
-func Init() {
+func init() {
+	if os.Getenv("GODEBUG") != "" {
+		log.SetLevel("debug")
+		log.Debug.Println("got debug env, set log level to ", "debug")
+	}
+}
+
+func init() {
 	*logsPath = "../../projectlogs"
 	os.MkdirAll(*logsPath, 0755)
 
@@ -46,10 +54,10 @@ func TestGetBrokers(t *testing.T) {
 }
 
 func TestGetBrokerFromPerson(t *testing.T) {
-	dev := "wenzhenglin"
+	dev := "robot"
 	b, err := GetBrokerFromPerson(dev)
 	if err != nil {
-		t.Error("cant find previous released project")
+		t.Errorf("cant find previous released project, err: %v", err)
 		return
 	}
 

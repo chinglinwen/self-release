@@ -276,7 +276,10 @@ func GetBrokerFromKey(key string) (b *Broker, err error) {
 }
 
 func GetBrokerFromPerson(name string) (b *Broker, err error) {
-	bs, err := GetBrokersFromDisk() // no includes of mem brockers
+	log.Debug.Printf("GetBrokerFromPerson: %v\n", name)
+
+	// bs, err := GetBrokersFromDisk() // no includes of mem brockers
+	bs, err := GetBrokers() // no includes of mem brockers
 	if err != nil {
 		return
 	}
