@@ -6,9 +6,9 @@ package sse
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sort"
 	"time"
 
@@ -17,10 +17,27 @@ import (
 	"github.com/peterbourgon/diskv"
 )
 
-var logsPath = flag.String("logsDir", "projectlogs", "build logs dir")
+// need to init.
+var defaultLogsPath string = "projectlogs"
+
+// Init package with logs path for persistent.
+func Init(logspath string) {
+	log.Printf("init sse logspath: %v\n", logspath)
+
+	if _, err := os.Stat(logspath); os.IsNotExist(err) {
+		log.Printf("init sse create logspath: %v dir\n", logspath)
+		err = os.MkdirAll(logspath, os.ModeDir)
+		if err != nil {
+			log.Fatal("init logspath: %v err: %v\n", logspath, err)
+		}
+	} else {
+		log.Printf("init sse logspath dir exist. skip create\n", logspath)
+	}
+	defaultLogsPath = logspath
+}
 
 var disk = diskv.New(diskv.Options{
-	BasePath:     *logsPath,
+	BasePath:     defaultLogsPath,
 	CacheSizeMax: 1024 * 1024,
 })
 
@@ -77,8 +94,8 @@ func GetBrokersFromDisk() (bs []*Broker, err error) {
 }
 
 func readfilenames() (keys []string, err error) {
-	log.Debug.Printf("read logs from logspath: %v\n", *logsPath)
-	files, err := ioutil.ReadDir(*logsPath)
+	log.Debug.Printf("read logs from logspath: %v\n", defaultLogsPath)
+	files, err := ioutil.ReadDir(defaultLogsPath)
 	if err != nil {
 		return
 	}
@@ -95,7 +112,7 @@ var cutoff = 31 * 24 * time.Hour
 
 // how to clean though? run a shell?
 func clean() {
-	fileInfo, err := ioutil.ReadDir(*logsPath)
+	fileInfo, err := ioutil.ReadDir(defaultLogsPath)
 	if err != nil {
 		log.Printf("==doing clean of logs err: %v\n", err)
 		return

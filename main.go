@@ -48,6 +48,8 @@ var (
 	defaultRepoDir    = flag.String("repoDir", "repos", "default path to store cloned projects")
 
 	selfURL = flag.String("self-url", "http://release.haodai.net", "self URL for log view")
+
+	logsPath = flag.String("logsDir", "projectlogs", "build logs dir")
 )
 
 func checkFlag() {
@@ -83,6 +85,7 @@ func main() {
 
 	flag.Parse()
 	checkFlag()
+	sse.Init(*logsPath)
 	projectpkg.Setting(*defaultHarborKey, *buildsvcAddr, *defaultConfigRepo)
 	harbor.Setting(*harborURL, *harborUser, *harborPass)
 
