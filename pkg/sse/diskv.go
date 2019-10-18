@@ -26,7 +26,7 @@ func Init(logspath string) {
 
 	if _, err := os.Stat(logspath); os.IsNotExist(err) {
 		log.Printf("init sse create logspath: %v dir\n", logspath)
-		err = os.MkdirAll(logspath, os.ModeDir)
+		err = os.MkdirAll(logspath, os.ModePerm)
 		if err != nil {
 			log.Fatal("init logspath: %v err: %v\n", logspath, err)
 		}
