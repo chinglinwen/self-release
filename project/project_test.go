@@ -1,8 +1,6 @@
 package project
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 )
 
@@ -49,12 +47,7 @@ func TestNewProject(t *testing.T) {
 		t.Error("newproject err", err)
 		return
 	}
-	pretty(p)
-}
-
-func pretty(a interface{}) {
-	b, _ := json.MarshalIndent(a, "", "  ")
-	fmt.Println("pretty", string(b))
+	pretty("p", p)
 }
 
 // `

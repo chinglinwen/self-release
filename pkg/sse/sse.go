@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/chinglinwen/log"
-
-	"github.com/mohae/deepcopy"
 )
 
 // var brokers = []Broker{}
@@ -117,8 +115,9 @@ func New(project, branch string, options ...func(*option)) (b *Broker) {
 	for _, op := range options {
 		op(c)
 	}
+	createTime := time.Now().Format(TimeLayout)
 	if c.key == "" {
-		c.key = strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
+		c.key = strings.Replace(fmt.Sprintf("%v:%v-%v", project, branch, createTime), "/", "-", -1)
 	}
 	log.Printf("created new logs key: %v", c.key)
 
@@ -142,7 +141,7 @@ func New(project, branch string, options ...func(*option)) (b *Broker) {
 			clients:        make(map[chan string]bool),
 			newClients:     make(chan (chan string)),
 			defunctClients: make(chan (chan string)),
-			CreateTime:     time.Now().Format(TimeLayout),
+			CreateTime:     createTime,
 		}
 	}
 
@@ -361,22 +360,25 @@ func (b *Broker) Close() {
 	// copy as backup, the name is the same? how to distinguish later
 	// key := b.Project + "." + b.CreateTime
 
-	key := strings.Replace(fmt.Sprintf("%v:%v-%v", b.Project, b.Branch, b.CreateTime), "/", "-", -1)
+	// TODO(wen): change this
+	// key := strings.Replace(fmt.Sprintf("%v:%v-%v", b.Project, b.Branch, b.CreateTime), "/", "-", -1)
 
-	b1 := deepcopy.Copy(b)
-	newb, _ := b1.(*Broker)
+	// b1 := deepcopy.Copy(b)
+	// newb, _ := b1.(*Broker)
 
-	newb.Key = key
-	newb.Stored = true
+	// newb.Key = key
+	// newb.Stored = true
+	b.Stored = true
 
 	// store to local distk too? not to store in memory, because it will lost, and occupy memory
 	// brokerMaps.Store(key, newb)
-	err := WriteFile(key, newb)
+	// err := WriteFile(key, newb)
+	err := WriteFile(b.Key, b)
 	if err != nil {
-		log.Printf("close broker and backup as %v, err: %v\n", key, err)
+		log.Printf("close broker and backup as %v, err: %v\n", b.Key, err)
 		return
 	}
-	log.Printf("close broker and backup as %v ok\n", key)
+	log.Printf("close broker and backup as %v ok\n", b.Key)
 }
 
 // This Broker method starts a new goroutine.  It handles

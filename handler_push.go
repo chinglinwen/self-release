@@ -13,6 +13,7 @@ import (
 
 	"github.com/chinglinwen/log"
 	"github.com/k0kubun/pp"
+	"google.golang.org/grpc/status"
 
 	projectpkg "wen/self-release/project"
 )
@@ -134,7 +135,7 @@ func (b *builder) log(msgs ...interface{}) {
 func (b *builder) logerr(msgs ...interface{}) {
 	msg := fmt.Sprint(msgs...)
 	log.Println(msg)
-	b.write(msg)
+	b.write("\n" + msg)
 	// b.Messages <- msg
 }
 
@@ -467,9 +468,9 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// out := make(chan string, 10)
 
 		b.logf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
-		out, e := p.Build(project, branch, env, commitid)
+		err = p.Build(env, commitid)
 		// e := p.Build(project, branch, env, out)
-		if e != nil {
+		if err != nil {
 			err = fmt.Errorf("build err: %v", e)
 			b.logerr(err)
 			return
@@ -479,12 +480,45 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// some error not retuned, so let's detect it
 		detector := "digest: sha256"
 		var buildSuccess bool
-		for text := range out {
+
+		out, e := p.GetBuildOutput()
+		if e != nil {
+			err = fmt.Errorf("build getoutput err: %v", e)
+			b.logerr(err)
+			return
+		}
+		// for text := range out {
+		// 	if e := p.GetBuildError(); e != nil {
+		// 		err = fmt.Errorf("build got err: %v", e)
+		// 		b.logerr(err)
+		// 		return
+		// 	}
+		// 	if strings.Contains(text, detector) {
+		// 		buildSuccess = true
+		// 	}
+		// 	b.log(text)
+		// }
+
+		for {
+			if e := p.GetBuildError(); e != nil {
+				if st, ok := status.FromError(e); ok {
+					err = fmt.Errorf("build got err: %v", st.Message())
+				} else {
+					err = fmt.Errorf("build got err: %v", e)
+				}
+				b.logerr(err)
+				return
+			}
+			text, ok := <-out
+			if !ok {
+				break
+			}
 			if strings.Contains(text, detector) {
 				buildSuccess = true
 			}
 			b.log(text)
 		}
+
 		// build need to check image to see if it success, or parse log?
 
 		log.Println("done of receiving build outputs")
@@ -492,7 +526,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		if buildSuccess {
 			b.log("build is ok.")
 		} else {
-			err = fmt.Errorf("no keyword digest in build logs,so build is failed")
+			err = fmt.Errorf("no keyword digest in build logs, so build is failed")
 			b.logerr(err)
 			return
 		}

@@ -6,10 +6,10 @@ import (
 )
 
 func TestGetEnvFromBranchOrCommitID(t *testing.T) {
-	env := GetEnvFromBranchOrCommitID("robot/project-example", "21726b76")
+	env := GetEnvFromBranchOrCommitID("robot/project-example", "21726b76", true)
 	fmt.Printf("env: %v\n", env)
 
-	env = GetEnvFromBranchOrCommitID("robot/project-example", "3d04f23f")
+	env = GetEnvFromBranchOrCommitID("robot/project-example", "3d04f23f", true)
 	fmt.Printf("env: %v\n", env)
 
 }

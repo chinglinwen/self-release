@@ -26,7 +26,7 @@ func Setting(harborkey, buildsvcAddr, configrepo string) {
 		buildsvcAddr: buildsvcAddr,
 		configRepo:   configrepo,
 	}
-	defaultBuildsvc = NewBuildSVC(buildsvcAddr)
+	defaultBuildClient = newBuildClient(buildsvcAddr)
 	log.Println("inited project base with:", defaultBase)
 }
 func (b *base) String() string {

@@ -9,7 +9,7 @@ func TestParseProjectConfigJson(t *testing.T) {
 		return
 	}
 
-	pretty(all)
+	pretty("p", all)
 }
 
 var democonfigjson = `

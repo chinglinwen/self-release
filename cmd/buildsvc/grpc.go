@@ -73,6 +73,11 @@ func validateRequest(r *pb.Request) (err error) {
 }
 func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err error) {
 	// log.Printf("start build %v:%v:%v", r.Project, r.Branch, r.Env)
+	// defer func() {
+	// 	if err != nil {
+	// 		err = status.Convert(err).Err()
+	// 	}
+	// }()
 
 	pretty("start build:", r)
 	// err = fmt.Errorf("(testerrorreturn)build image failed, checkout logs")
@@ -82,6 +87,12 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 	if err = validateRequest(r); err != nil {
 		log.Println(err)
 		return
+	}
+
+	if err := stream.Send(&pb.Response{Output: "buildsvc clone or open project..."}); err != nil {
+		err = fmt.Errorf("send stream err: %v", err)
+		log.Println(err)
+		return err
 	}
 
 	key := fmt.Sprintf("%v:%v:%v", r.Project, r.Branch, r.Env)
@@ -114,10 +125,19 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 
 	// var wg sync.WaitGroup
 
-	out := make(chan string, 100)
-	// defer close(out)
-	err = buildpkg.BuildStreamOutput(workdir, project, branch, env, commitid, out)
-	// e := p.Build(project, branch, env, out)
+	// out := make(chan string, 100)
+	// // defer close(out)
+	// err = buildpkg.BuildStreamOutput(workdir, project, branch, env, commitid, out)
+	// // e := p.Build(project, branch, env, out)
+
+	if err := stream.Send(&pb.Response{Output: "buildsvc start building..."}); err != nil {
+		err = fmt.Errorf("send stream err: %v", err)
+		log.Println(err)
+		return err
+	}
+
+	b := buildpkg.NewBuilder(workdir, project, branch, env, commitid)
+	out, err := b.Output()
 	if err != nil {
 		err = fmt.Errorf("build err: %v", err)
 		log.Println(err)
@@ -128,10 +148,33 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 	detector := "digest: sha256"
 	var success bool
 
-	// log.Printf("docker build outputs: %v", out)
-	// scanner := bufio.NewScanner(strings.NewReader(out))
-	// scanner.Split(bufio.ScanLines)
-	for text := range out {
+	// // log.Printf("docker build outputs: %v", out)
+	// // scanner := bufio.NewScanner(strings.NewReader(out))
+	// // scanner.Split(bufio.ScanLines)
+	// for text := range out {
+	// 	if strings.Contains(text, detector) {
+	// 		success = true
+	// 	}
+	// 	if err := stream.Send(&pb.Response{Output: text}); err != nil {
+	// 		err = fmt.Errorf("send stream err: %v", err)
+	// 		log.Println(err)
+	// 		return err
+	// 	}
+	// }
+
+	if err := stream.Send(&pb.Response{Output: "output start ==="}); err != nil {
+		err = fmt.Errorf("send stream err: %v", err)
+		log.Println(err)
+		return err
+	}
+
+	for out.Scan() {
+		if err := b.GetError(); err != nil {
+			err = fmt.Errorf("build err: %v", err)
+			log.Println(err)
+			return err
+		}
+		text := out.Text()
 		if strings.Contains(text, detector) {
 			success = true
 		}
@@ -140,6 +183,11 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 			log.Println(err)
 			return err
 		}
+	}
+	if err := stream.Send(&pb.Response{Output: "output end ==="}); err != nil {
+		err = fmt.Errorf("send stream err: %v", err)
+		log.Println(err)
+		return err
 	}
 	if !success {
 		err = fmt.Errorf("build image failed, checkout logs")

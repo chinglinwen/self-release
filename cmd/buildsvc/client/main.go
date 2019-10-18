@@ -26,8 +26,10 @@ func build(client pb.BuildsvcClient, r *pb.Request) {
 	if err != nil {
 		log.Fatalf("%v.build err %v", client, err)
 	}
+	out := &pb.Response{}
 	for {
-		out, err := stream.Recv()
+		// out, err := stream.Recv()
+		err := stream.RecvMsg(out)
 		if err == io.EOF {
 			break
 		}
@@ -61,8 +63,9 @@ func main() {
 	client := pb.NewBuildsvcClient(conn)
 
 	build(client, &pb.Request{
-		Project: "wenzhenglin/project-example",
-		Branch:  "develop",
-		Env:     "test",
+		Project:  "robot/main",
+		Branch:   "develop",
+		Env:      "test",
+		Commitid: "076f2793",
 	})
 }

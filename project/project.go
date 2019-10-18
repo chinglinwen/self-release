@@ -51,6 +51,27 @@ type Project struct {
 	// genOption        genOption
 	configConfigPath string // configpath in config-deploy
 	// env              map[string]string // store config.env values, only init need this
+
+	// buildsvc for image build
+	buildsvc *buildsvc
+}
+
+func (p *Project) GetBuildOutput() (chan string, error) {
+	if p.buildsvc == nil {
+		err := fmt.Errorf("buildsvc haven't created, should not happen")
+		log.Printf("getbuild err: %v\n", err)
+		return nil, err
+	}
+	return p.buildsvc.GetOutput()
+}
+
+func (p *Project) GetBuildError() error {
+	if p.buildsvc == nil {
+		err := fmt.Errorf("buildsvc haven't created, should not happen")
+		log.Printf("getbuilderr err: %v\n", err)
+		return err
+	}
+	return p.buildsvc.GetError()
 }
 
 type ProjectConfig struct {

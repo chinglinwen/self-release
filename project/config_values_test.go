@@ -48,7 +48,7 @@ func TestParseValuesYaml(t *testing.T) {
 		t.Error("parse", err)
 		return
 	}
-	pretty(v)
+	pretty("p", v)
 }
 
 func TestValuesFileReadAll(t *testing.T) {
@@ -67,7 +67,7 @@ func TestValuesFileReadAll(t *testing.T) {
 		t.Error("write", err)
 		return
 	}
-	pretty(all)
+	pretty("p", all)
 }
 
 func TestValuesFileWriteAll(t *testing.T) {
@@ -94,7 +94,7 @@ func TestParseAllValuesJson(t *testing.T) {
 		return
 	}
 
-	pretty(all)
+	pretty("p", all)
 }
 
 // func pretty(a interface{}) {
