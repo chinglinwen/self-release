@@ -311,10 +311,11 @@ func GetBrokerFromPerson(name string) (b *Broker, err error) {
 }
 
 func (b *Broker) GetExistMsg() (existmsg string) {
-	for _, v := range b.ExistMsg {
-		existmsg = fmt.Sprintf("%v%v\n", existmsg, v)
-	}
-	return
+	return strings.Join(b.ExistMsg, "")
+	// for _, v := range b.ExistMsg {
+	// 	existmsg = fmt.Sprintf("%v%v\n", existmsg, v)
+	// }
+	// return
 }
 
 var builderLock map[string]bool // mutex for operation
