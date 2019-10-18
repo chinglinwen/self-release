@@ -179,7 +179,7 @@ func (b *Builder) BuildStreamOutput() {
 
 	if isBuildScriptExist(b.Dir) {
 		log.Printf("buildscript exist, use it now\n")
-		b.cmd = exec.Command("sh", "-c", fmt.Sprintf("./%v %v %v", BuildScriptName, b.image, b.Env))
+		b.cmd = exec.Command("sh", "-c", fmt.Sprintf("sh ./%v %v %v", BuildScriptName, b.image, b.Env))
 	} else {
 		log.Printf("buildscript not exist, use default build scripts\n")
 		log.Printf("using internal build script")
@@ -269,6 +269,7 @@ func getDefaultBuildScript(image, env string) string {
 var defaultBuildScript = `
 #!/bin/sh
 # build-docker.sh
+set -e
 
 image="%v"
 env="%v"

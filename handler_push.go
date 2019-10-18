@@ -500,15 +500,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// }
 
 		for {
-			if e := p.GetBuildError(); e != nil {
-				if st, ok := status.FromError(e); ok {
-					err = fmt.Errorf("build got err: %v", st.Message())
-				} else {
-					err = fmt.Errorf("build got err: %v", e)
-				}
-				b.logerr(err)
-				return
-			}
 			text, ok := <-out
 			if !ok {
 				break
@@ -517,6 +508,17 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 				buildSuccess = true
 			}
 			b.log(text)
+		}
+
+		// to know if err happen
+		if e := p.GetBuildError(); e != nil {
+			if st, ok := status.FromError(e); ok {
+				err = fmt.Errorf("build got err: %v", st.Message())
+			} else {
+				err = fmt.Errorf("build got err: %v", e)
+			}
+			b.logerr(err)
+			return
 		}
 
 		// build need to check image to see if it success, or parse log?
