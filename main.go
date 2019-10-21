@@ -28,7 +28,7 @@ var (
 
 	defaultWebDir = flag.String("webdir", "web", "default web template dir")
 
-	defaultConfigRepo = flag.String("configrepo", "wenzhenglin/config-deploy", "default config-repo")
+	defaultConfigRepo = flag.String("configrepo", "yunwei/config-deploy", "default config-repo")
 	buildsvcAddr      = flag.String("buildsvc", "buildsvc:10000", "buildsvc address host:port ( or k8s service name )")
 	defaultHarborKey  = flag.String("harborkey", "eyJhdXRocyI6eyJoYXJib3IuaGFvZGFpLm5ldCI6eyJ1c2VybmFtZSI6ImRldnVzZXIiLCJwYXNzd29yZCI6IkxuMjhvaHlEbiIsImVtYWlsIjoieXVud2VpQGhhb2RhaS5uZXQiLCJhdXRoIjoiWkdWMmRYTmxjanBNYmpJNGIyaDVSRzQ9In19fQ==", "default HarborKey to pull image")
 

@@ -58,7 +58,7 @@ func projectConfigGetHandler(c echo.Context) (err error) {
 	// out = projectpkg.ProjectConfig{
 	// 	devBranch: "test",
 	// }
-	out.S.DevBranch = "test"
+	// out.S.DevBranch = "test"
 	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", out), "")
 }
 
@@ -143,7 +143,7 @@ func projectValuesUpdateHandler(c echo.Context) (err error) {
 		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
 		return
 	}
-	repo, err := projectpkg.NewValuesRepo(project)
+	repo, err := projectpkg.NewValuesRepo(project, projectpkg.SetValuesCreate())
 	if err != nil {
 		err = fmt.Errorf("git fetch project: %v, err: %v", project, err)
 		log.Println(err)

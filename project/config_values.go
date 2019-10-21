@@ -22,23 +22,35 @@ const (
 type ValuesRepo struct {
 	project    string
 	configrepo *git.Repo
+
+	create bool
 }
 
-func NewValuesRepo(project string) (v *ValuesRepo, err error) {
+type ValuesOption func(*ValuesRepo)
+
+func SetValuesCreate() ValuesOption {
+	return func(v *ValuesRepo) {
+		v.create = true
+	}
+}
+func NewValuesRepo(project string, options ...ValuesOption) (v *ValuesRepo, err error) {
 	configrepo, err := GetConfigRepo()
 	if err != nil {
 		err = fmt.Errorf("get config repo err: %v", err)
 		return
 	}
-	if !configrepo.IsExist(project) {
+	v = &ValuesRepo{
+		project:    project,
+		configrepo: configrepo,
+	}
+	for _, op := range options {
+		op(v)
+	}
+	if !v.create && !configrepo.IsExist(project) {
 		// should we create it? only if it's write?
 		// let create for the init?
 		err = fmt.Errorf("project does not exist in config-repo")
 		return
-	}
-	v = &ValuesRepo{
-		project:    project,
-		configrepo: configrepo,
 	}
 	return
 }
@@ -56,7 +68,7 @@ type ValuesConfig struct {
 }
 
 type Values struct {
-	Config ValuesConfig      `json:"config,omitempty"`
+	Config ValuesConfig      `json:"config"`
 	Envs   map[string]string `json:"envs,omitempty"`
 	Mysql  []struct {
 		Name     string `json:"name,omitempty"`

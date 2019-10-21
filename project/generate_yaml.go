@@ -60,9 +60,13 @@ func printYamlWithNumber(final string) {
 
 var exampleEnvMap = getexampleEnvMap()
 
-func HelmGenPrintValidateYaml(project, env string) (out string, err error) {
+func genExampleYaml(project, env string) (out, final string, err error) {
 	exampleEnvMap["CI_TIME"] = time.Now().Format(TimeLayout)
-	out, final, err := dogenFinal(project, env, exampleEnvMap)
+	return dogenFinal(project, env, exampleEnvMap)
+}
+
+func HelmGenPrintValidateYaml(project, env string) (out string, err error) {
+	out, final, err := genExampleYaml(project, env)
 	if err != nil {
 		return
 	}
