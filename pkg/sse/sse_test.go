@@ -17,11 +17,11 @@ func init() {
 }
 
 func init() {
-	*logsPath = "../../projectlogs"
-	os.MkdirAll(*logsPath, 0755)
+	defaultLogsPath = "../../projectlogs"
+	os.MkdirAll(defaultLogsPath, 0755)
 
 	disk = diskv.New(diskv.Options{
-		BasePath:     *logsPath,
+		BasePath:     defaultLogsPath,
 		CacheSizeMax: 1024 * 1024,
 	})
 }
@@ -54,14 +54,14 @@ func TestGetBrokers(t *testing.T) {
 }
 
 func TestGetBrokerFromPerson(t *testing.T) {
-	dev := "robot"
+	dev := "wenzhenglin"
 	b, err := GetBrokerFromPerson(dev)
 	if err != nil {
 		t.Errorf("cant find previous released project, err: %v", err)
 		return
 	}
 
-	fmt.Printf("project: %v, branch: %v\n", b.Project, b.Branch)
+	fmt.Printf("project: %v, branch: %v: key: %v\n", b.Project, b.Branch, b.Key)
 }
 
 func TestGetGetBrokersFromDisk(t *testing.T) {

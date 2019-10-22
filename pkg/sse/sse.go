@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -68,6 +69,8 @@ type EventInfo struct {
 	Env      string `json:"env"` // auto detect
 	CommitID string `json:"-"`
 	// FromHarbor bool   `json:"-"`
+
+	EventType string
 }
 
 func ParseEventInfoJson(body string) (event *EventInfo, err error) {
@@ -221,6 +224,7 @@ func GetBrokers() (bs []*Broker, err error) {
 		err = fmt.Errorf("no anything found")
 		return
 	}
+	sort.SliceStable(bs, func(i, j int) bool { return bs[i].CreateTime > bs[j].CreateTime })
 	return
 }
 
@@ -287,9 +291,9 @@ func GetBrokerFromPerson(name string) (b *Broker, err error) {
 		return
 	}
 
-	// for _, v := range bs {
-	// 	fmt.Printf("key: %v\n", v.Key)
-	// }
+	for _, v := range bs {
+		fmt.Printf("key: %v\n", v.Key)
+	}
 	// spew.Dump("bs", bs)
 	for _, v := range bs {
 		// fmt.Printf("key: %v\n", v.Key)

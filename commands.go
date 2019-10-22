@@ -220,43 +220,43 @@ func deploy(dev, args string) (out string, err error) {
 	return
 }
 
-// deploy
-func gen(dev, args string) (out string, err error) {
-	log.Printf("got gen from: %v, args: %v\n", dev, args)
-	project, branch, err := parseProject(args)
-	if err != nil {
-		return
-	}
-	bo := &buildOption{
-		gen:      true,
-		nobuild:  true,
-		deploy:   false,
-		nonotify: true,
-	}
-	e := &sse.EventInfo{
-		Project: project,
-		Branch:  branch,
-		// Env:       env, // default derive from branch
-		UserName: dev,
-		// UserEmail: useremail,
-		Message: fmt.Sprintf("from %v, args: %v ", dev, args),
-	}
+// // deploy
+// func gen(dev, args string) (out string, err error) {
+// 	log.Printf("got gen from: %v, args: %v\n", dev, args)
+// 	project, branch, err := parseProject(args)
+// 	if err != nil {
+// 		return
+// 	}
+// 	bo := &buildOption{
+// 		gen:      true,
+// 		nobuild:  true,
+// 		deploy:   false,
+// 		nonotify: true,
+// 	}
+// 	e := &sse.EventInfo{
+// 		Project: project,
+// 		Branch:  branch,
+// 		// Env:       env, // default derive from branch
+// 		UserName: dev,
+// 		// UserEmail: useremail,
+// 		Message: fmt.Sprintf("from %v, args: %v ", dev, args),
+// 	}
 
-	b := NewBuilder(project, branch)
-	b.log("starting logs")
+// 	b := NewBuilder(project, branch)
+// 	b.log("starting logs")
 
-	err = b.startBuild(e, bo)
-	if err != nil {
-		err = fmt.Errorf("startgen for project: %v, branch: %v, err: %v", project, branch, err)
-		log.Println(err)
-		return
-	}
-	if err == nil {
-		out = "gen ok"
-		log.Printf("gen from %v ok\n", dev)
-	}
-	return
-}
+// 	err = b.startBuild(e, bo)
+// 	if err != nil {
+// 		err = fmt.Errorf("startgen for project: %v, branch: %v, err: %v", project, branch, err)
+// 		log.Println(err)
+// 		return
+// 	}
+// 	if err == nil {
+// 		out = "gen ok"
+// 		log.Printf("gen from %v ok\n", dev)
+// 	}
+// 	return
+// }
 
 // // automatic support specify env(no need specific tag) as second args
 // func deldeploy(dev, args string) (out string, err error) {
@@ -298,20 +298,58 @@ func deldeploy(dev, args string) (out string, err error) {
 	return
 }
 
-func argstoevent(e *sse.EventInfo, args string) {
-	project, branch, err := parseProject(args)
-	if err != nil {
-		return
-	}
-	if project != "" {
-		e.Project = project
-	}
-	if branch != "" {
-		e.Branch = branch
-		// env will auto derive later if empty
-	}
-	log.Printf("convert args info to event for: %v, branch: %v\n", project, branch)
-}
+// func argstoevent(e *sse.EventInfo, args string) {
+// 	project, branch, err := parseProject(args)
+// 	if err != nil {
+// 		return
+// 	}
+// 	if project != "" {
+// 		e.Project = project
+// 	}
+// 	if branch != "" {
+// 		e.Branch = branch
+// 		// env will auto derive later if empty
+// 	}
+// 	log.Printf("convert args info to event for: %v, branch: %v\n", project, branch)
+// }
+
+// // retry
+// func retry(dev, args string) (out string, err error) {
+// 	log.Println("got retry from ", dev)
+// 	f := parseFlag(args)
+// 	brocker, err := sse.GetBrokerFromPerson(dev)
+// 	if err != nil {
+// 		fmt.Println("cant find previous released project")
+// 		return
+// 	}
+// 	// spew.Dump("retry brocker:", brocker)
+
+// 	b := &builder{
+// 		Broker: sse.NewExist(brocker),
+// 	}
+// 	// spew.Dump(b)
+// 	if b.PWriter == nil {
+// 		err = fmt.Errorf("pwriter nil, can't write msg")
+// 		return
+// 	}
+// 	bo := &buildOption{
+// 		// gen: true,
+// 		// build:    true, // default to configs
+// 		nobuild:    f.nobuild,
+// 		buildimage: f.buildimage, // should no build again?
+// 		deploy:     true,
+// 		nonotify:   true,
+// 	}
+// 	argstoevent(b.Event, args)
+
+// 	log.Println("start retry build for ", dev)
+// 	err = b.startBuild(b.Event, bo)
+// 	if err == nil {
+// 		out = "retried ok"
+// 		log.Printf("retry from %v ok\n", dev)
+// 	}
+// 	return
+// }
 
 // retry
 func retry(dev, args string) (out string, err error) {
@@ -322,28 +360,35 @@ func retry(dev, args string) (out string, err error) {
 		fmt.Println("cant find previous released project")
 		return
 	}
-	// spew.Dump("retry brocker:", brocker)
 
-	b := &builder{
-		Broker: sse.NewExist(brocker),
-	}
-	// spew.Dump(b)
-	if b.PWriter == nil {
-		err = fmt.Errorf("pwriter nil, can't write msg")
-		return
-	}
+	project, branch := brocker.Project, brocker.Branch
+
 	bo := &buildOption{
-		gen: true,
-		// build:    true, // default to configs
+		// gen:        true,
 		nobuild:    f.nobuild,
-		buildimage: f.buildimage, // should no build again?
+		buildimage: f.buildimage,
 		deploy:     true,
 		nonotify:   true,
 	}
-	argstoevent(b.Event, args)
+	e := &sse.EventInfo{
+		Project: project,
+		Branch:  branch,
+		// Env:       env, // default derive from branch
+		UserName: dev,
+		// UserEmail: useremail,
+		Message: fmt.Sprintf("from wechat %v, retry args: %v ", dev, args),
+	}
+
+	b := NewBuilder(project, branch)
+	b.log("starting logs")
 
 	log.Println("start retry build for ", dev)
-	err = b.startBuild(b.Event, bo)
+	err = b.startBuild(e, bo)
+	if err != nil {
+		err = fmt.Errorf("startdeploy for project: %v, branch: %v, err: %v", project, branch, err)
+		log.Println(err)
+		return
+	}
 	if err == nil {
 		out = "retried ok"
 		log.Printf("retry from %v ok\n", dev)
@@ -414,41 +459,41 @@ func setting(dev, args string) (out string, err error) {
 	return
 }
 
-// retry
-func reapply(dev, args string) (out string, err error) {
-	log.Println("got reapply from ", dev)
+// // retry
+// func reapply(dev, args string) (out string, err error) {
+// 	log.Println("got reapply from ", dev)
 
-	brocker, err := sse.GetBrokerFromPerson(dev)
-	if err != nil {
-		fmt.Println("cant find previous released project")
-		return
-	}
+// 	brocker, err := sse.GetBrokerFromPerson(dev)
+// 	if err != nil {
+// 		fmt.Println("cant find previous released project")
+// 		return
+// 	}
 
-	b := &builder{
-		Broker: sse.NewExist(brocker),
-	}
-	// spew.Dump(b)
-	if b.PWriter == nil {
-		err = fmt.Errorf("pwriter nil, can't write msg")
-		return
-	}
+// 	b := &builder{
+// 		Broker: sse.NewExist(brocker),
+// 	}
+// 	// spew.Dump(b)
+// 	if b.PWriter == nil {
+// 		err = fmt.Errorf("pwriter nil, can't write msg")
+// 		return
+// 	}
 
-	bo := &buildOption{
-		gen:      true,
-		nobuild:  true, // no build image again?
-		deploy:   true,
-		nonotify: true,
-	}
-	argstoevent(b.Event, args)
+// 	bo := &buildOption{
+// 		gen:      true,
+// 		nobuild:  true, // no build image again?
+// 		deploy:   true,
+// 		nonotify: true,
+// 	}
+// 	argstoevent(b.Event, args)
 
-	log.Println("start reapply build for ", dev)
-	err = b.startBuild(b.Event, bo)
-	if err == nil {
-		out = "reapply ok"
-		log.Printf("reapply from %v ok\n", dev)
-	}
-	return
-}
+// 	log.Println("start reapply build for ", dev)
+// 	err = b.startBuild(b.Event, bo)
+// 	if err == nil {
+// 		out = "reapply ok"
+// 		log.Printf("reapply from %v ok\n", dev)
+// 	}
+// 	return
+// }
 
 // rollbacks, need to get last tag? support online only?
 // rollback to just pre-version or to any specific version

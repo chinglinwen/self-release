@@ -12,7 +12,6 @@ import (
 	"wen/self-release/pkg/sse"
 
 	"github.com/chinglinwen/log"
-	"github.com/k0kubun/pp"
 	"google.golang.org/grpc/status"
 
 	projectpkg "wen/self-release/project"
@@ -190,23 +189,28 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	// not from gitlab, maybe from harbor or from wechat
 
-	pp.Printf("commitid: %v\n", e.CommitID)
+	// pp.Printf("commitid: %v\n", e.CommitID)
 	// spew.Dump("build event", e)
 
 	project := e.Project
 	branch := e.Branch
-	// from gitlab true
-	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, true)
+
+	env := projectpkg.TEST
+	if e.EventType == string(tagEventType) {
+		env = projectpkg.GetEnvFromBranch(e.Project, e.Branch)
+		log.Printf("got env from branch: %v\n", env)
+	}
+
 	commitid := e.CommitID
 
-	// empty means not from gitlab
-	fromHarbor := strings.Contains(e.Message, "harbor")
-	if commitid == "" && !fromHarbor {
-		commitid, err = git.GetCommitIDFromTag(project, branch)
-		if err != nil {
-			return
-		}
-	}
+	// // empty means not from gitlab
+	// fromHarbor := strings.Contains(e.Message, "harbor")
+	// if commitid == "" && !fromHarbor {
+	// 	commitid, err = git.GetCommitIDFromTag(project, branch)
+	// 	if err != nil {
+	// 		return
+	// 	}
+	// }
 
 	if err = validateRequest(project, branch, env, commitid); err != nil {
 		return
@@ -239,7 +243,8 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	// b := NewBuilder(bname)
 	// defer b.Close()
 
-	tip := fmt.Sprintf("start build for project %v, branch: %v, env: %v\n", project, branch, env)
+	tip := fmt.Sprintf("start build for project %v, branch: %v, env: %v, commitid: %v\n",
+		project, branch, env, commitid)
 	b.logf(tip)
 
 	log.Debug.Printf(tip)
@@ -322,47 +327,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		// b.log("clone or open project ok")
 	} else {
 		p = bo.p
-	}
-
-	// branch is not tag
-	// TODO(wen): build image only for test?
-	if env == projectpkg.TEST {
-		if branch != p.Config.S.DevBranch { // tag should be release, not build?
-			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v", branch, p.Config.S.DevBranch, project)
-			// log.Println(a)
-			b.log(err)
-			return
-		}
-		// check if force is enabled
-		// check if inited, do init by manual trigger?
-		// if not inited before, or force is specified, do init now?
-		// this will trigger auto build for everyproject? just don't do it?
-
-		// how people trigger init at first place? release text or commit text?
-
-		// if !p.Inited() && init {
-		// 	b.log("<h2>Init project</h2>")
-		// 	err = p.Init()
-		// 	if err != nil {
-		// 		err = fmt.Errorf("project: %v, init err: %v", project, err)
-		// 		b.logerr(err)
-		// 		return
-		// 	}
-		// 	// log.Printf("inited for project: %v", project)
-		// 	b.logf("inited for project: %v", project)
-		// 	// return // return for init operation?
-		// }
-		// if forceinit {
-		// 	b.log("<h2>Force Init project</h2>")
-		// 	err = p.Init(projectpkg.SetInitForce())
-		// 	if err != nil {
-		// 		err = fmt.Errorf("project: %v, forceinit err: %v", project, err)
-		// 		b.logerr(err)
-		// 		return
-		// 	}
-		// 	b.logf("forceinit for project: %v ok", project)
-		// 	// return // return for init operation?
-		// }
 	}
 
 	// // TODO: not support yet, if rollback is set, get previous tag as branch
@@ -460,87 +424,107 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	b.log("<h2>Docker build</h2>")
 
-	// is devbranch, or tag not exist yet
+	var buildSuccess bool
 
-	imageexist, needbuild := p.NeedBuild(commitid)
-
-	if ((!bo.nobuild) && needbuild) || bo.buildimage {
-		// out := make(chan string, 10)
-
-		b.logf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
-		err = p.Build(env, commitid)
-		// e := p.Build(project, branch, env, out)
-		if err != nil {
-			err = fmt.Errorf("build err: %v", e)
-			b.logerr(err)
+	// build only for test env
+	if env == projectpkg.TEST {
+		if branch != p.Config.S.DevBranch { // tag should be release, not build?
+			err = fmt.Errorf("ignore build of branch: %v (devBranch=%q) from project: %v",
+				branch, p.Config.S.DevBranch, project)
+			b.log(err)
 			return
 		}
-		b.log("docker build outputs:<br>")
 
-		// some error not retuned, so let's detect it
-		detector := "digest: sha256"
-		var buildSuccess bool
+		// is devbranch, or tag not exist yet
+		imageexist, needbuild := p.NeedBuild(commitid)
 
-		out, e := p.GetBuildOutput()
-		if e != nil {
-			err = fmt.Errorf("build getoutput err: %v", e)
-			b.logerr(err)
-			return
-		}
-		// for text := range out {
-		// 	if e := p.GetBuildError(); e != nil {
-		// 		err = fmt.Errorf("build got err: %v", e)
-		// 		b.logerr(err)
-		// 		return
-		// 	}
-		// 	if strings.Contains(text, detector) {
-		// 		buildSuccess = true
-		// 	}
-		// 	b.log(text)
-		// }
+		if ((!bo.nobuild) && needbuild) || bo.buildimage {
+			// out := make(chan string, 10)
 
-		for {
-			text, ok := <-out
-			if !ok {
-				break
+			b.logf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
+			err = p.Build(env, commitid)
+			// e := p.Build(project, branch, env, out)
+			if err != nil {
+				err = fmt.Errorf("build err: %v", e)
+				b.logerr(err)
+				return
 			}
-			if strings.Contains(text, detector) {
-				buildSuccess = true
-			}
-			b.log(text)
-		}
+			b.log("docker build outputs:<br>")
 
-		// to know if err happen
-		if e := p.GetBuildError(); e != nil {
-			if st, ok := status.FromError(e); ok {
-				err = fmt.Errorf("build got err: %v", st.Message())
+			// some error not retuned, so let's detect it
+			detector := "digest: sha256"
+
+			out, e := p.GetBuildOutput()
+			if e != nil {
+				err = fmt.Errorf("build getoutput err: %v", e)
+				b.logerr(err)
+				return
+			}
+			// for text := range out {
+			// 	if e := p.GetBuildError(); e != nil {
+			// 		err = fmt.Errorf("build got err: %v", e)
+			// 		b.logerr(err)
+			// 		return
+			// 	}
+			// 	if strings.Contains(text, detector) {
+			// 		buildSuccess = true
+			// 	}
+			// 	b.log(text)
+			// }
+
+			for {
+				text, ok := <-out
+				if !ok {
+					break
+				}
+				if strings.Contains(text, detector) {
+					buildSuccess = true
+				}
+				b.log(text)
+			}
+
+			// to know if err happen
+			if e := p.GetBuildError(); e != nil {
+				if st, ok := status.FromError(e); ok {
+					err = fmt.Errorf("build got err: %v", st.Message())
+				} else {
+					err = fmt.Errorf("build got err: %v", e)
+				}
+				b.logerr(err)
+				return
+			}
+
+			// build need to check image to see if it success, or parse log?
+
+			log.Println("done of receiving build outputs")
+
+			if buildSuccess {
+				b.log("build is ok.")
 			} else {
-				err = fmt.Errorf("build got err: %v", e)
+				err = fmt.Errorf("no keyword digest in build logs, so build is failed")
+				b.logerr(err)
+				return
 			}
-			b.logerr(err)
-			return
-		}
-
-		// build need to check image to see if it success, or parse log?
-
-		log.Println("done of receiving build outputs")
-
-		if buildSuccess {
-			b.log("build is ok.")
 		} else {
-			err = fmt.Errorf("no keyword digest in build logs, so build is failed")
-			b.logerr(err)
-			return
-		}
-	} else {
-		b.logf("will not build, for flags:")
-		b.logf("runtime options: nobuild: %v", bo.nobuild)
-		b.logf("runtime options: buildimage: %v", bo.buildimage)
+			b.logf("will not build, for flags:")
+			b.logf("runtime options: nobuild: %v", bo.nobuild)
+			b.logf("runtime options: buildimage: %v", bo.buildimage)
 
-		b.logf("config buildmode: %v", p.Config.S.BuildMode)
-		b.logf("needbuild detect result: %v", needbuild)
-		b.logf("imageexist check result: %v", imageexist)
+			b.logf("config buildmode: %v", p.Config.S.BuildMode)
+			b.logf("needbuild detect result: %v", needbuild)
+			b.logf("imageexist check result: %v", imageexist)
+		}
 	}
+
+	if env == projectpkg.TEST && !buildSuccess {
+		err = fmt.Errorf("build not success, skip deploy.")
+		b.logerr(err)
+		return
+	} else {
+		b.log("for time reducing and for consistency(single image for all env)")
+		b.log("re-using test build image, so will not build image for pre or online env")
+	}
+
 	b.log("<h2>K8s project</h2>")
 
 	if bo.deploy {

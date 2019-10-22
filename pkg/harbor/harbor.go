@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sort"
+	"time"
 
 	harbor "github.com/TimeBye/go-harbor"
 	"github.com/parnurzeal/gorequest"
@@ -26,6 +28,62 @@ func ListProjects() (ps []harbor.Project, err error) {
 	return projects, nil
 }
 
+const TimeLayout = "2006-1-2_15:04:05"
+
+func TimeIn(t time.Time, name string) (time.Time, error) {
+	loc, err := time.LoadLocation(name)
+	if err == nil {
+		t = t.In(loc)
+	}
+	return t, err
+}
+
+func ListRepoTagLatestName(repo string, ts string) (name string, err error) {
+	tag, err := ListRepoTagLatest(repo, ts)
+	if err != nil {
+		return
+	}
+	name = tag.Name
+	return
+}
+
+// get the latest tag before a release
+// if ts is empty string, just return latest tag
+func ListRepoTagLatest(repo string, ts string) (tag harbor.TagResp, err error) {
+	tags, err := ListRepoTags(repo)
+	if err != nil {
+		return
+	}
+	if len(tags) == 0 {
+		err = fmt.Errorf("no tags found")
+		return
+	}
+	if ts == "" {
+		tag = tags[0]
+		return
+	}
+	t, err := time.Parse(TimeLayout, ts)
+	if err != nil {
+		err = fmt.Errorf("parse time err: %v", err)
+		return
+	}
+	for _, v := range tags {
+		// fmt.Printf("tag time: %v, t: %v\n", v.Created, t)
+		t2, e := TimeIn(v.Created, "Local")
+		if e != nil {
+			err = e
+			return
+		}
+		// fmt.Printf("tag time: %v, t: %v\n", t2, t)
+		if t2.Before(t) {
+			tag = v
+			return
+		}
+	}
+	err = fmt.Errorf("no tags before the time: %v", ts)
+	return
+}
+
 // repo is kind like "flow_center/8-yun"
 func ListRepoTags(repo string) (tags []harbor.TagResp, err error) {
 	log.Printf("list tags for [%s]\n", repo)
@@ -34,6 +92,9 @@ func ListRepoTags(repo string) (tags []harbor.TagResp, err error) {
 		err = fmt.Errorf("ListRepositoryTags got %v err: %v", len(e), e)
 		return
 	}
+	sort.SliceStable(tags, func(i, j int) bool {
+		return tags[i].Created.After(tags[j].Created)
+	})
 	return
 }
 

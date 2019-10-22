@@ -28,10 +28,10 @@ func Init(logspath string) {
 		log.Printf("init sse create logspath: %v dir\n", logspath)
 		err = os.MkdirAll(logspath, os.ModePerm)
 		if err != nil {
-			log.Fatal("init logspath: %v err: %v\n", logspath, err)
+			log.Fatalf("init logspath: %v err: %v\n", logspath, err)
 		}
 	} else {
-		log.Printf("init sse logspath dir exist. skip create\n", logspath)
+		log.Printf("init sse logspath dir: %v exist. skip create\n", logspath)
 	}
 	defaultLogsPath = logspath
 }

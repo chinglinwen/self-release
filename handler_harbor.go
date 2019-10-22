@@ -69,6 +69,7 @@ func harborHandler(c echo.Context) (err error) {
 // }
 
 // do build if buildmode is manual
+// anything comes to harbor is actually test env
 func HarborToDeploy(e *HarborEventInfo) (err error) {
 	log.Printf("got push from: %v, project: %v:%v\n", e.Name, e.Project, e.Tag)
 	project, tag := e.Project, e.Tag
@@ -84,11 +85,16 @@ func HarborToDeploy(e *HarborEventInfo) (err error) {
 		err = fmt.Errorf("project: %v:%v, new err: %v", project, tag, err)
 		return
 	}
+	// if auto build, will not hit this
+	// if manual mode, it need to hit this
 	if !p.IsEnabled() || !p.IsManual() {
 		log.Printf("ignore build for project: %v:%v, project not enabled or buildmode is not manual \n", project, tag)
 		return
 	}
 	log.Printf("start deploy from harbor for project: %v:%v\n", project, tag)
+
+	// can we set commit status? where to get the commitid
+	// only if people use correct tag, if use time as tag, there's no correct time
 
 	// bo := &buildOption{
 	// 	gen: true,
@@ -227,7 +233,10 @@ func (e *HarborEventInfo) ToProjectYaml() (body string, err error) {
 
 	// is this needed, we often don't need overwrite env by manual?
 	// fromGitlab is false
-	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Tag, false)
+	// env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Tag, false)
+
+	// all event from harbor is test env
+	env := projectpkg.TEST
 	log.Printf("got env: %v for %v:%v\n", env, e.Project, e.Tag)
 
 	version := e.Tag

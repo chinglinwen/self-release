@@ -92,7 +92,7 @@ func TestSetCommitStatus(t *testing.T) {
 	}
 	pretty("commit", u)
 
-	x, err := SetCommitStatusSuccess("robot/project-example", "a748c3b3")
+	x, err := SetCommitStatusSuccess("robot/project-example", "a748c3b3", "manual")
 	if err != nil {
 		t.Error("set state err ", err)
 		return
@@ -146,7 +146,7 @@ func TestGetCommitFromTag(t *testing.T) {
 }
 
 func TestListAllTags(t *testing.T) {
-	u, err := listAllTags("robot/project-example")
+	u, err := listAllTags("robot/mileage-planet")
 	if err != nil {
 		t.Error("check tag err ", err)
 		return

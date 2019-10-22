@@ -16,13 +16,29 @@ func TestListProject(t *testing.T) {
 	pretty("ps", ps)
 }
 
-func TestListRepoTags(t *testing.T) {
-	ps, err := ListRepoTags("robot/project-example")
+func TestListRepoTagLatest(t *testing.T) {
+	ts := "2019-10-22_15:03:09"
+
+	v, err := ListRepoTagLatest("robot/mileage-planet", ts)
 	if err != nil {
 		t.Error("ListRepoTags err", err)
 		return
 	}
-	pretty("ps", ps)
+
+	fmt.Printf("tag: %v, time: %v\n", v.Created, v.Name)
+
+	// pretty("ps", ps)
+}
+func TestListRepoTags(t *testing.T) {
+	ps, err := ListRepoTags("robot/mileage-planet")
+	if err != nil {
+		t.Error("ListRepoTags err", err)
+		return
+	}
+	for _, v := range ps {
+		fmt.Printf("tag: %v, time: %v\n", v.Created, v.Name)
+	}
+	// pretty("ps", ps)
 }
 
 // create project err request failed, status: 401 Unauthorized

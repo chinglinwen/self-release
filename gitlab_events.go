@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 	"wen/self-release/git"
+	"wen/self-release/pkg/harbor"
 	"wen/self-release/pkg/sse"
 	projectpkg "wen/self-release/project"
 
@@ -13,13 +14,17 @@ import (
 	"github.com/k0kubun/pp"
 )
 
+const pushEventType string = "push"
+const tagEventType string = "tag_push"
+const repoEventType string = "repository_update"
+
 func ParseEvent(eventName string, payload []byte) (data interface{}, err error) {
 	switch eventName {
-	case "push":
+	case pushEventType:
 		data = &PushEvent{}
-	case "tag_push":
+	case tagEventType:
 		data = &TagPushEvent{}
-	case "repository_update":
+	case repoEventType:
 		data = &RepositoryUpdateEvent{}
 	default:
 		err = fmt.Errorf("unknown event type: %v", eventName)
@@ -35,6 +40,8 @@ const IDTimeLayout = "20060102.150405"
 
 func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	e = &sse.EventInfo{}
+	e.EventType = pushEventType
+
 	e.Project = event.Project.PathWithNamespace
 	e.Branch = parseBranch(event.Ref)
 
@@ -78,6 +85,7 @@ func (event *PushEvent) GetInfo() (e *sse.EventInfo, err error) {
 
 func (event *TagPushEvent) GetInfo() (e *sse.EventInfo, err error) {
 	e = &sse.EventInfo{}
+	e.EventType = tagEventType
 	e.Project = event.Project.PathWithNamespace
 	e.Branch = parseBranch(event.Ref)
 
@@ -179,7 +187,7 @@ func EventInfoToProjectYaml(e *sse.EventInfo) (body string, err error) {
 
 	// is this needed, we often don't need overwrite env by manual?
 	// fromGitlab is false
-	env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, true)
+	env := projectpkg.GetEnvFromBranch(e.Project, e.Branch)
 	log.Printf("got env: %v for %v:%v\n", env, e.Project, e.Branch)
 
 	version := e.Branch
@@ -228,7 +236,7 @@ func applyReleaseFromEvent(e *sse.EventInfo) (yamlbody, out string, err error) {
 }
 
 func deleteReleaseFromCommand(project, branch string) (out string, err error) {
-	env := projectpkg.GetEnvFromBranchOrCommitID(project, branch, true)
+	env := projectpkg.GetEnvFromBranch(project, branch)
 	pp.Printf("try delete %v-%v\n", project, env)
 	ns, name, err := projectpkg.GetProjectName(project)
 	if err != nil {
@@ -255,11 +263,12 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 
 	// check if from harbor, so to change image tag
 	fromHarbor := strings.Contains(e.Message, "harbor")
-	fromGitlab := strings.Contains(e.Message, "gitlab")
+	// fromGitlab := strings.Contains(e.Message, "gitlab")
 
 	// is this needed, we often don't need overwrite env by manual?
 	if e.Env == "" {
-		e.Env = projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, fromGitlab)
+		// e.Env = projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Branch, fromGitlab)
+		e.Env = projectpkg.GetEnvFromBranch(e.Project, e.Branch)
 		log.Printf("got env: %v for %v:%v\n", e.Env, e.Project, e.Branch)
 	}
 	if e.Time == "" {
@@ -273,14 +282,21 @@ func EventInfoToMap(e *sse.EventInfo) (autoenv map[string]string, err error) {
 		log.Debug.Printf("harbor event use version: %v as imagetag\n", e.Branch)
 		imagetag = e.Branch
 	} else {
-		// get commitid from tag, for test env, just use branch as id
-		log.Debug.Printf("try get commitid from tag: %v as imagetag\n", e.Branch)
-		imagetag, err = projectpkg.GetCommitIDFromBranch(e.Project, e.Branch)
+		// // get commitid from tag, for test env, just use branch as id
+		// log.Debug.Printf("try get commitid from tag: %v as imagetag\n", e.Branch)
+		// imagetag, err = projectpkg.GetCommitIDFromBranch(e.Project, e.Branch)
+		// if err != nil {
+		// 	err = fmt.Errorf("getimagetag for project: %v, err: %v", projectenv, err)
+		// 	return
+		// }
+		// log.Printf("got commitid: %v for %v\n", imagetag, projectenv)
+
+		imagetag, err = harbor.ListRepoTagLatestName(e.Project, e.Time)
 		if err != nil {
 			err = fmt.Errorf("getimagetag for project: %v, err: %v", projectenv, err)
 			return
 		}
-		log.Printf("got commitid: %v for %v\n", imagetag, projectenv)
+		log.Printf("got imagetag: %v for %v\n", imagetag, projectenv)
 	}
 	if imagetag == "" {
 		err = fmt.Errorf("imagetag is empty for %v", projectenv)

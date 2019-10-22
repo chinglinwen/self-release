@@ -1,12 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
-	"wen/self-release/pkg/sse"
-	projectpkg "wen/self-release/project"
-
-	"github.com/chinglinwen/log"
 
 	"github.com/labstack/echo"
 )
@@ -68,129 +63,129 @@ func homeHandler(c echo.Context) error {
 // 	return c.String(http.StatusOK, page)
 // }
 
-func initAPIHandler(c echo.Context) error {
-	// records client ip?
-	project := c.FormValue("project")
-	branch := c.FormValue("branch")
-	if branch == "" {
-		branch = "develop"
-	}
-	force := c.FormValue("force")
+// func initAPIHandler(c echo.Context) error {
+// 	// records client ip?
+// 	project := c.FormValue("project")
+// 	branch := c.FormValue("branch")
+// 	if branch == "" {
+// 		branch = "develop"
+// 	}
+// 	force := c.FormValue("force")
 
-	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+// 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
 
-	if err != nil {
-		err = fmt.Errorf("new project: %v, err: %v", project, err)
-		log.Println(err)
-		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	}
-	if force == "true" {
-		err = p.Init(projectpkg.SetInitForce())
-	} else {
-		err = p.Init()
-	}
-	if err != nil {
-		err = fmt.Errorf("init api err: %v", err)
-		log.Println(err)
-		return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	}
+// 	if err != nil {
+// 		err = fmt.Errorf("new project: %v, err: %v", project, err)
+// 		log.Println(err)
+// 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 	}
+// 	if force == "true" {
+// 		err = p.Init(projectpkg.SetInitForce())
+// 	} else {
+// 		err = p.Init()
+// 	}
+// 	if err != nil {
+// 		err = fmt.Errorf("init api err: %v", err)
+// 		log.Println(err)
+// 		return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 	}
 
-	return c.String(http.StatusOK, "init ok")
-}
+// 	return c.String(http.StatusOK, "init ok")
+// }
 
-// can we deploy after gen? it's need bonded?
-// if we can gen, we can deploy
-// with build and deploy flag to trigger it
-func genAPIHandler(c echo.Context) (err error) {
-	r := c.Request()
-	r.ParseForm()
-	booptions := r.Form["booptions"]
+// // can we deploy after gen? it's need bonded?
+// // if we can gen, we can deploy
+// // with build and deploy flag to trigger it
+// func genAPIHandler(c echo.Context) (err error) {
+// 	r := c.Request()
+// 	r.ParseForm()
+// 	booptions := r.Form["booptions"]
 
-	bo := &buildOption{
-		gen:     contains(booptions, "gen"),
-		nobuild: contains(booptions, "nobuild"),
-		deploy:  contains(booptions, "deploy"),
-	}
+// 	bo := &buildOption{
+// 		gen:     contains(booptions, "gen"),
+// 		nobuild: contains(booptions, "nobuild"),
+// 		deploy:  contains(booptions, "deploy"),
+// 	}
 
-	project := c.FormValue("project")
-	branch := c.FormValue("branch")
-	env := c.FormValue("env")
-	// file := c.FormValue("file")
-	if branch == "" {
-		branch = "develop"
-	}
+// 	project := c.FormValue("project")
+// 	branch := c.FormValue("branch")
+// 	env := c.FormValue("env")
+// 	// file := c.FormValue("file")
+// 	if branch == "" {
+// 		branch = "develop"
+// 	}
 
-	username, useremail, msg := getUserInfo(c)
+// 	username, useremail, msg := getUserInfo(c)
 
-	e := &sse.EventInfo{
-		Project:   project,
-		Branch:    branch,
-		Env:       env, // default derive from branch
-		UserName:  username,
-		UserEmail: useremail,
-		Message:   msg,
-	}
+// 	e := &sse.EventInfo{
+// 		Project:   project,
+// 		Branch:    branch,
+// 		Env:       env, // default derive from branch
+// 		UserName:  username,
+// 		UserEmail: useremail,
+// 		Message:   msg,
+// 	}
 
-	// log.Println("event", e)
-	// log.Println("option", bo)
-	// return
+// 	// log.Println("event", e)
+// 	// log.Println("option", bo)
+// 	// return
 
-	b := NewBuilder(project, branch)
-	b.log("starting logs")
+// 	b := NewBuilder(project, branch)
+// 	b.log("starting logs")
 
-	err = b.startBuild(e, bo)
-	if err != nil {
-		err = fmt.Errorf("startBuild for project: %v, branch: %v, err: %v", project, branch, err)
-		log.Println(err)
-		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-		return
-	}
+// 	err = b.startBuild(e, bo)
+// 	if err != nil {
+// 		err = fmt.Errorf("startBuild for project: %v, branch: %v, err: %v", project, branch, err)
+// 		log.Println(err)
+// 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 		return
+// 	}
 
-	// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-	// if err != nil {
-	// 	err = fmt.Errorf("new project: %v, err: %v", project, err)
-	// 	log.Println(err)
-	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	// }
-	// if file != "" {
-	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
-	// } else {
-	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
-	// }
+// 	// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
+// 	// if err != nil {
+// 	// 	err = fmt.Errorf("new project: %v, err: %v", project, err)
+// 	// 	log.Println(err)
+// 	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 	// }
+// 	// if file != "" {
+// 	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv), projectpkg.SetGenerateName(file))
+// 	// } else {
+// 	// 	_, err = p.Generate(projectpkg.SetGenAutoEnv(autoenv))
+// 	// }
 
-	// if err != nil {
-	// 	err = fmt.Errorf("gen api err: %v", err)
-	// 	log.Println(err)
-	// 	return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	// }
+// 	// if err != nil {
+// 	// 	err = fmt.Errorf("gen api err: %v", err)
+// 	// 	log.Println(err)
+// 	// 	return c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
+// 	// }
 
-	return c.String(http.StatusOK, "generate ok")
-}
+// 	return c.String(http.StatusOK, "generate ok")
+// }
 
-func getUserInfo(c echo.Context) (username, useremail, msg string) {
-	username = c.FormValue("username")
-	useremail = c.FormValue("useremail")
-	msg = c.FormValue("msg")
+// func getUserInfo(c echo.Context) (username, useremail, msg string) {
+// 	username = c.FormValue("username")
+// 	useremail = c.FormValue("useremail")
+// 	msg = c.FormValue("msg")
 
-	if username == "" {
-		username = "web"
-	}
-	if useremail == "" {
-		useremail = "webmail"
-	}
-	if msg == "" {
-		msg = "webmsg"
-	}
-	return
-}
-func contains(slice []string, item string) bool {
-	set := make(map[string]struct{}, len(slice))
-	for _, s := range slice {
-		set[s] = struct{}{}
-	}
-	_, ok := set[item]
-	return ok
-}
+// 	if username == "" {
+// 		username = "web"
+// 	}
+// 	if useremail == "" {
+// 		useremail = "webmail"
+// 	}
+// 	if msg == "" {
+// 		msg = "webmsg"
+// 	}
+// 	return
+// }
+// func contains(slice []string, item string) bool {
+// 	set := make(map[string]struct{}, len(slice))
+// 	for _, s := range slice {
+// 		set[s] = struct{}{}
+// 	}
+// 	_, ok := set[item]
+// 	return ok
+// }
 
 // func rollbackAPIHandler(c echo.Context) (err error) {
 // 	// r := c.Request()

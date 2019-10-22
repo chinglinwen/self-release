@@ -62,47 +62,47 @@ func SetGenEnv(env string) func(*genOption) {
 // 	return p.CommitAndPush(fmt.Sprintf("generate for %v", p.Project))
 // }
 
-// get env by parse tag?
-// default is test env
-// func GetEnvFromBranch(branch string) string {
-// 	if git.BranchIsOnline(branch) {
-// 		return ONLINE
+// func GetEnvFromBranchOrCommitID(project, branch string, fromGitlab bool) string {
+// 	if git.BranchIsTag(branch) {
+// 		if git.BranchIsOnline(branch) {
+// 			return ONLINE
+// 		}
+// 		if git.BranchIsPre(branch) {
+// 			return PRE
+// 		}
 // 	}
-// 	if git.BranchIsPre(branch) {
-// 		return PRE
+// 	// if it's commitid, and from gitlab, it's a test env
+// 	if fromGitlab {
+// 		return TEST
+// 	}
+
+// 	// if it's from harbor ( means from human, or trx )
+// 	//  we detect the last commitid to know the env
+// 	//
+// 	// check if branch is commitid, manual build should not use this type of tag
+// 	if len(branch) == 8 {
+// 		// should we check this? compatible with trx?
+// 		o, p, err := git.GetLastTagCommitID(project)
+// 		if err == nil {
+// 			// pre comes out first, online later
+// 			if p != "" && p == branch {
+// 				return PRE
+// 			}
+// 			if o != "" && o == branch {
+// 				return ONLINE
+// 			}
+// 		}
 // 	}
 // 	return TEST
 // }
 
-func GetEnvFromBranchOrCommitID(project, branch string, fromGitlab bool) string {
+func GetEnvFromBranch(project, branch string) string {
 	if git.BranchIsTag(branch) {
 		if git.BranchIsOnline(branch) {
 			return ONLINE
 		}
 		if git.BranchIsPre(branch) {
 			return PRE
-		}
-	}
-	// if it's commitid, and from gitlab, it's a test env
-	if fromGitlab {
-		return TEST
-	}
-
-	// if it's from harbor ( means from human, or trx )
-	//  we detect the last commitid to know the env
-	//
-	// check if branch is commitid, manual build should not use this type of tag
-	if len(branch) == 8 {
-		// should we check this? compatible with trx?
-		o, p, err := git.GetLastTagCommitID(project)
-		if err == nil {
-			// pre comes out first, online later
-			if p != "" && p == branch {
-				return PRE
-			}
-			if o != "" && o == branch {
-				return ONLINE
-			}
 		}
 	}
 	return TEST
