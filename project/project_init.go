@@ -130,87 +130,86 @@ func (p *Project) Init(options ...func(*initOption)) (err error) {
 	return
 }
 
-// Setting set project config
-func (p *Project) Setting(c ProjectConfig) (out string, err error) {
+// Setting set project config from wechat
+// got diff too
+func ProjectSetting(project string, c ProjectConfig, user string) (out string, err error) {
 	if c.S.BuildMode == "" && c.S.DevBranch == "" && c.S.ConfigVer == "" && c.S.Enable && c.S.Version == "" {
 		err = fmt.Errorf("no config item provided,so nothing to set\n%v",
 			"expected setting [imagebuild=auto|disabled|on][devbranch=develop|test][configver=php.v1]")
 		return
 	}
-	if !p.Inited() {
-		err = fmt.Errorf("project not inited err: %v", err)
-		return
 
-		// we currently ignore autoenv, only config env is working for init
-		// _, envMap, e := p.ReadEnvs(nil)
-		// if e != nil {
-		// 	err = fmt.Errorf("readenvs err: %v", e)
-		// }
-		// _, err = p.initK8s(envMap, false)
-		// if err != nil {
-		// 	err = fmt.Errorf("initK8s err: %v", err)
-		// 	return
-		// }
+	pc := c
+	var exist bool
+	p, e := NewProject(project)
+	if e == nil {
+		exist = true
+		pc = p.Config
 	}
+
 	var update bool
-	out = "changed configs are:\n"
-	pc := p.Config
+	if exist {
+		out = "changed configs are:\n"
 
-	if c.S.BuildMode != "" {
-		log.Printf("project: %v changed buildmode from: %v to: %v\n", p.Project, pc.S.BuildMode, c.S.BuildMode)
-		if pc.S.BuildMode == c.S.BuildMode {
-			out = fmt.Sprintf("%v  buildmode already set to %v\n", out, c.S.BuildMode)
-		} else {
-			out = fmt.Sprintf("%v  buildmode from: %v -> %v\n", out, pc.S.BuildMode, c.S.BuildMode)
-			update = true
+		if c.S.BuildMode != "" {
+			log.Printf("project: %v changed buildmode from: %v to: %v\n", p.Project, pc.S.BuildMode, c.S.BuildMode)
+			if pc.S.BuildMode == c.S.BuildMode {
+				out = fmt.Sprintf("%v  buildmode already set to %v\n", out, c.S.BuildMode)
+			} else {
+				out = fmt.Sprintf("%v  buildmode from: %v -> %v\n", out, pc.S.BuildMode, c.S.BuildMode)
+				update = true
+			}
+			pc.S.BuildMode = c.S.BuildMode
 		}
-		pc.S.BuildMode = c.S.BuildMode
-	}
-	if c.S.ConfigVer != "" {
-		log.Printf("project: %v changed configver from: %v to: %v\n", p.Project, pc.S.ConfigVer, c.S.ConfigVer)
-		if pc.S.ConfigVer == c.S.ConfigVer {
-			out = fmt.Sprintf("%v  configver already set to %v\n", out, c.S.ConfigVer)
-		} else {
-			out = fmt.Sprintf("%v  configver from: %v -> %v\n", out, pc.S.ConfigVer, c.S.ConfigVer)
-			update = true
+		if c.S.ConfigVer != "" {
+			log.Printf("project: %v changed configver from: %v to: %v\n", p.Project, pc.S.ConfigVer, c.S.ConfigVer)
+			if pc.S.ConfigVer == c.S.ConfigVer {
+				out = fmt.Sprintf("%v  configver already set to %v\n", out, c.S.ConfigVer)
+			} else {
+				out = fmt.Sprintf("%v  configver from: %v -> %v\n", out, pc.S.ConfigVer, c.S.ConfigVer)
+				update = true
+			}
+			pc.S.ConfigVer = c.S.ConfigVer
 		}
-		pc.S.ConfigVer = c.S.ConfigVer
-	}
-	if c.S.DevBranch != "" {
-		log.Printf("project: %v changed devbranch from: %v to: %v\n", p.Project, pc.S.DevBranch, c.S.DevBranch)
+		if c.S.DevBranch != "" {
+			log.Printf("project: %v changed devbranch from: %v to: %v\n", p.Project, pc.S.DevBranch, c.S.DevBranch)
 
-		if pc.S.DevBranch == c.S.DevBranch {
-			out = fmt.Sprintf("%v  devbranch already set to %v\n", out, c.S.DevBranch)
-		} else {
-			out = fmt.Sprintf("%v  devbranch from: %v -> %v\n", out, pc.S.DevBranch, c.S.DevBranch)
-			update = true
+			if pc.S.DevBranch == c.S.DevBranch {
+				out = fmt.Sprintf("%v  devbranch already set to %v\n", out, c.S.DevBranch)
+			} else {
+				out = fmt.Sprintf("%v  devbranch from: %v -> %v\n", out, pc.S.DevBranch, c.S.DevBranch)
+				update = true
+			}
+			pc.S.DevBranch = c.S.DevBranch
 		}
-		pc.S.DevBranch = c.S.DevBranch
-	}
-	if c.S.Enable {
-		log.Printf("project: %v changed selfrelease from: %v to: %v\n", p.Project, pc.S.Enable, c.S.Enable)
-		if pc.S.Enable == c.S.Enable {
-			out = fmt.Sprintf("%v  selfrelease already set to %v\n", out, c.S.Enable)
-		} else {
-			out = fmt.Sprintf("%v  selfrelease from: %v -> %v\n", out, pc.S.Enable, c.S.Enable)
-			update = true
+		if c.S.Enable {
+			log.Printf("project: %v changed selfrelease from: %v to: %v\n", p.Project, pc.S.Enable, c.S.Enable)
+			if pc.S.Enable == c.S.Enable {
+				out = fmt.Sprintf("%v  selfrelease already set to %v\n", out, c.S.Enable)
+			} else {
+				out = fmt.Sprintf("%v  selfrelease from: %v -> %v\n", out, pc.S.Enable, c.S.Enable)
+				update = true
+			}
+			pc.S.Enable = c.S.Enable
 		}
-		pc.S.Enable = c.S.Enable
-	}
-	if c.S.Version != "" {
-		log.Printf("project: %v changed version from: %v to: %v\n", p.Project, pc.S.Version, c.S.Version)
-		if pc.S.Version == c.S.Version {
-			out = fmt.Sprintf("%v  Version already set to %v\n", out, c.S.Version)
-		} else {
-			out = fmt.Sprintf("%v  version from: %v -> %v\n", out, pc.S.Version, c.S.Version)
-			update = true
+		if c.S.Version != "" {
+			log.Printf("project: %v changed version from: %v to: %v\n", p.Project, pc.S.Version, c.S.Version)
+			if pc.S.Version == c.S.Version {
+				out = fmt.Sprintf("%v  Version already set to %v\n", out, c.S.Version)
+			} else {
+				out = fmt.Sprintf("%v  version from: %v -> %v\n", out, pc.S.Version, c.S.Version)
+				update = true
+			}
+			pc.S.Version = c.S.Version
 		}
-		pc.S.Version = c.S.Version
+	} else {
+		// create new
+		update = true
 	}
 
 	if update {
-		log.Printf("project: %v saving config\n", p.Project)
-		err = ConfigFileWrite(p.Project, pc, SetConfigRepo(p.configrepo))
+		log.Printf("project: %v saving config\n", project)
+		err = ConfigFileWrite(project, pc, SetConfigUser(user))
 	}
 	return
 }

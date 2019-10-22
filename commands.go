@@ -46,8 +46,8 @@ var (
 			"[configver=php.v1][selfrelease=enabled|disabled][viewsetting]"},
 		// {name: "gen", fn: gen, help: "generate files(yaml) only last time deployed project.", eg: "/gen [group/project] [branch]"},
 		{name: "myproject", fn: myproject, help: "show last time project."},
-		{name: "helpdocker", fn: helpdocker, help: "help to generate docker files(in branch develop).", eg: "/helpdocker group/project [force]"},
-		{name: "init", fn: projectinit, help: "enable project by init config-repo.", eg: "/init group/project [force]"},
+		// {name: "helpdocker", fn: helpdocker, help: "help to generate docker files(in branch develop).", eg: "/helpdocker group/project [force]"},
+		// {name: "init", fn: projectinit, help: "enable project by init config-repo.", eg: "/init group/project [force]"},
 	}
 )
 
@@ -374,13 +374,18 @@ func setting(dev, args string) (out string, err error) {
 	}
 
 	log.Println("start project setting for ", dev)
-	p, err := projectpkg.NewProject(project, projectpkg.SetNoEnableCheck(true))
-	if err != nil {
-		err = fmt.Errorf("new project: %v", err)
-		return
-	}
+	// p, err := projectpkg.NewProject(project, projectpkg.SetNoEnableCheck(true))
+	// if err != nil {
+	// 	err = fmt.Errorf("new project: %v", err)
+	// 	return
+	// }
 	if f.viewsetting {
-		out = fmt.Sprint(p.Config)
+		c, e := projectpkg.ReadProjectConfig(project)
+		if e != nil {
+			err = fmt.Errorf("read project config err: %v", e)
+			return
+		}
+		out = fmt.Sprint(c)
 		log.Printf("setting from %v ok\n", dev)
 		return
 	}
@@ -399,7 +404,7 @@ func setting(dev, args string) (out string, err error) {
 			Version:   s.version,
 		},
 	}
-	out, err = p.Setting(c)
+	out, err = projectpkg.ProjectSetting(project, c, dev)
 	if err != nil {
 		return
 	}

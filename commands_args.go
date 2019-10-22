@@ -102,7 +102,13 @@ func validateSetting(s setOption) error {
 }
 
 func parseSetting(args string) (f setOption) {
-	// f = setOption{}
+	f = setOption{
+		selfrelease: "enabled",
+		buildmode:   "auto",
+		devbranch:   "develop",
+		configver:   "phpv1",
+		version:     "v1.0.0",
+	}
 	s := strings.Fields(args)
 	m := make(map[string]string)
 	for _, v := range s {
