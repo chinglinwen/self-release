@@ -43,9 +43,11 @@ func projectImageCheckHandler(c echo.Context) (err error) {
 
 // read values file
 func projectConfigGetHandler(c echo.Context) (err error) {
+	user := c.Request().Header.Get("X-Auth-User")
+
 	ns := c.Param("ns")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
-	log.Printf("get values for project: %v\n ", project)
+	log.Printf("get values for project: %v, by user %v\n ", project, user)
 
 	out, err := projectpkg.ReadProjectConfig(project)
 	if err != nil {
@@ -64,9 +66,11 @@ func projectConfigGetHandler(c echo.Context) (err error) {
 
 // save values file
 func projectConfigUpdateHandler(c echo.Context) (err error) {
+	user := c.Request().Header.Get("X-Auth-User")
+
 	ns := c.Param("ns")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
-	log.Printf("write values for project: %v\n ", project)
+	log.Printf("write values for project: %v, by user %v\n ", project, user)
 
 	r := c.Request()
 	body, err := readbody(r)
@@ -86,7 +90,7 @@ func projectConfigUpdateHandler(c echo.Context) (err error) {
 		return
 	}
 
-	err = projectpkg.ConfigFileWrite(project, v)
+	err = projectpkg.ConfigFileWrite(project, v, projectpkg.SetConfigUser(user))
 	if err != nil {
 		err = fmt.Errorf("write config file for project: %v, err: %v", project, err)
 		log.Println(err)
@@ -98,9 +102,11 @@ func projectConfigUpdateHandler(c echo.Context) (err error) {
 
 // read values file
 func projectValuesGetHandler(c echo.Context) (err error) {
+	user := c.Request().Header.Get("X-Auth-User")
+
 	ns := c.Param("ns")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
-	log.Printf("get values for project: %v\n ", project)
+	log.Printf("get values for project: %v, by user: %v\n ", project, user)
 
 	repo, err := projectpkg.NewValuesRepo(project)
 	if err != nil {
@@ -122,9 +128,11 @@ func projectValuesGetHandler(c echo.Context) (err error) {
 
 // save values file
 func projectValuesUpdateHandler(c echo.Context) (err error) {
+	user := c.Request().Header.Get("X-Auth-User") // set by middlerware
+
 	ns := c.Param("ns")
 	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
-	log.Printf("write values for project: %v\n ", project)
+	log.Printf("write values for project: %v by user %v\n ", project, user)
 
 	r := c.Request()
 	body, err := readbody(r)
@@ -143,7 +151,7 @@ func projectValuesUpdateHandler(c echo.Context) (err error) {
 		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
 		return
 	}
-	repo, err := projectpkg.NewValuesRepo(project, projectpkg.SetValuesCreate())
+	repo, err := projectpkg.NewValuesRepo(project, projectpkg.SetValuesCreate(), projectpkg.SetValuesUser(user))
 	if err != nil {
 		err = fmt.Errorf("git fetch project: %v, err: %v", project, err)
 		log.Println(err)

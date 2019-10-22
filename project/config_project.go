@@ -20,6 +20,8 @@ const (
 type ProjectConfigRepo struct {
 	project    string
 	configrepo *git.Repo
+
+	user string
 }
 
 type projectConfigOption func(v *ProjectConfigRepo)
@@ -27,6 +29,12 @@ type projectConfigOption func(v *ProjectConfigRepo)
 func SetConfigRepo(r *git.Repo) projectConfigOption {
 	return func(v *ProjectConfigRepo) {
 		v.configrepo = r
+	}
+}
+
+func SetConfigUser(user string) projectConfigOption {
+	return func(v *ProjectConfigRepo) {
+		v.user = user
 	}
 }
 
@@ -102,7 +110,7 @@ func (v *ProjectConfigRepo) ConfigFileWrite(config ProjectConfig) (err error) {
 	if err != nil {
 		return
 	}
-	commit := fmt.Sprintf("update config.yaml for: %v", v.project)
+	commit := fmt.Sprintf("%v update config.yaml for: %v", v.user, v.project)
 	log.Println(commit)
 	return v.configrepo.CommitAndPush(commit)
 }

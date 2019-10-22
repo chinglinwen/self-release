@@ -24,6 +24,7 @@ type ValuesRepo struct {
 	configrepo *git.Repo
 
 	create bool
+	user   string
 }
 
 type ValuesOption func(*ValuesRepo)
@@ -33,6 +34,13 @@ func SetValuesCreate() ValuesOption {
 		v.create = true
 	}
 }
+
+func SetValuesUser(user string) ValuesOption {
+	return func(v *ValuesRepo) {
+		v.user = user
+	}
+}
+
 func NewValuesRepo(project string, options ...ValuesOption) (v *ValuesRepo, err error) {
 	configrepo, err := GetConfigRepo()
 	if err != nil {
@@ -173,7 +181,7 @@ func (v *ValuesRepo) ValuesFileWriteAll(all ValuesAll) (err error) {
 	if update3 {
 		a += " " + TEST
 	}
-	commit := fmt.Sprintf("update values.yaml(%v) for: %v", a, v.project)
+	commit := fmt.Sprintf("%v update values.yaml(%v) for: %v", v.user, a, v.project)
 	log.Println(commit)
 	return v.configrepo.CommitAndPush(commit)
 }
