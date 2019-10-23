@@ -208,6 +208,14 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	log.Debug.Printf(tip)
 
+	p, err := getproject(project, branch)
+	if err != nil {
+		err = fmt.Errorf("get project: %v, err: %v", project, err)
+		b.logerr(err)
+		return
+	}
+
+	// notify only if project enabled
 	notifytext := fmt.Sprintf("%vlog url: %v", tip, logurl)
 	b.notify(notifytext, e.UserName)
 
@@ -228,13 +236,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		}
 		log.Debug.Printf("exit startBuild now\n")
 	}()
-
-	p, err := getproject(project, branch)
-	if err != nil {
-		err = fmt.Errorf("get project: %v, err: %v", project, err)
-		b.logerr(err)
-		return
-	}
 
 	go func() {
 		_, err := git.SetCommitStatusRunning(project, commitid, logurl)
@@ -386,7 +387,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		}
 
 		// is devbranch, or tag not exist yet
-		imageexist, needbuild := p.NeedBuild(commitid)
+		_, needbuild := p.NeedBuild(commitid)
 
 		if ((!bo.nobuild) && needbuild) || bo.buildimage {
 			// out := make(chan string, 10)
@@ -451,7 +452,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 			b.logf("config buildmode: %v", p.Config.S.BuildMode)
 			b.logf("needbuild detect result: %v", needbuild)
-			b.logf("imageexist check result: %v", imageexist)
+			// b.logf("imageexist check result: %v", imageexist)
 		}
 	}
 

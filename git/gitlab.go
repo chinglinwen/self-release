@@ -2,11 +2,12 @@ package git
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/chinglinwen/log"
 
 	"github.com/davecgh/go-spew/spew"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -729,42 +730,127 @@ func listAllTags(projectPath string) (ts []*gitlab.Tag, err error) {
 	return
 }
 
-func GetLastTagCommitID(projectPath string) (onlineid, preid string, err error) {
-	o, p, err := GetLastTag(projectPath)
-	if err != nil {
-		return
-	}
-	if o != nil {
-		onlineid = o.Commit.ShortID
-	}
-	if p != nil {
-		preid = p.Commit.ShortID
-	}
-	return
-}
-func GetLastTag(projectPath string) (online, pre *gitlab.Tag, err error) {
-	ts, err := listAllTags(projectPath)
-	if err != nil {
-		err = fmt.Errorf("get last tag err: %v", err)
-		return
-	}
-	preTags := []*gitlab.Tag{}
-	onlineTags := []*gitlab.Tag{}
-	for _, v := range ts {
-		if BranchIsOnline(v.Name) {
-			onlineTags = append(onlineTags, v)
-		} else {
-			preTags = append(preTags, v)
-		}
-	}
-	if len(onlineTags) != 0 {
-		online = onlineTags[0]
-	}
-	if len(preTags) != 0 {
-		pre = preTags[0]
-	}
-	return
-}
+// func listLastTwoCommits(projectPath string) (ts []*gitlab.Commit, err error) {
+// 	p, err := GetProject(projectPath)
+// 	if err != nil {
+// 		err = fmt.Errorf("get project err: %v", err)
+// 		return
+// 	}
+// 	list := gitlab.ListOptions{Page: 1, PerPage: 2}
+// 	ts, _, err = adminclient().Commits.ListCommits(p.ID, &gitlab.ListCommitsOptions{
+// 		ListOptions: list,
+// 	})
+// 	if err != nil {
+// 		if strings.Contains(err.Error(), "Not Found") {
+// 			err = fmt.Errorf("commit not found")
+// 		}
+// 		err = fmt.Errorf("list commit for %v err: %v", projectPath, err)
+// 		return
+// 	}
+// 	if len(ts) == 0 {
+// 		err = fmt.Errorf("empty commit for %v", projectPath)
+// 		return
+// 	}
+// 	if len(ts) < 2 {
+// 		err = fmt.Errorf("no enough previous commit, got %v, expect 2", len(ts))
+// 		return
+// 	}
+// 	return
+// }
+
+// func GetLastTagCommitID(projectPath string) (onlineid, preid string, err error) {
+// 	o, p, err := GetLastTag(projectPath)
+// 	if err != nil {
+// 		return
+// 	}
+// 	if o != nil {
+// 		onlineid = o.Commit.ShortID
+// 	}
+// 	if p != nil {
+// 		preid = p.Commit.ShortID
+// 	}
+// 	return
+// }
+// func GetLastTag(projectPath string) (online, pre *gitlab.Tag, err error) {
+// 	ts, err := listAllTags(projectPath)
+// 	if err != nil {
+// 		err = fmt.Errorf("get last tag err: %v", err)
+// 		return
+// 	}
+// 	preTags := []*gitlab.Tag{}
+// 	onlineTags := []*gitlab.Tag{}
+// 	for _, v := range ts {
+// 		if BranchIsOnline(v.Name) {
+// 			onlineTags = append(onlineTags, v)
+// 		} else {
+// 			preTags = append(preTags, v)
+// 		}
+// 	}
+// 	if len(onlineTags) != 0 {
+// 		online = onlineTags[0]
+// 	}
+// 	if len(preTags) != 0 {
+// 		pre = preTags[0]
+// 	}
+// 	return
+// }
+
+// // get previous commit before commitid
+// func GetPreviousCommit(projectPath, commitid string) (previous *gitlab.Commit, err error) {
+// 	ts, err := listLastTwoCommits(projectPath)
+// 	if err != nil {
+// 		err = fmt.Errorf("listLastTwoCommits err: %v", err)
+// 		return
+// 	}
+// 	if ts[0].ShortID != commitid {
+// 		err = fmt.Errorf("no previous tags found")
+// 		return
+// 	}
+// 	previous = ts[1]
+// 	return
+// }
+
+// const TimeLayout = "2006-1-2_15:04:05"
+
+// error-prone, forget it
+// if no previous commit, any imagetag is exist, return false
+// if have previous commit, there's imagetag after previous commit time, return true
+
+// calc how many images between commit
+// if previous image before previous commit, compare to 2
+// if previous image after previous commit, compare to 3
+//    a  b
+//   i  j  k
+// func ManualPushedImage(projectPath, commitid string) (imagetag string, err error) {
+// 	ts, err := listLastTwoCommits(projectPath)
+// 	if err != nil {
+// 		err = fmt.Errorf("listLastTwoCommits err: %v", err)
+// 		return
+// 	}
+
+// 	// ts := oldc.CreatedAt.Local().Format(TimeLayout)
+// 	ts := oldc.CreatedAt.Format(TimeLayout)
+// 	log.Printf("check if image exist before ts: %v for %v, commitid: %v\n", ts, projectPath, commitid)
+// 	imagetag, err = harbor.ListRepoTagLatestName(projectPath, ts)
+// 	if err != nil {
+// 		return
+// 	}
+// 	return
+// }
+// func ManualPushedImage(projectPath, commitid string) (imagetag string, err error) {
+// 	oldc, err := GetPreviousCommit(projectPath, commitid)
+// 	if err != nil {
+// 		return
+// 	}
+// 	// ts := oldc.CreatedAt.Local().Format(TimeLayout)
+// 	ts := oldc.CreatedAt.Format(TimeLayout)
+// 	log.Printf("check if image exist before ts: %v for %v, commitid: %v\n", ts, projectPath, commitid)
+// 	imagetag, err = harbor.ListRepoTagLatestName(projectPath, ts)
+// 	if err != nil {
+// 		return
+// 	}
+// 	return
+// }
 
 func CheckPerm(projectPath, user, env string) (err error) {
 	u, err := GetUser(user)

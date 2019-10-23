@@ -109,12 +109,14 @@ const (
 func (p *Project) NeedBuild(commitid string) (exist, build bool) {
 	switch p.Config.S.BuildMode {
 	case buildmodeAuto:
-		if p.Branch == p.Config.S.DevBranch {
-			build = true
-			return
-		}
-		exist = p.ImageIsExist(commitid)
-		build = !exist
+		// if p.Branch == p.Config.S.DevBranch {
+		// 	build = true
+		// 	return
+		// }
+		// exist = p.ImageIsExist(commitid)
+		// build = !exist
+		// return
+		build = true
 		return
 	// case buildmodeDisabled:
 	// 	return false

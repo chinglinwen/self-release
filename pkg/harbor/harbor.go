@@ -30,12 +30,21 @@ func ListProjects() (ps []harbor.Project, err error) {
 
 const TimeLayout = "2006-1-2_15:04:05"
 
-func TimeIn(t time.Time, name string) (time.Time, error) {
+func timeToLocal(t time.Time, name string) (time.Time, error) {
 	loc, err := time.LoadLocation(name)
 	if err == nil {
 		t = t.In(loc)
 	}
 	return t, err
+}
+
+func parseTimeLocal(ts string) (t time.Time, err error) {
+	loc, err := time.LoadLocation("Local")
+	if err != nil {
+		err = fmt.Errorf("load localtimezone err: %v", err)
+		return
+	}
+	return time.ParseInLocation(TimeLayout, ts, loc)
 }
 
 func ListRepoTagLatestName(repo string, ts string) (name string, err error) {
@@ -62,20 +71,22 @@ func ListRepoTagLatest(repo string, ts string) (tag harbor.TagResp, err error) {
 		tag = tags[0]
 		return
 	}
-	t, err := time.Parse(TimeLayout, ts)
+	t, err := parseTimeLocal(ts)
 	if err != nil {
 		err = fmt.Errorf("parse time err: %v", err)
 		return
 	}
+	log.Printf("parsed ts: %v, to t: %v\n", ts, t)
 	for _, v := range tags {
 		// fmt.Printf("tag time: %v, t: %v\n", v.Created, t)
-		t2, e := TimeIn(v.Created, "Local")
+		t2, e := timeToLocal(v.Created, "Local")
 		if e != nil {
 			err = e
 			return
 		}
-		// fmt.Printf("tag time: %v, t: %v\n", t2, t)
+		fmt.Printf("tag time: %v, ts: %v\n", t2, t)
 		if t2.Before(t) {
+			fmt.Printf("got tag time: %v, ts: %v\n", t2, t)
 			tag = v
 			return
 		}
@@ -83,6 +94,20 @@ func ListRepoTagLatest(repo string, ts string) (tag harbor.TagResp, err error) {
 	err = fmt.Errorf("no tags before the time: %v", ts)
 	return
 }
+
+// func ListRepoThreeTags(repo string) (tags []harbor.TagResp, err error) {
+// 	tags, err = ListRepoTags(repo)
+// 	if err != nil {
+// 		err = fmt.Errorf("ListRepoTags err: %v", err)
+// 		return
+// 	}
+// 	if len(tags) < 3 {
+// 		err = fmt.Errorf("not enough images, got %v, expect 3", len(tags))
+// 		return
+// 	}
+// 	tags = tags[:3]
+// 	return
+// }
 
 // repo is kind like "flow_center/8-yun"
 func ListRepoTags(repo string) (tags []harbor.TagResp, err error) {

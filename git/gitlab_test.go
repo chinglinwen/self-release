@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	prettyjson "github.com/hokaccha/go-prettyjson"
@@ -156,25 +157,49 @@ func TestListAllTags(t *testing.T) {
 	}
 	// pretty("tags", u)
 }
-
-func TestGetLastTagCommitIDg(t *testing.T) {
-	o, p, err := GetLastTagCommitID("wenzhenglin/project-example")
+func TestListLastTwoCommits(t *testing.T) {
+	u, err := listLastTwoCommits("robot/mileage-planet")
 	if err != nil {
-		t.Error("check tag err ", err)
+		t.Error("listLastTwoCommits err ", err)
 		return
 	}
-	fmt.Printf("onlineid: %v, preid: %v\n", o, p)
+	for _, v := range u {
+		fmt.Printf("created at: %v, name: %v\n", v.CreatedAt, v.ShortID)
+	}
+	// pretty("tags", u)
 }
 
-func TestGetLastTag(t *testing.T) {
-	o, p, err := GetLastTag("wenzhenglin/project-example")
+func TestManualPushedImage(t *testing.T) {
+	fmt.Println(time.Now())
+	fmt.Println(time.Now().Unix())
+
+	return
+	imagetag, err := ManualPushedImage("robot/mileage-planet", "6775366d")
 	if err != nil {
-		t.Error("check tag err ", err)
+		t.Error("ManualPushedImage err: ", err)
 		return
 	}
-	pretty("online", o)
-	pretty("pre", p)
+	pretty("got imagetag", imagetag)
 }
+
+// func TestGetLastTagCommitIDg(t *testing.T) {
+// 	o, p, err := GetLastTagCommitID("wenzhenglin/project-example")
+// 	if err != nil {
+// 		t.Error("check tag err ", err)
+// 		return
+// 	}
+// 	fmt.Printf("onlineid: %v, preid: %v\n", o, p)
+// }
+
+// func TestGetLastTag(t *testing.T) {
+// 	o, p, err := GetLastTag("wenzhenglin/project-example")
+// 	if err != nil {
+// 		t.Error("check tag err ", err)
+// 		return
+// 	}
+// 	pretty("online", o)
+// 	pretty("pre", p)
+// }
 
 func TestGetProject(t *testing.T) {
 	p := "flow_center/tangguo"

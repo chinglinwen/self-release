@@ -17,7 +17,7 @@ func TestListProject(t *testing.T) {
 }
 
 func TestListRepoTagLatest(t *testing.T) {
-	ts := "2019-10-22_15:03:09"
+	ts := "2019-10-22_15:00:00"
 
 	v, err := ListRepoTagLatest("robot/mileage-planet", ts)
 	if err != nil {
@@ -25,7 +25,7 @@ func TestListRepoTagLatest(t *testing.T) {
 		return
 	}
 
-	fmt.Printf("tag: %v, time: %v\n", v.Created, v.Name)
+	fmt.Printf("tag: %v, time: %v\n", v.Name, v.Created)
 
 	// pretty("ps", ps)
 }
@@ -40,6 +40,18 @@ func TestListRepoTags(t *testing.T) {
 	}
 	// pretty("ps", ps)
 }
+
+// func TestListRepoThreeTags(t *testing.T) {
+// 	ps, err := ListRepoThreeTags("robot/mileage-planet")
+// 	if err != nil {
+// 		t.Error("ListRepoTags err", err)
+// 		return
+// 	}
+// 	for _, v := range ps {
+// 		fmt.Printf("tag: %v, time: %v\n", v.Created, v.Name)
+// 	}
+// 	// pretty("ps", ps)
+// }
 
 // create project err request failed, status: 401 Unauthorized
 func TestCreateProject(t *testing.T) {

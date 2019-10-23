@@ -71,7 +71,6 @@ func hookHandler(c echo.Context) (err error) {
 		c.JSONPretty(http.StatusOK, E(0, "ignore non-test projects", "ok"), " ")
 		return
 	}
-	log.Printf("out: %s\n", out)
 
 	// log.Printf("===event_name: %v\n", a["event_name"])
 	// log.Printf("===message: %v\n", a["message"])
@@ -85,7 +84,12 @@ func hookHandler(c echo.Context) (err error) {
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 		return
 	}
-
+	if eventName == "repository_update" {
+		log.Println("ignore repository_update event")
+		c.JSONPretty(http.StatusOK, E(0, "ignore repository_update event", "ok"), " ")
+		return
+	}
+	log.Printf("out: %s\n", out)
 	log.Debug.Println("got event: ", eventName)
 
 	// spew.Dump("event:", data)
