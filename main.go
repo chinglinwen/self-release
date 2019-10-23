@@ -52,6 +52,10 @@ var (
 	logsPath = flag.String("logsDir", "projectlogs", "build logs dir")
 )
 
+const (
+	defaultDevBranch = "master"
+)
+
 func checkFlag() {
 	fmt.Println("args:", os.Args)
 	if *secretKey == "" {

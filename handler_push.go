@@ -550,9 +550,13 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	return
 }
 
-func getProjectURL(project, env string) string {
+func getProjectURL(project, env string) (url string) {
 	project = strings.Replace(project, "/", "-", -1)
-	return fmt.Sprintf("https://%v-%v.%v", project, env, ingressSuffix)
+	if env == projectpkg.ONLINE {
+		return fmt.Sprintf("https://%v.%v", project, ingressSuffix)
+	} else {
+		return fmt.Sprintf("https://%v-%v.%v", project, env, ingressSuffix)
+	}
 }
 
 func getproject(project, branch string) (p *projectpkg.Project, err error) {

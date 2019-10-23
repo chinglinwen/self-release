@@ -11,7 +11,8 @@ import (
 	"github.com/chinglinwen/log"
 )
 
-const InitBranch = "develop"
+// should depend on config's
+const InitBranch = "master"
 
 // type action struct {
 // 	name string
@@ -42,7 +43,7 @@ var (
 		// {name: "rollback", fn: rollback, help: "rollback project.", eg: "/rollback group/project [branch]"},
 		{name: "retry", fn: retry, help: "retry last time deployed project.", eg: "/retry [nobuild|buildimage]"},
 		// {name: "reapply", fn: reapply, help: "reapply last time deployed project without build image.", eg: "/reapply [group/project] [branch]"},
-		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [buildmode=auto|disabled|on|manual][devbranch=develop|test]" +
+		{name: "set", fn: setting, help: "setting project config.", eg: "/set [group/project] [buildmode=auto|disabled|on|manual][devbranch=master|develop|test]" +
 			"[configver=php.v1][selfrelease=enabled|disabled][viewsetting]"},
 		// {name: "gen", fn: gen, help: "generate files(yaml) only last time deployed project.", eg: "/gen [group/project] [branch]"},
 		{name: "myproject", fn: myproject, help: "show last time project."},

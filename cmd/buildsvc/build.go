@@ -21,7 +21,7 @@ func buildAPIHandler(c echo.Context) (err error) {
 	branch := c.FormValue("branch") // branch can be tag
 	env := c.FormValue("env")       // parse branch to get it?
 	if branch == "" {
-		branch = "develop" // default to test build
+		branch = "master" // default to test build
 	}
 
 	if project == "" {

@@ -522,7 +522,7 @@ func SSEHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("got project: %v, key: %v for eventsources\n", project, key)
 
 	if branch == "" {
-		branch = "develop"
+		branch = "master"
 	}
 
 	needcreate := true

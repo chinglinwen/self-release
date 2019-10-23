@@ -63,7 +63,7 @@ func parseProject(args string) (project, branch string, err error) {
 	}
 	if len(a) < 2 {
 		project = a[0]
-		branch = "develop" // TODO: using config?
+		branch = defaultDevBranch // TODO: using config?
 	}
 	if len(a) >= 2 {
 		project = a[0]
@@ -105,7 +105,7 @@ func parseSetting(args string) (f setOption) {
 	f = setOption{
 		selfrelease: "enabled",
 		buildmode:   "auto",
-		devbranch:   "develop",
+		devbranch:   "master",
 		configver:   "phpv1",
 		version:     "v1.0.0",
 	}

@@ -27,7 +27,7 @@ func logsHandler(c echo.Context) (err error) {
 	// }
 
 	if project != "" && branch == "" {
-		branch = "develop"
+		branch = defaultDevBranch
 		note = "default"
 		// err = fmt.Errorf("branch parameter value is empty")
 		// log.Println(err)

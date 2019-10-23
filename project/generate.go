@@ -18,7 +18,6 @@ import (
 
 // to match specific k8s yaml
 const (
-	DEV    = "develop"
 	TEST   = "test"
 	PRE    = "pre" // TODO: pre branch is same as master branch?
 	ONLINE = "online"

@@ -64,7 +64,7 @@ func main() {
 
 	build(client, &pb.Request{
 		Project:  "robot/main",
-		Branch:   "develop",
+		Branch:   "master",
 		Env:      "test",
 		Commitid: "076f2793",
 	})
