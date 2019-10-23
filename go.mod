@@ -18,11 +18,11 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20180920040306-f579f869bbfe
 	github.com/instrumenta/kubeval v0.0.0-20190609171638-bc9ab56cc345
-	github.com/joho/godotenv v1.3.0
+	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.2.9 // indirect
-	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
+	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/moul/http2curl v1.0.0 // indirect
 	github.com/parnurzeal/gorequest v0.2.15
 	github.com/patrickmn/go-cache v2.1.0+incompatible
