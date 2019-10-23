@@ -187,11 +187,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 	b.Event = e
 
-	// not from gitlab, maybe from harbor or from wechat
-
-	// pp.Printf("commitid: %v\n", e.CommitID)
-	// spew.Dump("build event", e)
-
 	project := e.Project
 	branch := e.Branch
 
@@ -200,48 +195,12 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		env = projectpkg.GetEnvFromBranch(e.Project, e.Branch)
 		log.Printf("got env from branch: %v\n", env)
 	}
-
 	commitid := e.CommitID
-
-	// // empty means not from gitlab
-	// fromHarbor := strings.Contains(e.Message, "harbor")
-	// if commitid == "" && !fromHarbor {
-	// 	commitid, err = git.GetCommitIDFromTag(project, branch)
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// }
 
 	if err = validateRequest(project, branch, env, commitid); err != nil {
 		return
 	}
-
 	logurl := fmt.Sprintf("%v/logs?key=%v", *selfURL, b.Key)
-
-	go func() {
-		_, err := git.SetCommitStatusRunning(project, commitid, logurl)
-		if err != nil {
-			log.Println("SetCommitStatusRunning err: ", err)
-		}
-	}()
-
-	defer func() {
-		if err != nil {
-			_, err := git.SetCommitStatusFailed(project, commitid, logurl)
-			if err != nil {
-				log.Println("SetCommitStatusFailed err: ", err)
-			}
-		} else {
-			_, err := git.SetCommitStatusSuccess(project, commitid, logurl)
-			if err != nil {
-				log.Println("SetCommitStatusSuccess err: ", err)
-			}
-		}
-	}()
-
-	// bname := strings.Replace(fmt.Sprintf("%v-%v", project, branch), "/", "-", -1)
-	// b := NewBuilder(bname)
-	// defer b.Close()
 
 	tip := fmt.Sprintf("start build for project %v, branch: %v, env: %v, commitid: %v\n",
 		project, branch, env, commitid)
@@ -270,6 +229,34 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		log.Debug.Printf("exit startBuild now\n")
 	}()
 
+	p, err := getproject(project, branch)
+	if err != nil {
+		err = fmt.Errorf("get project: %v, err: %v", project, err)
+		b.logerr(err)
+		return
+	}
+
+	go func() {
+		_, err := git.SetCommitStatusRunning(project, commitid, logurl)
+		if err != nil {
+			log.Println("SetCommitStatusRunning err: ", err)
+		}
+	}()
+
+	defer func() {
+		if err != nil {
+			_, err := git.SetCommitStatusFailed(project, commitid, logurl)
+			if err != nil {
+				log.Println("SetCommitStatusFailed err: ", err)
+			}
+		} else {
+			_, err := git.SetCommitStatusSuccess(project, commitid, logurl)
+			if err != nil {
+				log.Println("SetCommitStatusSuccess err: ", err)
+			}
+		}
+	}()
+
 	// check permission
 	err = git.CheckPerm(project, e.UserName, env)
 	if err != nil {
@@ -290,43 +277,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 			b.logerr(err)
 			return
 		}
-	}
-
-	// only build for develop branch, need confirm?
-	// we shoult not limit the branch, let them easy to change? change in config.yaml, based on tag?
-	//so release need to build too? or just add addition condition to build for other branch?
-
-	// what to do with master branch as dev?  init by commit text?
-
-	var p *projectpkg.Project
-
-	// since we have ui, let's ignore here
-
-	// // create project need to distinguish if it's a init
-	// var init, forceinit bool
-	// if !projectpkg.BranchIsTag(branch) {
-	// 	if strings.Contains(e.Message, "/helpdocker") {
-	// 		b.log("will do init")
-	// 		init = true
-	// 	}
-	// 	if strings.Contains(e.Message, "/forcehelpdocker") {
-	// 		b.log("will do forceinit")
-	// 		forceinit = true
-	// 	}
-	// }
-
-	if bo.p == nil {
-		// if not inited, just using default setting?
-		p, err = getproject(project, branch)
-		// p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-		if err != nil {
-			err = fmt.Errorf("get project: %v, err: %v", project, err)
-			b.logerr(err)
-			return
-		}
-		// b.log("clone or open project ok")
-	} else {
-		p = bo.p
 	}
 
 	// // TODO: not support yet, if rollback is set, get previous tag as branch
@@ -460,17 +410,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 				b.logerr(err)
 				return
 			}
-			// for text := range out {
-			// 	if e := p.GetBuildError(); e != nil {
-			// 		err = fmt.Errorf("build got err: %v", e)
-			// 		b.logerr(err)
-			// 		return
-			// 	}
-			// 	if strings.Contains(text, detector) {
-			// 		buildSuccess = true
-			// 	}
-			// 	b.log(text)
-			// }
 
 			for {
 				text, ok := <-out

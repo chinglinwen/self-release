@@ -100,7 +100,12 @@ const (
 	buildmodeManual = "manual" // for manual build
 )
 
-// exist pass info to user, why no need
+// the key is when does imagecheck, before auto, or after auto
+// can user build before git commit? they can, but they don't know commitid?
+// let's use timesplit too (but may get old image? how to filter out)
+//   using previous commit time, to get last imagetag
+//   see if there's imagetag after last imagetag
+// user need to know image exist or not
 func (p *Project) NeedBuild(commitid string) (exist, build bool) {
 	switch p.Config.S.BuildMode {
 	case buildmodeAuto:

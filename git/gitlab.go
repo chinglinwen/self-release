@@ -647,6 +647,9 @@ func SetCommitStatusRunning(projectPath, tag, logurl string) (t *gitlab.CommitSt
 func SetCommitStatusFailed(projectPath, tag, logurl string) (t *gitlab.CommitStatus, err error) {
 	return SetCommitStatus(projectPath, tag, logurl, string(gitlab.Failed))
 }
+func SetCommitStatusSkipped(projectPath, tag, logurl string) (t *gitlab.CommitStatus, err error) {
+	return SetCommitStatus(projectPath, tag, logurl, string(gitlab.Skipped))
+}
 
 // it can be tag
 func SetCommitStatus(projectPath, tag, logurl, state string) (t *gitlab.CommitStatus, err error) {
