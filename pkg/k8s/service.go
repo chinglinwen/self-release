@@ -41,21 +41,35 @@ func Init(kubeconfig string) {
 
 	//client, err := k8s.NewInClusterClient()
 	var err error
-	client, err = loadClient(kubeconfig)
-	if err != nil {
-		client, err = k8s.NewInClusterClient()
+	envconfig := os.Getenv("KUBECONFIG")
+	if envconfig != "" {
+		client, err = loadClient(envconfig)
+		if err == nil {
+			log.Printf("loaded kubeconfig from KUBECONFIG env\n")
+			return
+		}
+		log.Printf("try load kubeconfig from env: %v, err: %v\n", envconfig, err)
 	}
+	client, err = loadClient(kubeconfig)
+	if err == nil {
+		log.Printf("loaded kubeconfig from: %v\n", kubeconfig)
+		return
+	}
+	log.Printf("try load kubeconfig: %v, err: %v\n", kubeconfig, err)
+	client, err = k8s.NewInClusterClient()
 	if err != nil {
+		log.Printf("last method to load kubeconfig from inside cluster failed\n")
 		log.Fatal(err)
 	}
 }
 
 func loadClient(kubeconfigPath string) (*k8s.Client, error) {
+	log.Printf("try load k8s config from: %v\n", kubeconfigPath)
 	data, err := ioutil.ReadFile(kubeconfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("read kubeconfig: %v", err)
 	}
-
+	// log.Printf("k8s config: %v\n", string(data))
 	// Unmarshal YAML into a Kubernetes config object.
 	var config k8s.Config
 	if err := yaml.Unmarshal(data, &config); err != nil {

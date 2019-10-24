@@ -12,7 +12,7 @@ func validateJWT(token string) (user, usertoken string, err error) {
 		return
 	}
 	t, err := jwt.Parse(token, func(tok *jwt.Token) (interface{}, error) {
-		return []byte(*secretKey), nil
+		return []byte(secretKey), nil
 	})
 	if err != nil {
 		err = fmt.Errorf("token parse err: %v", err)

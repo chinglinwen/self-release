@@ -200,7 +200,7 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	if err = validateRequest(project, branch, env, commitid); err != nil {
 		return
 	}
-	logurl := fmt.Sprintf("%v/logs?key=%v", *selfURL, b.Key)
+	logurl := fmt.Sprintf("%v/logs?key=%v", selfURL, b.Key)
 
 	tip := fmt.Sprintf("start build for project %v, branch: %v, env: %v, commitid: %v\n",
 		project, branch, env, commitid)

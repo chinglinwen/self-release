@@ -1,16 +1,20 @@
 package notify
 
 import (
-	"flag"
 	"fmt"
 	"log"
 
 	resty "gopkg.in/resty.v1"
 )
 
-var (
-	wechatURL = flag.String("wechat-receiver-url", "http://localhost:8002", "wechat-receiver-url")
-)
+var wechatURL string
+
+func Init(wechaturl string) {
+	if wechaturl == "" {
+		log.Fatal("wechaturl not set")
+	}
+	wechatURL = wechaturl
+}
 
 func Send(name, content string) (reply string, err error) {
 	if name == "" {
@@ -28,7 +32,7 @@ func Send(name, content string) (reply string, err error) {
 			"content": content,
 			"expire":  "0s",
 		}).
-		Get(*wechatURL + "/dev")
+		Get(wechatURL + "/dev")
 	if e != nil {
 		err = e
 		log.Printf("send notify for %v, content: %v err: %v\n", name, content, err)

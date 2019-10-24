@@ -28,6 +28,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pborman/ansi v0.0.0-20160920233902-86f499584b0a
 	github.com/peterbourgon/diskv v2.0.1+incompatible
+	github.com/peterbourgon/ff v1.6.0
 	github.com/pkg/errors v0.8.1
 	github.com/tidwall/gjson v1.3.0
 	github.com/xanzy/go-gitlab v0.18.0
