@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"wen/self-release/pkg/notify"
 	projectpkg "wen/self-release/project"
 
 	"github.com/chinglinwen/log"
@@ -67,6 +68,20 @@ func HarborToDeploy(e *HarborEventInfo) (err error) {
 		return
 	}
 	setCache(e)
+
+	tip := fmt.Sprintf("creating deploy by harbor for project %v, imagetag: %v", project, tag)
+	e.notify(tip)
+	defer func() {
+		if err != nil {
+			e.notify("create deploy err: \n" + err.Error())
+		} else {
+			url := getProjectURL(project, projectpkg.TEST)
+			text := fmt.Sprintf("release for project: %v, imagetag: %v, env: test ok\n项目访问地址: %v", project, tag, url)
+			e.notify(text)
+		}
+		log.Debug.Printf("exit harbordeploy now\n")
+	}()
+
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(tag), projectpkg.SetConfigMustExist(true))
 	if err != nil {
 		err = fmt.Errorf("project: %v:%v, new err: %v", project, tag, err)
@@ -94,6 +109,19 @@ func HarborToDeploy(e *HarborEventInfo) (err error) {
 
 	log.Printf("created release ok, out: %v\n", out)
 
+	return
+}
+
+func (e *HarborEventInfo) notify(msg string) {
+	if e.User == "" {
+		log.Printf("username is empty for %v, ignore notify msg: %v\n", e.Project, msg)
+		return
+	}
+	reply, err := notify.Send(e.User, msg)
+	if err != nil {
+		log.Printf("send err: %v\nout: %v\n", err, reply)
+	}
+	log.Println("sended notify to ", e.User)
 	return
 }
 
