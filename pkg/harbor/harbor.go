@@ -18,7 +18,6 @@ func Setting(url, user, pass string) {
 }
 
 func ListProjects() (ps []harbor.Project, err error) {
-	// opt := &harbor.ListProjectsOptions{Name: "wenzhenglin"}
 	opt := &harbor.ListProjectsOptions{}
 	projects, _, e := defaultClient.Projects.ListProject(opt)
 	if e != nil {
@@ -78,7 +77,6 @@ func ListRepoTagLatest(repo string, ts string) (tag harbor.TagResp, err error) {
 	}
 	log.Printf("parsed ts: %v, to t: %v\n", ts, t)
 	for _, v := range tags {
-		// fmt.Printf("tag time: %v, t: %v\n", v.Created, t)
 		t2, e := timeToLocal(v.Created, "Local")
 		if e != nil {
 			err = e
@@ -94,20 +92,6 @@ func ListRepoTagLatest(repo string, ts string) (tag harbor.TagResp, err error) {
 	err = fmt.Errorf("no tags before the time: %v", ts)
 	return
 }
-
-// func ListRepoThreeTags(repo string) (tags []harbor.TagResp, err error) {
-// 	tags, err = ListRepoTags(repo)
-// 	if err != nil {
-// 		err = fmt.Errorf("ListRepoTags err: %v", err)
-// 		return
-// 	}
-// 	if len(tags) < 3 {
-// 		err = fmt.Errorf("not enough images, got %v, expect 3", len(tags))
-// 		return
-// 	}
-// 	tags = tags[:3]
-// 	return
-// }
 
 // repo is kind like "flow_center/8-yun"
 func ListRepoTags(repo string) (tags []harbor.TagResp, err error) {
@@ -144,12 +128,9 @@ func CheckProject(name string) (pid int64, err error) {
 		err = fmt.Errorf("list project err %v", err)
 		return
 	}
-	// fmt.Printf("got %v project\n", len(projects))
 	for _, v := range projects {
-		// fmt.Printf("project id: %v, name: %v\n", v.ProjectID, v.Name)
 		if v.Name == name {
 			pid = v.ProjectID
-			// fmt.Printf("got project %#v\n", v)
 			return
 		}
 	}
@@ -166,8 +147,6 @@ func CreateProject(name string) (err error) {
 		err = fmt.Errorf("create project err %v", e)
 		return
 	}
-	// fmt.Printf("respcode", resp.StatusCode)
-	// spew.Dump("resp", **resp)
 	err = ParseResp(resp)
 	if err != nil {
 		err = fmt.Errorf("create project: %v, failed %v", name, err)
@@ -190,8 +169,6 @@ func DeleteProject(name string) (err error) {
 		err = fmt.Errorf("create project err %v", e)
 		return
 	}
-	// fmt.Printf("respcode", resp.StatusCode)
-	// spew.Dump("resp", **resp)
 	err = ParseResp(resp)
 	if err != nil {
 		err = fmt.Errorf("delete project: %v, failed %v", name, err)
@@ -209,22 +186,11 @@ func CreateProjectIfNotExist(name string) (err error) {
 	return CreateProject(name)
 }
 
-// func CheckProject(name string) bool {
-// 	resp, err := defaultClient.Projects.CheckProject(name)
-// 	pretty("resp", resp)
-// 	pretty("err", err)
-// 	if err != nil {
-// 		return false
-// 	}
-// 	return true
-// }
-
 func pretty(t string, a interface{}) {
 	b, _ := json.MarshalIndent(a, "", "  ")
 	fmt.Println("pretty", t, string(b))
 }
 
-// *gorequest.Response *http.Response
 func ParseResp(resp *gorequest.Response) (err error) {
 	if resp == nil {
 		return fmt.Errorf("empty response")

@@ -12,8 +12,6 @@ import (
 	"github.com/labstack/echo"
 )
 
-// var UserToken = "JQBLUdNq9twWbCbdg6m-"
-
 type Project struct {
 	ID    int    `json:"id"`
 	Name  string `json:"name"`
@@ -56,11 +54,6 @@ func projectConfigGetHandler(c echo.Context) (err error) {
 		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
 		return
 	}
-
-	// out = projectpkg.ProjectConfig{
-	// 	devBranch: "test",
-	// }
-	// out.S.DevBranch = "test"
 	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", out), "")
 }
 
@@ -80,7 +73,6 @@ func projectConfigUpdateHandler(c echo.Context) (err error) {
 		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
 		return
 	}
-	// log.Printf("body: %v", body)
 
 	v, err := projectpkg.ParseProjectConfigJson(body)
 	if err != nil {
@@ -174,19 +166,12 @@ func pretty(prefix string, a interface{}) {
 }
 
 func projectUpdateHandler(c echo.Context) (err error) {
-	// r, err := c.Request().GetBody()
-	// b, _ := ioutil.ReadAll(r)
-	// fmt.Println("update body: ", b)
 	return c.String(http.StatusOK, `{"result_code":"0","status":"ok"}`)
 }
-
-// how to know when to update the cache? manual refresh?
-// var projectsCache []*gitlab.Project
 
 func getUserHandler(c echo.Context) (err error) {
 	r := c.Request()
 	user := r.Header.Get("X-Auth-User")
-	// usertoken := r.Header.Get("X-Secret")
 	d := map[string]string{
 		"user": user,
 	}
@@ -198,14 +183,9 @@ func projectListHandler(c echo.Context) (err error) {
 	r := c.Request()
 	user := r.Header.Get("X-Auth-User")
 	usertoken := r.Header.Get("X-Secret")
-	// if user == "" || usertoken == "" {
-	// 	err := fmt.Errorf("login required")
-	// 	log.Println(err)
-	// 	return c.JSONPretty(http.StatusOK, E(-1, err.Error(), "failed"), " ")
-	// }
+
 	log.Printf("got user: %v, refresh: %v\n", user, refresh)
 
-	// var pss []*gitlab.Project
 	pss, err := git.GetProjects(usertoken, refresh)
 	if err != nil {
 		err = fmt.Errorf("get project err: %v", err)

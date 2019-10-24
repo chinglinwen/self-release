@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/ericchiang/k8s"
 	corev1 "github.com/ericchiang/k8s/apis/core/v1"
@@ -19,27 +18,7 @@ var (
 	client *k8s.Client
 )
 
-func init() {
-	var kubeconfig string
-	if home := homeDir(); home != "" {
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	}
-	if k := os.Getenv("KUBECONFIG"); k != "" {
-		kubeconfig = k
-	}
-	Init(kubeconfig)
-}
-
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows
-}
-
 func Init(kubeconfig string) {
-
-	//client, err := k8s.NewInClusterClient()
 	var err error
 	envconfig := os.Getenv("KUBECONFIG")
 	if envconfig != "" {
@@ -69,8 +48,6 @@ func loadClient(kubeconfigPath string) (*k8s.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read kubeconfig: %v", err)
 	}
-	// log.Printf("k8s config: %v\n", string(data))
-	// Unmarshal YAML into a Kubernetes config object.
 	var config k8s.Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("unmarshal kubeconfig: %v", err)

@@ -9,9 +9,6 @@ import (
 	"sync"
 	"time"
 
-	// "google.golang.org/grpc/credentials"
-	// "google.golang.org/grpc/testdata"
-
 	buildpkg "wen/self-release/cmd/buildsvc/build"
 	pb "wen/self-release/pkg/proto/build"
 	projectpkg "wen/self-release/project"
@@ -34,20 +31,6 @@ type buildServer struct {
 	cache map[string]bool
 	// mu map[string]sync.Mutex // protects routeNotes
 }
-
-// // need to cache request to verify?
-// func compareRequest(r1, r2 *pb.Request) bool {
-// 	if r1.Project != r2.Project {
-// 		return false
-// 	}
-// 	if r1.Branch != r2.Branch {
-// 		return false
-// 	}
-// 	if r1.Env != r2.Env {
-// 		return false
-// 	}
-// 	return true
-// }
 
 func pretty(prefix string, a interface{}) {
 	out, _ := prettyjson.Marshal(a)
@@ -72,17 +55,8 @@ func validateRequest(r *pb.Request) (err error) {
 	return
 }
 func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err error) {
-	// log.Printf("start build %v:%v:%v", r.Project, r.Branch, r.Env)
-	// defer func() {
-	// 	if err != nil {
-	// 		err = status.Convert(err).Err()
-	// 	}
-	// }()
 
 	pretty("start build:", r)
-	// err = fmt.Errorf("(testerrorreturn)build image failed, checkout logs")
-	// log.Println(err)
-	// return
 
 	if err = validateRequest(r); err != nil {
 		log.Println(err)
@@ -106,10 +80,6 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 		delete(s.cache, key)
 	}()
 
-	// log.Println("in build")
-	// time.Sleep(10 * time.Second)
-	// return
-
 	project, branch, env, commitid := r.Project, r.Branch, r.Env, r.Commitid
 
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch))
@@ -122,13 +92,6 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 		return
 	}
 	log.Printf("start building image for project: %v, branch: %v, env: %v, commitid: %v\n", project, branch, env, commitid)
-
-	// var wg sync.WaitGroup
-
-	// out := make(chan string, 100)
-	// // defer close(out)
-	// err = buildpkg.BuildStreamOutput(workdir, project, branch, env, commitid, out)
-	// // e := p.Build(project, branch, env, out)
 
 	if err := stream.Send(&pb.Response{Output: "buildsvc start building..."}); err != nil {
 		err = fmt.Errorf("send stream err: %v", err)
@@ -147,20 +110,6 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 	log.Debug.Printf("build is started, checking symbol exist\n")
 	detector := "digest: sha256"
 	var success bool
-
-	// // log.Printf("docker build outputs: %v", out)
-	// // scanner := bufio.NewScanner(strings.NewReader(out))
-	// // scanner.Split(bufio.ScanLines)
-	// for text := range out {
-	// 	if strings.Contains(text, detector) {
-	// 		success = true
-	// 	}
-	// 	if err := stream.Send(&pb.Response{Output: text}); err != nil {
-	// 		err = fmt.Errorf("send stream err: %v", err)
-	// 		log.Println(err)
-	// 		return err
-	// 	}
-	// }
 
 	if err := stream.Send(&pb.Response{Output: "output start ==="}); err != nil {
 		err = fmt.Errorf("send stream err: %v", err)
@@ -195,15 +144,8 @@ func (s *buildServer) Build(r *pb.Request, stream pb.Buildsvc_BuildServer) (err 
 		return
 	}
 	log.Println("build ok")
-	// wg.Wait()
 
-	// if waitTimeout(&wg, 5*time.Minute) {
-	// 	fmt.Println("Timed out waiting for wait group")
-	// } else {
-	// 	fmt.Println("Wait group finished")
-	// }
-	// log.Println("done of build")
-	return nil
+	return
 }
 
 // https://stackoverflow.com/questions/32840687/timeout-for-waitgroup-wait
@@ -266,20 +208,3 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 		}
 	})
 }
-
-/*
-	srv := &http.Server{
-		Addr:    demoAddr,
-		Handler: grpcHandlerFunc(grpcServer, mux),
-		TLSConfig: &tls.Config{
-			Certificates: []tls.Certificate{*demoKeyPair},
-			NextProtos:   []string{"h2"},
-		},
-	}
-	fmt.Printf("grpc on port: %d\n", port)
-	err = srv.Serve(tls.NewListener(conn, srv.TLSConfig))
-
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
-*/

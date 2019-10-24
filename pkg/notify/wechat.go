@@ -41,11 +41,3 @@ func Send(name, content string) (reply string, err error) {
 	reply = string(resp.Body())
 	return
 }
-
-// // make this into project config?
-// func convert(name string) string {
-// 	if name == "wenzhenglin" {
-// 		return "wen"
-// 	}
-// 	return name
-// }

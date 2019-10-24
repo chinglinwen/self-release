@@ -151,12 +151,3 @@ func runHelmGen(dir, project, env, apicontext string) (out string, err error) {
 	out = string(output)
 	return
 }
-
-// for local test, no git pull
-// func GetConfigRepo1() (configrepo *git.Repo, err error) {
-// 	if defaultBase == nil {
-// 		err = fmt.Errorf("base not initialized")
-// 		return
-// 	}
-// 	return git.New(defaultBase.configRepo)
-// }

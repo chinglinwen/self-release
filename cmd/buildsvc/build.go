@@ -41,18 +41,12 @@ func buildAPIHandler(c echo.Context) (err error) {
 
 	log.Printf("start building image for project: %v, branch: %v, env: %v\n", project, branch, env)
 	out, e := buildpkg.Build(workdir, project, branch, env)
-	// e := p.Build(project, branch, env, out)
 	if e != nil {
 		err = fmt.Errorf("build err: %v", e)
 		c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
 		return
 	}
 	log.Printf("docker build outputs: %v", out)
-	// scanner := bufio.NewScanner(strings.NewReader(out))
-	// // scanner.Split(bufio.ScanLines)
-	// for scanner.Scan() {
-	// 	log.Println(scanner.Text())
-	// }
 
 	return c.JSONPretty(http.StatusOK, EData(200, "build ok", "ok", out), "")
 }

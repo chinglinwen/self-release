@@ -8,20 +8,11 @@ import (
 	"github.com/labstack/echo"
 )
 
-// what command can support?
-
-// ops can pick project
-// dev will remember last project
-
-// ops can set any project?
-
-// test can do extra release? ( they just dev? or extra person , test group? )
-
-// curl localhost:4000 -F from=me -F cmd=help
+// work with commander service and wechat-receiver service.
 func wechatHandler(c echo.Context) error {
 	r := c.Request()
 	ip := r.RemoteAddr
-	// fmt.Printf("r: %#v\n", r)
+
 	cmd := r.FormValue("cmd")
 	from := r.FormValue("from")
 	if cmd == "" {
@@ -30,39 +21,11 @@ func wechatHandler(c echo.Context) error {
 	log.Printf("from %v(ip: %v), cmd: %v", from, ip, cmd)
 
 	out, err := doAction(from, cmd)
-	// var out string
-	// var err error
-	// switch cmd {
-	// case "demo":
-	// 	out, err = demo(from)
-	// case "myproject":
-	// 	out, err = myproject(from)
-	// case "retry":
-	// 	out, err = retry(from)
-	// default:
-	// 	err = fmt.Errorf("no cmd to try")
-	// }
 
 	data, err := encode(out, err)
 	if err != nil {
 		log.Printf("encode wechat response err: %v, out: %v, err: %v\n", err, out, err)
 	}
-	// reply, err := NewAsk(from, cmd).Reply()
-	// if err != nil {
-	// 	fmt.Fprintln(w, "internal error: ", err.Error())
-	// 	log.Println("error: ", err.Error())
-	// 	return
-	// }
-
-	// replyType := gjson.Get(string(reply), "type").String()
-	// replyData := gjson.Get(string(reply), "data").String()
-	// replyErr := gjson.Get(string(reply), "error").String()
-	// var n int
-	// if len(replyData) < 10 {
-	// 	n = len(replyData)
-	// }
-	// log.Printf("results type: %v, len: %v, data: %v, err: %v\n",
-	// 	replyType, len(replyData), replyData[0:n], replyErr)
 
 	return c.String(http.StatusOK, data)
 }

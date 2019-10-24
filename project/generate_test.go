@@ -5,14 +5,14 @@ import (
 	"testing"
 )
 
-func TestGetEnvFromBranchOrCommitID(t *testing.T) {
-	env := GetEnvFromBranchOrCommitID("robot/project-example", "21726b76", true)
-	fmt.Printf("env: %v\n", env)
+// func TestGetEnvFromBranchOrCommitID(t *testing.T) {
+// 	env := GetEnvFromBranchOrCommitID("robot/project-example", "21726b76", true)
+// 	fmt.Printf("env: %v\n", env)
 
-	env = GetEnvFromBranchOrCommitID("robot/project-example", "3d04f23f", true)
-	fmt.Printf("env: %v\n", env)
+// 	env = GetEnvFromBranchOrCommitID("robot/project-example", "3d04f23f", true)
+// 	fmt.Printf("env: %v\n", env)
 
-}
+// }
 
 // func TestGenerateAll(t *testing.T) {
 // 	p, err := NewProject(exampleproject, SetBranch("develop"))

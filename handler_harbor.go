@@ -17,7 +17,6 @@ import (
 )
 
 func harborHandler(c echo.Context) (err error) {
-	//may do redirect later?
 	r := c.Request()
 	body, err := readbody(r)
 	if err != nil {
@@ -25,8 +24,6 @@ func harborHandler(c echo.Context) (err error) {
 		E(http.StatusBadRequest, err.Error(), "failed")
 		return
 	}
-	// fmt.Printf("r: %#v\n", r)
-	// log.Printf("body: %v", body)
 
 	i, err := getHarborEventInfo(body)
 	if err != nil {
@@ -58,16 +55,6 @@ func harborHandler(c echo.Context) (err error) {
 	return c.JSONPretty(http.StatusOK, E(0, "push event handle ok", "ok"), " ")
 }
 
-// type HarborEvent struct {
-// 	Project string
-// 	Branch  string
-// 	// Env:       env, // default derive from branch
-// 	UserName string
-// 	// UserEmail: useremail,
-// 	// harbor keyword is used to distinguish harbor event
-// 	Message string
-// }
-
 // do build if buildmode is manual
 // anything comes to harbor is actually test env
 func HarborToDeploy(e *HarborEventInfo) (err error) {
@@ -96,25 +83,6 @@ func HarborToDeploy(e *HarborEventInfo) (err error) {
 	// can we set commit status? where to get the commitid
 	// only if people use correct tag, if use time as tag, there's no correct time
 
-	// bo := &buildOption{
-	// 	gen: true,
-	// 	// nobuild:    f.nobuild,
-	// 	buildimage: false,
-	// 	deploy:     true,
-	// 	// nonotify:   true,
-	// 	p: p,
-	// }
-	// e := &sse.EventInfo{
-	// 	Project: project,
-	// 	Branch:  tag,
-	// 	// Env:       env, // default derive from branch
-	// 	UserName: name,
-	// 	// UserEmail: useremail,
-	// 	// harbor keyword is used to distinguish harbor event
-	// 	Message: fmt.Sprintf("[from harbor] %v", name),
-	// 	// FromHarbor: true, // useless to set, since we don't pass to k8s project
-	// }
-
 	// at least update the time to togger the change
 	yamlbody, out, err := e.applyReleaseFromEvent()
 	if err != nil {
@@ -126,15 +94,6 @@ func HarborToDeploy(e *HarborEventInfo) (err error) {
 
 	log.Printf("created release ok, out: %v\n", out)
 
-	// b := NewBuilder(project, branch)
-	// b.log("starting logs trigger by harbor image push, buildmode: manual")
-
-	// err = b.startBuild(e, bo)
-	// if err != nil {
-	// 	err = fmt.Errorf("startdeploy for project: %v, branch: %v, err: %v", project, branch, err)
-	// 	log.Println(err)
-	// 	return
-	// }
 	return
 }
 
@@ -231,24 +190,13 @@ func (e *HarborEventInfo) ToProjectYaml() (body string, err error) {
 		return
 	}
 
-	// is this needed, we often don't need overwrite env by manual?
-	// fromGitlab is false
-	// env := projectpkg.GetEnvFromBranchOrCommitID(e.Project, e.Tag, false)
-
 	// all event from harbor is test env
 	env := projectpkg.TEST
 	log.Printf("got env: %v for %v:%v\n", env, e.Project, e.Tag)
 
 	version := e.Tag
 
-	// // for test env, change version to commitid if from gitlab event
-	// if env == projectpkg.TEST && e.CommitID != "" {
-	// 	// so test image changed ( otherwise always the same )
-	// 	version = e.CommitID
-	// }
-
 	msg := fmt.Sprintf("[from harbor] %v", name)
-	// time := time.Now().Format(TimeLayout)
 
 	log.Printf("construct yaml: project: %v, env: %v, version: %v\n", e.Project, env, version)
 

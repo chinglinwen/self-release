@@ -19,30 +19,7 @@ import (
 
 const ingressSuffix = "newops.haodai.net"
 
-// get autoenv from events
-
-// const DevBranch = "develop"
-
-/*
-existing env
-
-$ awk '{ print $2 }' FS='{{'  a| tr -d '}' | grep -v -e '^$' | sort -n | uniq
- $CI_ENV
- $CI_IMAGE
- $CI_NAMESPACE
- $CI_NAMESPACE ,project=
- $CI_PROJECT_NAME
- $CI_PROJECT_NAME_WITH_ENV
- $CI_REPLICAS
- $CI_TIME
- $CI_USER_NAME
- $NODE_PORT  # ????
-$
-*/
-
-// should we build for every branch
-//
-// receive push, do the build for test,  or filter out based on commit text? Force keyword?
+// convert event to build for project
 func handlePush(event *PushEvent) (err error) {
 	project := event.Project.PathWithNamespace
 	branch := parseBranch(event.Ref)
@@ -62,9 +39,6 @@ func handlePush(event *PushEvent) (err error) {
 	return b.startBuild(event, nil)
 }
 
-// do we really need to handle this, since we will merge to such branch
-// say pre branch, then it will trigger build? ( only is only for dev now )
-//
 // receive tag release, do the build for pre,  or filter based on commit text?
 // it should be the same image as test, so no need to build image again? image name is been fixed by build
 //
@@ -94,7 +68,7 @@ type buildOption struct {
 	buildimage bool
 	deploy     bool
 	rollback   bool
-	// no easy way to delete? why need delete?
+
 	nonotify bool
 	p        *projectpkg.Project // to avoid re-open or git pull
 }
@@ -104,8 +78,6 @@ type builder struct {
 	// p *projectpkg.Project
 	// Event EventInfo // for later modified to restart event
 }
-
-// how user send the commands without release: commit? ci trigger, wechat msg?
 
 // try grab the event too, so it can trigger again, or even changed event
 func NewBuilder(project, branch string) (b *builder) {
@@ -119,23 +91,18 @@ func NewBuilder(project, branch string) (b *builder) {
 
 func (b *builder) logf(s string, msgs ...interface{}) {
 	msg := fmt.Sprintf(s, msgs...)
-	// log.Println(msg)
 	b.write(msg)
-	// b.Messages <- msg
 }
 
 func (b *builder) log(msgs ...interface{}) {
 	msg := fmt.Sprint(msgs...)
-	// log.Println(msg)
 	b.write(msg)
-	// b.Messages <- msg
 }
 
 func (b *builder) logerr(msgs ...interface{}) {
 	msg := fmt.Sprint(msgs...)
 	log.Println(msg)
 	b.write("\n" + msg)
-	// b.Messages <- msg
 }
 
 func (b *builder) write(msg string) {
@@ -144,6 +111,7 @@ func (b *builder) write(msg string) {
 	}
 	fmt.Fprint(b.PWriter, msg)
 }
+
 func checkIsHeader(text string) bool {
 	return regexp.MustCompile(`<h.+</h`).MatchString(text)
 }
@@ -168,11 +136,9 @@ func validateRequest(project, branch, env, commitid string) (err error) {
 	if branch == "" {
 		return fmt.Errorf("branch is empty")
 	}
-
 	if env == "" {
 		return fmt.Errorf("env is empty")
 	}
-
 	if commitid == "" {
 		return fmt.Errorf("commitid is empty")
 	}
@@ -281,32 +247,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 	}
 
 	// // TODO: not support yet, if rollback is set, get previous tag as branch
-	// if bo.rollback {
-	// 	// e.Branch = b.p.Branch
-	// 	// build already, no need to build again?
-	// 	// TODO: what if no build before? let's just build it?
-	// 	// detect k8s-online.yaml see if exist and what's the tag?
-	// 	bo.gen = true
-	// 	bo.deploy = true
-	// 	b.log("this is a rollback operation")
-	// }
-
-	// envmap, err := EventInfoToMap(e)
-	// if err != nil {
-	// 	err = fmt.Errorf("EventInfoToMap for %q, err: %v", project, err)
-	// 	b.logerr(err)
-	// 	return
-	// }
-
-	// mergenote, envMap, err := p.ReadEnvs(autoenv)
-	// if err != nil {
-	// 	// err = fmt.Errorf("readenvs err: %v", err)
-	// 	log.Printf("readenvs err: %v, will ignore\n", err)
-	// 	// envMap = make(map[string]string)
-	// }
-	// else {
-	// 	log.Printf("merged envs from config.env to autoenv: \n%v", mergenote)
-	// }
 
 	b.log("<h2>Info</h2>")
 
@@ -319,59 +259,6 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 
 	eventstr := strings.ReplaceAll(html.EscapeString(string(ebytes)), "\n", "<br>")
 	b.logf("<pre>%v</pre>", eventstr)
-
-	// for k, v := range envmap {
-	// 	log.Printf("env: %v = %q\n", k, v)
-	// 	b.logf("%v = %q\n", k, v)
-	// }
-
-	// for _, v := range mergenote {
-	// 	log.Print(v)
-	// 	b.log(v)
-	// }
-
-	// it should be config from repo or template now
-	// if p.DevBranch == "" {
-	// 	p.DevBranch = "develop"
-	// }
-
-	// check this only for init?
-	//
-	// this should be check later, by see config first?
-	// if I were them, I just do release, let the system figure out when to init?
-	// release to test? it's better to init by tag msg?
-
-	// // skip init push event
-	// if strings.Contains(e.Message, "init config.yaml") {
-	// 	a := fmt.Sprintf("ignore build for project: %v, branch: %v, it's a init project config event", project, branch)
-	// 	// log.Println(a)
-	// 	b.log(a)
-	// 	return
-	// }
-
-	// do gen if deploy is needed
-	// if bo.deploy {
-	// 	bo.gen = true
-	// }
-
-	// var finalyaml string
-	// if bo.gen {
-	// 	b.log("<h2>Generate k8s yaml</h2>")
-
-	// 	// almost generate everytime, except config
-	// 	finalyaml, err = p.Generate(projectpkg.SetGenAutoEnv(envMap), projectpkg.SetGenEnv(env))
-	// 	if err != nil {
-	// 		err = fmt.Errorf("project: %v, generate before build err: %v", project, err)
-	// 		b.logerr(err)
-	// 		return
-	// 	}
-	// 	b.logf("done generate for project: %v", project)
-	// }
-
-	// everytime build, need generate first
-
-	// write to a auto.env? or
-	//envsubst.Eval()
 
 	b.log("<h2>Docker build</h2>")
 
@@ -501,46 +388,7 @@ func getProjectURL(project, env string) (url string) {
 
 func getproject(project, branch string) (p *projectpkg.Project, err error) {
 	return projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-	// p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch))
-	// if err != nil {
-	// 	return
-	// }
-	// if rollback {
-	// 	argBranch := branch
-	// 	branch, err = p.GetPreviousTag() // rollback before specific tag, just redeploy then?
-	// 	if err != nil {
-	// 		err = fmt.Errorf("get previous tag err: %v", err)
-	// 		return
-	// 	}
-
-	// 	if argBranch != branch {
-	// 		// re-open the branch
-	// 		p, err = projectpkg.NewProject(project, projectpkg.SetBranch(branch), projectpkg.SetNoEnableCheck(tr))
-	// 		if err != nil {
-	// 			err = fmt.Errorf("project: %v, branch: %v, new(rollback ) err: %v", project, branch, err)
-	// 			return
-	// 		}
-	// 	}
-	// 	p.Branch = branch
-	// }
-	// return
 }
-
-// func apply(ns, target string) (out string, err error) {
-// 	// check ns or create ns first?
-// 	if ns != "" {
-// 		_, err = projectpkg.CheckOrCreateNamespace(ns)
-// 		if err != nil {
-// 			log.Printf("create namespace %v err: %v\n", ns, err)
-// 		}
-// 		log.Printf("check or create namespace ok\n")
-// 	} else {
-// 		log.Printf("got empty namespace, will not check or create ns before apply\n")
-// 	}
-
-// 	// auto apply by default?
-// 	return projectpkg.ApplyByKubectl(target)
-// }
 
 const errParseRefs = "parseRefsError"
 

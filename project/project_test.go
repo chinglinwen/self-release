@@ -203,21 +203,21 @@ func TestProjectInit(t *testing.T) {
 	}
 }
 
-func TestProjectSetting(t *testing.T) {
-	p, err := NewProject(exampleproject, SetBranch("develop"))
-	if err != nil {
-		t.Error("newproject err", err)
-		return
-	}
+// func TestProjectSetting(t *testing.T) {
+// 	p, err := NewProject(exampleproject, SetBranch("develop"))
+// 	if err != nil {
+// 		t.Error("newproject err", err)
+// 		return
+// 	}
 
-	_, err = p.Setting(ProjectConfig{
-		S: SelfRelease{BuildMode: "auto"},
-	})
-	if err != nil {
-		t.Error("project set config err", err)
-		return
-	}
-}
+// 	_, err = p.Setting(ProjectConfig{
+// 		S: SelfRelease{BuildMode: "auto"},
+// 	})
+// 	if err != nil {
+// 		t.Error("project set config err", err)
+// 		return
+// 	}
+// }
 
 // func TestDecodeConfig(t *testing.T) {
 // 	a := `

@@ -45,53 +45,6 @@ func SetInitConfig(config *ProjectConfig) func(*initOption) {
 	}
 }
 
-// func SetInitName(name string) func(*initOption) {
-// 	return func(o *initOption) {
-// 		o.singleName = name
-// 	}
-// }
-
-// func SetInitVersion(ver string) func(*initOption) {
-// 	return func(o *initOption) {
-// 		o.configVer = ver
-// 	}
-// }
-
-// // mostly branch is develop
-// func SetInitBranch(branch string) func(*initOption) {
-// 	return func(o *initOption) {
-// 		o.branch = branch
-// 	}
-// }
-
-// type errlist map[string]error
-
-// func (errs *errlist) Error() (s string) {
-// 	for k, v := range *errs {
-// 		s = fmt.Sprintf("%v\nname: %v, init err: %v", s, k, v)
-// 	}
-// 	return
-// }
-
-// we use no err to signal update
-// we need to filter out nochange err (but not all)
-//
-// no err update
-// single no change update
-// all nochange no update
-// single err? just return?
-// func (errs *errlist) Nochange() bool {
-// 	if errs != nil && len(*errs) == 0 {
-// 		return false
-// 	}
-// 	for _, v := range *errs {
-// 		if v != ErrNoChange {
-// 			return false
-// 		}
-// 	}
-// 	return true // all err is ErrNoChange
-// }
-
 // init can reading from repo's config, or assume have project name only(using default config version)?
 //
 // init template file, config.yaml and repotemplate files
@@ -354,26 +307,6 @@ func ProjectSetting(project string, c ProjectConfig, user string) (out string, e
 // 	return
 // }
 
-// // handle this differently
-// func (p *Project) initConfig(force bool) (update bool, err error) {
-
-// 	// var changed bool
-// 	if force {
-// 		update, err = p.CopyToConfigWithSrcNoGenForce(srcbody, dst, envMap)
-// 	} else {
-// 		update, err = p.CopyToConfigWithSrcNoGen(srcbody, dst, envMap)
-// 	}
-// 	if err != nil {
-// 		err = fmt.Errorf("copy config.yaml to config err: %v", err)
-// 		return
-// 	}
-// 	if update {
-// 		log.Printf("file: %v will be updated", dst)
-// 		// update = true
-// 	}
-// 	return
-// }
-
 // // let gen k8s, to decide if it need init again?
 // // can we make this optional?
 // //
@@ -545,8 +478,6 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 
 	var body string
 	if !o.nogen {
-		// fmt.Println("convert", convertToSubst(c))  // for test
-		// return
 		body, err = generateByMap(c, envMap)
 		if err != nil {
 			err = fmt.Errorf("generate with map err: %v", err)
@@ -587,24 +518,17 @@ func CopyTo(repo, torepo *git.Repo, src, dst string, envMap map[string]string, o
 			return
 		}
 	}
-	// if o.finalbody != nil {
-	// 	target := filepath.Join(repo.GetWorkDir(), dst)
-	// 	o.finalbody = &target
-	// }
 	log.Printf("writing file: %v %v to %v:%v\n", dst, note, torepo.Project, torepo.Branch)
 	err = putcontent(torepo, dst, body)
 	if err != nil {
 		err = fmt.Errorf("putcontent err: %v", err)
 		return
 	}
-
 	changed = true
 	return
 }
 
 func getcontent(repo *git.Repo, path string) (content string, err error) {
-	// f := filepath.Join("template", v.Template) // prefix template for template
-	// f := filepath.Join(project, path)
 	b, err := repo.GetFile(path)
 	if err != nil {
 		err = fmt.Errorf("get file: %v err: %v", path, err)
@@ -648,140 +572,3 @@ func checkChanged(repo *git.Repo, path, content string) (exist, changed bool, er
 	}
 	return
 }
-
-// // if no variable to replace or no custom setting, no need to init repotemplate?
-// // we generate for init, so it will easier to custom later
-// // gen or add to git?  // why not generate once
-// func (p *Project) initRepoTemplateOrFinal(configrepo *git.Repo, force bool, v File, envMap map[string]string) (updateconfigrepo bool, err error) {
-// 	if v.RepoTemplate == "" && v.Final == "" {
-// 		err = fmt.Errorf("nothing toinit for project: %v, file: %v, skip", p.Project, v.Name)
-// 		return
-// 	}
-// 	// store repotemplate to configrepo if prefixed with config:
-// 	var (
-// 		repo = p.repo // for repotemplate only?
-// 		// updateprojectrepo bool  // we always update project repo for init phase
-// 		// updateconfigrepo bool
-// 		rtmplfile string
-// 		// rtmplconfig       bool // repotemplate flag store to config
-// 	)
-
-// 	projectName := p.Project
-
-// 	if v.RepoTemplate != "" {
-// 		rtmpl := strings.Split(v.RepoTemplate, ":")
-// 		if len(rtmpl) == 1 {
-// 			// rrepo = p.repo
-// 			// updateprojectrepo = true
-// 			rtmplfile = rtmpl[0] // store to project repo
-// 		} else if len(rtmpl) == 2 {
-// 			repo = configrepo
-// 			updateconfigrepo = true
-// 			rtmplfile = filepath.Join(projectName, rtmpl[1])
-// 			log.Printf("will update config for %v\n", v.Name)
-// 			// rtmplconfig = true // will store to config repo
-// 		} else {
-// 			err = fmt.Errorf("repotemplate value incorrect, should be \"path\" or \"config:path\" for %v", v.Name)
-// 			return
-// 		}
-// 	}
-
-// 	var initfile string
-// 	var evaltemplate bool
-// 	var exist bool
-// 	if v.RepoTemplate != "" {
-// 		initfile = rtmplfile // init repotemplate, later generate final
-// 	} else {
-// 		initfile = v.Final
-// 		evaltemplate = true
-// 	}
-
-// 	exist = repo.IsExist(initfile)
-
-// 	// force should only for config.yaml and repo, force for redo of  init
-// 	// if exist && v.Name == "config.yaml" && !p.InitForce {
-// 	// 	log.Printf("init file: %v exist and force have not set, skip", v.Final)
-// 	// 	return
-// 	// }
-// 	if exist && !v.Overwrite && !force {
-// 		log.Printf("init file: %v exist and force or overwrite have not set, skip", v.Final)
-// 		return
-// 	}
-
-// 	// get config template
-// 	f := filepath.Join("template", v.Template) // prefix template for template
-// 	tfile, e := configrepo.GetFile(f)
-// 	if e != nil {
-// 		err = fmt.Errorf("get configtemplate file: %v err: %v", f, e)
-// 		return
-// 	}
-// 	var tbody string
-// 	var note string
-// 	if evaltemplate {
-// 		tbody, err = generateByMap(string(tfile), envMap)
-// 		if err != nil {
-// 			err = fmt.Errorf("get configtemplate file: %v err: %v", f, err)
-// 			return
-// 		}
-// 		note = "(generated)"
-// 	} else {
-// 		tbody = string(tfile)
-// 	}
-// 	if updateconfigrepo {
-// 		note += "(init in configrepo)"
-// 	}
-
-// 	if v.Perm == 0 {
-// 		err = repo.Add(initfile, string(tbody))
-// 	} else {
-// 		err = repo.Add(initfile, string(tbody), git.SetPerm(v.Perm))
-// 	}
-
-// 	log.Printf("inited file: %v%v, project: %v\n", initfile, note, p.Project)
-
-// 	return
-// }
-
-// func (p *Project) initFinal(v File) (err error) {
-
-// }
-
-// fetch config-deploy, no need fetch, let it a pkg call
-
-// func SetOverwrite(overwrite bool) func(*Project) {
-// 	return func(d *Project) {
-// 		d.overwrite = overwrite
-// 	}
-// }
-
-// // see if project's path has Project
-// func (d *Project) Generate() (err error) {
-// 	if IsExist(d.Final) && !d.overwrite {
-// 		return
-// 	}
-// 	Copy(d.Template, d.Final)
-
-// 	// do we need some customization
-// 	// do the customization and verify later?
-
-// 	// only copy the template? later customze it
-
-// 	return d.Push()
-// }
-
-// func (d *Project) Push() (err error) {
-// 	err = repo.AddFileAndPush(d.Final, fmt.Sprintf("generate %v", d.Final))
-// 	if err != nil {
-// 		return fmt.Errorf("push file: %v, err: %v\n", d.Final, err)
-// 	}
-// 	return
-// }
-
-// copoy template to project path
-
-// verify it's working
-// final result store into _ops/final?  store in config-deploy only?
-
-// no easy way to merge manual part? ( yaml can be )
-
-// we only do generate once ( but may repeat many time, template is good enough, with overwrite setting )

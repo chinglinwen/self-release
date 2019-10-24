@@ -38,17 +38,6 @@ func ValidateByKubeval(filebody, fileName string) ([]kubeval.ValidationResult, e
 	return kubeval.Validate([]byte(filebody), fileName)
 }
 
-/*
-
-this need to connect to k8s cluster
-
-$ export KUBECONFIG=/t
-$ kubectl apply --dry-run -f fstest.yaml
-unable to recognize "fstest.yaml": Get http://localhost:8080/api?timeout=32s: dial tcp 127.0.0.1:8080: connect: connection refused
-unable to recognize "fstest.yaml": Get http://localhost:8080/api?timeout=32s: dial tcp 127.0.0.1:8080: connect: connection refused
-unable to recognize "fstest.yaml": Get http://localhost:8080/api?timeout=32s: dial tcp 127.0.0.1:8080: connect: connection refused
-
-*/
 // validate by kubectl, filename is for error
 func ValidateByKubectlWithString(filebody string) (out string, err error) {
 	cmd := exec.Command("sh", "-c", "kubectl apply --server-dry-run -f -")

@@ -18,24 +18,11 @@ func logsHandler(c echo.Context) (err error) {
 
 	var note string
 
-	// if project == "" {
-	// 	// if no project
-	// 	err = fmt.Errorf("project parameter value is empty")
-	// 	log.Println(err)
-	// 	c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-	// 	return
-	// }
-
 	if project != "" && branch == "" {
 		branch = defaultDevBranch
 		note = "default"
-		// err = fmt.Errorf("branch parameter value is empty")
-		// log.Println(err)
-		// c.JSONPretty(http.StatusBadRequest, E(0, err.Error(), "failed"), " ")
-		// return
 	}
 
-	// var brokers = make(map[string]*sse.Broker{})
 	var list bool
 	var stored bool
 	var existmsg string
@@ -50,8 +37,6 @@ func logsHandler(c echo.Context) (err error) {
 	// if project and key both not specified, list all keys
 	if project == "" && key == "" {
 		log.Println("getting logs list")
-		// list existing build logs
-		// brokers := sse.GetBrokers()
 		brokers, e := sse.GetBrokers()
 		if err != nil {
 			err = fmt.Errorf("GetBrokersFromDisk err: %v", e)
@@ -60,7 +45,6 @@ func logsHandler(c echo.Context) (err error) {
 			return
 		}
 		list = true
-		// spew.Dump("brokers", brokers)
 		for _, v := range brokers {
 			if v.Key == "" || v.Project == "" {
 				continue
@@ -68,8 +52,6 @@ func logsHandler(c echo.Context) (err error) {
 			item := Item{Key: v.Key, Project: v.Project, Branch: v.Branch}
 			items = append(items, item)
 		}
-		// items = append(items, Item{Project: "test", Branch: "dev"})
-		// spew.Dump("items", items)
 	}
 
 	if key != "" {
@@ -97,7 +79,7 @@ func logsHandler(c echo.Context) (err error) {
 		List     bool
 		Stored   bool
 		ExistMsg string
-		// Projects []*sse.Broker
+
 		Items []Item
 	}{
 		Key:     key,
@@ -108,7 +90,7 @@ func logsHandler(c echo.Context) (err error) {
 		List:     list,
 		Stored:   stored,
 		ExistMsg: existmsg,
-		// Projects: brokers,
+
 		Items: items,
 	}
 
@@ -123,7 +105,5 @@ func logsHandler(c echo.Context) (err error) {
 	// Render the template, writing to `w`.
 	t.Execute(c.Response(), p)
 
-	// Done.
-	// log.Println("finished HTTP request for", project)
 	return
 }

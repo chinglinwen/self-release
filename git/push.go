@@ -20,28 +20,6 @@ var (
 	defaultGitUserEmail = "robot@example.com"
 )
 
-// type Repo struct {
-// 	R *git.Repository
-// }
-
-// example refs: "refs/remotes/origin/feature1"
-// default to repo's branch
-// func (r *Repo) CheckoutRemote(refs string) (err error) {
-// 	if refs == "" {
-// 		refs = r.refs
-// 	}
-// 	err = r.wrk.Checkout(&git.CheckoutOptions{
-// 		Branch: plumbing.ReferenceName(refs),
-// 		Force:  true,
-// 		// Create: true,
-// 	})
-// 	if err != nil && err != git.ErrBranchExists {
-// 		return fmt.Errorf("git checkout refs: %v err %v", refs, err)
-// 	}
-
-// 	return
-// }
-
 func (r *Repo) LocalBranchExist() (ok bool) {
 	refss, err := r.R.References()
 	refss.ForEach(func(item *plumbing.Reference) error {
@@ -64,7 +42,6 @@ func (r *Repo) CheckoutLocalWith(refs string) (err error) {
 	if refs == "" {
 		refs = r.refs
 	}
-	// fmt.Println("refs", refs)
 	err = r.wrk.Checkout(&git.CheckoutOptions{
 		Branch: plumbing.ReferenceName(refs),
 		Force:  r.force,
@@ -120,7 +97,6 @@ func (r *Repo) Create(filename, contents string, options ...func(*option)) (err 
 	if err != nil {
 		return fmt.Errorf("git create file mkdir err %v", err)
 	}
-	// log.Printf("gitadd, writing file: %v", f)
 	err = ioutil.WriteFile(f, []byte(contents), o.perm)
 	if err != nil {
 		return fmt.Errorf("git create file err %v", err)
@@ -128,13 +104,11 @@ func (r *Repo) Create(filename, contents string, options ...func(*option)) (err 
 	if _, err := os.Stat(f); os.IsNotExist(err) {
 		return fmt.Errorf("git create file check err %v", err)
 	}
-	// _, err = r.wrk.Add(filename)
 	return
 }
 
 // file is exist
 func (r *Repo) GitAdd(filename string) (err error) {
-	// log.Printf("gitadd file: %v\n", filename)
 	_, err = r.wrk.Add(filename)
 	return
 }
@@ -152,7 +126,6 @@ func (r *Repo) Commit(commitText string) (err error) {
 	status, err := r.wrk.Status()
 
 	if status == nil || len(status) == 0 {
-		// log.Printf("attempt to commit, but nothing changed in %v:%v\n", r.Project, r.Branch)
 		err = fmt.Errorf("attempt to commit, but nothing changed in %v:%v", r.Project, r.Branch)
 		return
 	}
@@ -179,15 +152,6 @@ func (r *Repo) Commit(commitText string) (err error) {
 }
 
 func (r *Repo) Push() (err error) {
-	// status, err := r.Status()
-	// if err != nil {
-	// 	return fmt.Errorf("git status err: %v", err)
-	// }
-	// after commit, it's clean
-	// if status.IsClean() {
-	// 	return fmt.Errorf("it's clean, no need push")
-	// }
-
 	err = r.R.Push(&git.PushOptions{
 		RemoteName: "origin",
 		Auth: &http.BasicAuth{

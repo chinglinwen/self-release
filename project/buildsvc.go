@@ -15,35 +15,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-var (
-// tls                = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
-// caFile             = flag.String("ca_file", "", "The file containing the CA root cert file")
-// serverHostOverride = flag.String("server_host_override", "x.test.youtube.com", "The server name use to verify the hostname returned by TLS handshake")
-// buildsvcAddr = flag.String("buildsvc", "buildsvc", "buildsvc address host:port ( or k8s service name )")
-)
-
-// func build(client pb.BuildsvcClient, r *pb.Request) (err error) {
-// 	log.Printf("reqesting... %v", r)
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-// 	defer cancel()
-// 	stream, err := client.Build(ctx, r)
-// 	if err != nil {
-// 		err = fmt.Errorf("build for %v err:", r.Project, err)
-// 		return
-// 	}
-// 	for {
-// 		out, err := stream.Recv()
-// 		if err == io.EOF {
-// 			break
-// 		}
-// 		if err != nil {
-// 			log.Fatalf("%v.build output err, %v", client, err)
-// 		}
-// 		log.Printf("%v", out.GetOutput())
-// 	}
-// 	return
-// }
-
 func Build(project, branch, env, commitid string) (b *buildsvc) {
 	b = newBuildsvc(project, branch, env, commitid)
 	if defaultBuildClient == nil {
@@ -52,9 +23,6 @@ func Build(project, branch, env, commitid string) (b *buildsvc) {
 	}
 	b.Build()
 	return
-
-	// log.Printf("using default buildsvc for %v\n", project)
-	// return defaultBuildsvc.Build(project, branch, env, commitid)
 }
 
 type buildClient struct {

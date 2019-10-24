@@ -15,10 +15,6 @@ const (
 	EnvTest      = "test"
 )
 
-// provide values.yaml read and write
-
-// frontend is using json, helm charts use yaml
-
 type ValuesRepo struct {
 	project    string
 	configrepo *git.Repo
@@ -129,21 +125,6 @@ func (v *ValuesRepo) ValuesFileReadAll() (all ValuesAll, err error) {
 	return
 }
 
-// func (v *ValuesRepo) ValuesFileReadWithFallback(env string) (values Values, err error) {
-// 	var fetchdefault bool
-// 	// how to handle multi env resource
-// 	if env != ONLINE {
-// 		values, err = v.ValuesFileRead(env)
-// 		if err == nil {
-// 			return
-// 		}
-// 		fetchdefault = true
-// 	}
-// 	if env == ONLINE || fetchdefault {
-// 		return v.ValuesFileRead(ONLINE)
-// 	}
-// 	return
-// }
 func (v *ValuesRepo) ValuesFileRead(env string) (values Values, err error) {
 	f := getValueFileName(v.project, env)
 	return v.readfile(f)

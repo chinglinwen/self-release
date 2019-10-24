@@ -2,9 +2,6 @@
 package git
 
 import (
-
-	// "gopkg.in/src-d/go-billy.v4"
-
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -20,21 +17,11 @@ import (
 )
 
 var (
-	// https://github.com/src-d/go-git/issues/999 token is deprecated
-	// defaultToken = flag.String("gitlab-token", "", "default gitlab token")
-
 	defaultGitlabURL  string
 	defaultUser       string
 	defaultPass       string
 	gitlabAccessToken string
 	defaultRepoDir    string
-
-// defaultGitlabURL  = flag.String("gitlab-url", "http://g.haodai.net", "default gitlab url")
-// defaultUser       = flag.String("gitlab-user", "", "default gitlab user")
-// defaultPass       = flag.String("gitlab-pass", "", "default gitlab pass(personal token is ok)")
-// gitlabAccessToken = flag.String("gitlab-token", "", "gitlab admin access token")
-
-// defaultRepoDir = flag.String("repoDir", "repos", "default path to store cloned projects")
 )
 
 // Init init package setting
@@ -59,31 +46,6 @@ func Init(gitlabURL, user, pass, accessToken, repoDir string) {
 	}
 
 }
-
-// func checkflag() {
-// 	if defaultUser == "" {
-// 		log.Fatal("no defaultUser provided")
-// 	}
-// 	if defaultPass == "" {
-// 		log.Fatal("no defaultPass provided")
-// 	}
-// 	log.Printf("using default notify user: %v", defaultUser)
-// }
-
-// func init() {
-// 	go func() {
-// 		time.Sleep(5 * time.Second) // should now executed flag.parse
-// 		checkflag()
-// 	}()
-// }
-
-// var (
-// 	fs = osfs.New("gitdir")
-// )
-
-// func init(){
-// fs=osfs.New("gitdir")
-// }
 
 type Repo struct {
 	Project string // org/repo
@@ -201,9 +163,6 @@ func newrepo(project string, options ...func(*Repo)) (*Repo, error) {
 	if defaultPass == "" {
 		return nil, fmt.Errorf("pass empty")
 	}
-
-	// t := strings.Split(strings.TrimSuffix(localpath, ".git"), "/")
-	// name := t[len(t)-1]
 	repo := &Repo{
 		Project: project,
 		Local:   filepath.Join(defaultRepoDir, project),
@@ -218,9 +177,6 @@ func newrepo(project string, options ...func(*Repo)) (*Repo, error) {
 
 	if repo.Branch == "" && repo.Tag == "" {
 		SetBranch("master")(repo)
-		// repo.Branch = "master"
-		// repo.refs = fmt.Sprintf("refs/remotes/origin/%v", repo.Branch)
-		// repo.localrefs = fmt.Sprintf("refs/heads/%v", repo.Branch)
 	}
 	log.Debug.Println("do newrepo ok: ", project)
 	return repo, nil
@@ -274,8 +230,6 @@ func New(project string, options ...func(*Repo)) (repo *Repo, err error) {
 	if err != nil {
 		err = fmt.Errorf("checkout to local error: %v, for repo: %q, branch: %q\n", err, repo.Project, repo.Branch)
 		log.Println(err)
-		// log.Println("niled err")
-		// err = nil
 		return nil, err
 	}
 	return
@@ -294,24 +248,6 @@ func NewWithPull(project string, options ...func(*Repo)) (repo *Repo, err error)
 
 // pull will checkout local first, local change(and staged change) will be discard
 func (repo *Repo) Pull() (err error) {
-	// if !repo.nocheckout {
-	// 	// 	// err = repo.CheckoutLocal()  // this checkout two times
-	// 	if repo.Branch != "master" {
-	// 		err = repo.wrk.Checkout(&git.CheckoutOptions{
-	// 			Branch: plumbing.ReferenceName("refs/heads/master"),
-	// 			Force:  repo.force,
-	// 		})
-	// 	}
-	// 	if err != nil {
-	// 		err = fmt.Errorf("checkoutlocal to master before pull error: %v, for repo: %v\n", err, repo.Project)
-	// 		log.Println(err)
-	// 		return
-	// 	}
-	// 	log.Println("checkoutlocal to master before pull ok, for repo:", repo.Project)
-	// 	// }
-	// } else {
-	// 	log.Printf("will not do checkout local for: %v, branch: %v\n", repo.Project, repo.Branch)
-	// }
 
 	// skip pull for tag
 	if repo.nopull || repo.Tag != "" {
@@ -373,17 +309,10 @@ func (repo *Repo) CLone() (err error) {
 	}
 	repo.R = r
 
-	// if repo.Tag != "" {
 	return repo.Fetch()
-	// }
-	// return
 }
 
 func (r *Repo) GitProjectName() string {
-	if r.Project == "" {
-		// get name from url?
-		//r.Name=
-	}
 	return r.Project
 }
 

@@ -18,7 +18,6 @@ func Secret(name string) (secret corev1.Secret, err error) {
 
 // empty ns means all namespaces
 // using key to filter secrets which has such key defined
-// excludens used for
 func SecretListAllWithHasKey(ns, key string, excludens []string) (secrets []*corev1.Secret, err error) {
 	ss, err := SecretList(ns)
 	if err != nil {

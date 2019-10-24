@@ -42,57 +42,6 @@ func Build(dir, project, tag, env string) (out string, err error) {
 	return
 }
 
-// func BuildStreamOutput(dir, project, tag, env, commitid string, out chan string) (err error) {
-// 	// out = make(chan string, 100)
-// 	// wg.Add(1)
-
-// 	image, err := projectpkg.GetImage(project, commitid)
-// 	if err != nil {
-// 		err = fmt.Errorf("getimage string err: %v", err)
-// 		return
-// 	}
-// 	log.Printf("building for image: %v, tag: %v, env: %v\n", image, tag, env)
-
-// 	var cmd *exec.Cmd
-// 	if isBuildScriptExist(dir) {
-// 		log.Printf("buildscript exist, use it now\n")
-// 		cmd = exec.Command("sh", "-c", fmt.Sprintf("./%v %v %v", BuildScriptName, image, env))
-// 	} else {
-// 		log.Printf("buildscript not exist, use default build scripts\n")
-// 		log.Printf("using internal build script")
-// 		cmd = exec.Command("sh", "-c", getDefaultBuildScript(image, env))
-// 	}
-// 	cmd.Dir = dir
-
-// 	stdout, _ := cmd.StdoutPipe()
-// 	// stderr, _ := cmd.StderrPipe()
-// 	cmd.Start()
-
-// 	// scanner := bufio.NewScanner(io.MultiReader(stdout, stderr))
-// 	scanner := bufio.NewScanner(stdout)
-// 	// scanner.Split(bufio.ScanWords)
-
-// 	go func() {
-// 		out <- "start building image..."
-// 		for scanner.Scan() {
-// 			out <- scanner.Text()
-// 		}
-// 		log.Println("end of build output, wg.done")
-// 		// wg.Done()
-// 		close(out)
-// 	}()
-// 	go func() {
-// 		err = cmd.Wait()
-// 		if err != nil {
-// 			log.Printf("build run exit with err: %v\n", err)
-// 		} else {
-// 			log.Println("build run exit with ok")
-// 		}
-// 	}()
-// 	log.Println("end of build cmd")
-// 	return
-// }
-
 type Builder struct {
 	Project  string
 	Dir      string
@@ -154,17 +103,6 @@ func (b *Builder) Output() (s *bufio.Scanner, err error) {
 		err = fmt.Errorf("cmd is nil, should not happen")
 		return
 	}
-	// stdout, err := b.cmd.StdoutPipe()
-	// if err != nil {
-	// 	b.err = err
-	// 	return
-	// }
-	// stderr, err := b.cmd.StderrPipe()
-	// if err != nil {
-	// 	b.err = err
-	// 	return
-	// }
-	// s = bufio.NewScanner(io.MultiReader(stdout, stderr))
 	s = b.out
 	return
 }
@@ -175,7 +113,6 @@ func (b *Builder) BuildStreamOutput() {
 		return
 	}
 	log.Printf("creating cmd...\n")
-	// b.out = make(chan string, 100)
 
 	if isBuildScriptExist(b.Dir) {
 		log.Printf("buildscript exist, use it now\n")
@@ -201,15 +138,6 @@ func (b *Builder) BuildStreamOutput() {
 
 	b.cmd.Start()
 
-	// go func() {
-	// 	out <- "start building image..."
-	// 	for scanner.Scan() {
-	// 		out <- scanner.Text()
-	// 	}
-	// 	log.Println("end of build output, wg.done")
-	// 	// wg.Done()
-	// 	close(out)
-	// }()
 	go func() {
 		err := b.cmd.Wait()
 		if err != nil {
@@ -223,19 +151,6 @@ func (b *Builder) BuildStreamOutput() {
 	return
 }
 
-// func GetImage(project, commitid string) (image string, err error) {
-// 	if project == "" {
-// 		err = fmt.Errorf("project is empty")
-// 		return
-// 	}
-// 	if commitid == "" {
-// 		err = fmt.Errorf("commitid is empty")
-// 		return
-// 	}
-// 	image = fmt.Sprintf("harbor.haodai.net/%v:%v", project, commitid)
-// 	return
-// }
-
 func isBuildScriptExist(dir string) bool {
 	f := filepath.Join(dir, BuildScriptName)
 	if _, err := os.Stat(f); !os.IsNotExist(err) {
@@ -247,24 +162,6 @@ func isBuildScriptExist(dir string) bool {
 func getDefaultBuildScript(image, env string) string {
 	return fmt.Sprintf(defaultBuildScript, image, env)
 }
-
-// var defaultBuildScript = `
-// #!/bin/sh
-
-// image="%v"
-// env="%v"
-
-// echo "building $image, env: $env"
-
-// if [ "$env" = "test" ]; then
-//   cp -f .env.test .env
-// else
-//   cp -f .env.online .env
-// fi
-
-// echo docker build --pull -t $image .
-// echo docker push $image
-// `
 
 var defaultBuildScript = `
 #!/bin/sh

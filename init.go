@@ -27,7 +27,7 @@ var (
 
 const harborkey = "eyJhdXRocyI6eyJoYXJib3IuaGFvZGFpLm5ldCI6eyJ1c2VybmFtZSI6ImRldnVzZXIiLCJwYXNzd29yZCI6IkxuMjhvaHlEbiIsImVtYWlsIjoieXVud2VpQGhhb2RhaS5uZXQiLCJhdXRoIjoiWkdWMmRYTmxjanBNYmpJNGIyaDVSRzQ9In19fQ=="
 
-func init() {
+func InitAll() {
 	flag := flagpkg.NewFlagSet("self-release", flagpkg.ExitOnError)
 	var (
 		flagport      = flag.String("p", "8089", "port")

@@ -1,7 +1,4 @@
 // Store backend for diskv.
-//
-// Using this as the backend of store package,
-// If for registering backend only (it can import as blank identifier).
 package sse
 
 import (
@@ -75,21 +72,6 @@ func GetBrokersFromDisk() (bs []*Broker, err error) {
 		}
 		bs = append(bs, b)
 	}
-
-	// sort.Slice(bs, func(i, j int) bool {
-	// 	// fmt.Printf("i:%#v\nj:%#v\n", bs[i], bs[j])
-	// 	var t1, t2 time.Time
-	// 	if bs[i].Event != nil {
-	// 		t1 = bs[i].Event.Time
-	// 	}
-	// 	if bs[j].Event != nil {
-	// 		t2 = bs[j].Event.Time
-	// 	}
-	// 	if bs[i].Event == nil && bs[j].Event == nil {
-	// 		return false
-	// 	}
-	// 	return t1.After(t2) // recent first?
-	// })
 	return
 }
 
@@ -110,7 +92,6 @@ func readfilenames() (keys []string, err error) {
 
 var cutoff = 31 * 24 * time.Hour
 
-// how to clean though? run a shell?
 func clean() {
 	fileInfo, err := ioutil.ReadDir(defaultLogsPath)
 	if err != nil {
@@ -126,7 +107,6 @@ func clean() {
 				log.Printf("==deleting %v err: %v\n", key, err)
 				continue
 			}
-			// log.Printf("deleted %s which is %s old\n", key, diff)
 		}
 	}
 	log.Println("==done of clean logs")

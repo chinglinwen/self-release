@@ -13,7 +13,6 @@ func (r *Repo) AddAndPush(filename, contents, commitText string, options ...func
 	if err != nil {
 		return
 	}
-
 	err = r.Add(filename, contents, options...)
 	if err != nil {
 		return
@@ -30,7 +29,6 @@ func (r *Repo) AddFileAndPush(filename, commitText string) (err error) {
 	if err != nil {
 		return
 	}
-
 	err = r.GitAdd(filename)
 	if err != nil {
 		return
@@ -44,11 +42,6 @@ func (r *Repo) AddFileAndPush(filename, commitText string) (err error) {
 
 // PushLocalChange add and commit, and push all changes by other party
 func (r *Repo) PushLocalChange(commitText string) (err error) {
-	// err = r.CheckoutLocal()
-	// if err != nil {
-	// 	return
-	// }
-
 	err = r.GitAdd(".")
 	if err != nil {
 		return

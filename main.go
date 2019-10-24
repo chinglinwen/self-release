@@ -23,6 +23,8 @@ func main() {
 	log.Println("starting...")
 	log.Debug.Println("debug is on")
 
+	InitAll()
+
 	e := echo.New()
 
 	// e.HTTPErrorHandler = customHTTPErrorHandler

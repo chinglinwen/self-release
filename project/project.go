@@ -13,47 +13,22 @@ import (
 )
 
 const (
-	defaultConfigBase = "yunwei/config-deploy"
-	// defaultAppName    = "self-release"
-
-	// defaultConfigName = "config.env" // later will prefix with default or customize version
-	// defaultConfigYAML = "config.yaml"
-	// opsDir         = "_ops"
+	defaultConfigBase     = "yunwei/config-deploy"
 	defaultRepoConfigPath = "_ops" // configpath becomes project path in config-deploy
 )
 
-// this will be the project config for customizing
 type Project struct {
-	Project string
-	Branch  string // build branch
-	// Env     string // branch, may derive from event's branch as env
-	// not able to get branch? we can, but if it's a tag? init for develop branch only no tags
-	Config ProjectConfig
-
-	// ConfigFile string // _ops/config.yaml  //set for every env? what's the difference
-	// Files []File
-	// EnvFiles []string // for setting of template, env.sh ?  no need export
-
-	// GitForce  bool   // git pull force  default is force
-	// InitForce bool   // init project config force, force for re-init, file setting, we often setting it by tag msg
-	// NoPull bool // `yaml:"nopull"`
-
-	// image ?
-	// size of replicas?
-	configrepo *git.Repo
-	repo_      *git.Repo // not for directly use, used for avoid re-clone for same project and branch?
-	// WorkDir    string // git local path
-	envMap map[string]string
-	// autoenv map[string]string // env from hook
-
-	op projectOption
-	// init            initOption
-	// genOption        genOption
+	Project          string
+	Branch           string // build branch
+	Config           ProjectConfig
+	configrepo       *git.Repo
+	repo_            *git.Repo // not for directly use, used for avoid re-clone for same project and branch?
+	envMap           map[string]string
 	configConfigPath string // configpath in config-deploy
-	// env              map[string]string // store config.env values, only init need this
 
 	// buildsvc for image build
 	buildsvc *buildsvc
+	op       projectOption
 }
 
 func (p *Project) GetBuildOutput() (chan string, error) {
@@ -91,12 +66,9 @@ func (c ProjectConfig) String() string {
 		c.S.DevBranch, c.S.BuildMode, c.S.ConfigVer, c.S.Enable, c.S.Version)
 }
 
-// type buildmode string
-
 const (
-	buildmodeOn   = "on"
-	buildmodeAuto = "auto"
-	// buildmodeDisabled = "disabled" // duplicate with manual?
+	// buildmodeOn   = "on"
+	buildmodeAuto   = "auto"
 	buildmodeManual = "manual" // for manual build
 )
 
@@ -284,9 +256,7 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 		err = fmt.Errorf("project disabled, try set selfrelease=enabled")
 		return
 	}
-	// two way to provide config
-	// by option setting
-	// by project config.yaml
+
 	log.Printf("using configver: %v, devbranch: %v, buildmode: %v", config.S.ConfigVer, config.S.DevBranch, config.S.BuildMode)
 
 	p = &Project{
@@ -296,17 +266,8 @@ func NewProject(project string, options ...func(*projectOption)) (p *Project, er
 	}
 
 	p.op = *c
-	// p.ConfigVer = c.configVer
-	// p.DevBranch = c.devBranch
-
 	p.configrepo = configrepo
-	// p.repo = repo
-	// p.WorkDir = p.repo.GetWorkDir()
-
-	// p.configConfigPath = filepath.Join(p.Project, defaultAppName)
-
 	log.Printf("create project: %q ok\n", project)
-
 	return
 }
 
@@ -361,61 +322,3 @@ func getRepo(project, branch string, nopull bool) (repo *git.Repo, err error) {
 	}
 	return
 }
-
-// func readTemplateConfig(configrepo *git.Repo, configVer string) (p ProjectConfig, err error) {
-// 	if configVer == "" {
-// 		configVer = GetDefaultConfigVer()
-// 	}
-// 	f := filepath.Join("template", configVer, defaultConfigYAML)
-// 	tyaml, err := configrepo.GetFile(f)
-// 	if err != nil {
-// 		err = fmt.Errorf("read configrepo templateconfig: %v, err: %v", f, err)
-// 		return
-// 	}
-// 	return decodeConfig(tyaml)
-// }
-
-// func readProjectConfig(configrepo *git.Repo, project string) (c ProjectConfig, err error) {
-// 	f := getConfigFileName(project)
-// 	cyaml, err := configrepo.GetFile(f)
-// 	if err != nil {
-// 		err = fmt.Errorf("read config file: %v, err: %v", f, err)
-// 		return
-// 	}
-// 	return decodeConfig(cyaml)
-// }
-
-// func writeProjectConfig(configrepo *git.Repo, project string, c ProjectConfig) (err error) {
-// 	body, err := encodeConfig(c)
-// 	if err != nil {
-// 		return
-// 	}
-// 	f := filepath.Join(project, "self-release/config.yaml")
-// 	err = configrepo.Add(f, body)
-// 	if err != nil {
-// 		return
-// 	}
-// 	text := fmt.Sprintf("setting config.yaml for %v", project)
-// 	return configrepo.CommitAndPush(text)
-// }
-
-// // unmarshal template config
-// func decodeConfig(cyaml []byte) (c ProjectConfig, err error) {
-// 	c = ProjectConfig{}
-// 	err = yaml.Unmarshal(cyaml, &c)
-// 	if err != nil {
-// 		err = fmt.Errorf("unmarshal config yaml: %v, err: %v", string(cyaml), err)
-// 		return
-// 	}
-// 	return
-// }
-
-// func encodeConfig(c ProjectConfig) (body string, err error) {
-// 	b, err := yaml.Marshal(c)
-// 	if err != nil {
-// 		err = fmt.Errorf("config yaml marshal err: %v", err)
-// 		return
-// 	}
-// 	body = string(b)
-// 	return
-// }

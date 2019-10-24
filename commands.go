@@ -14,11 +14,6 @@ import (
 // should depend on config's
 const InitBranch = "master"
 
-// type action struct {
-// 	name string
-// 	fn   func(string) (string, error)
-// }
-
 type action struct {
 	name string
 	help string
@@ -27,14 +22,6 @@ type action struct {
 }
 
 var (
-	// funcs = map[string]action{
-	// 	// "help":      help, // can't refer back to help
-	// 	"demo":      demo,
-	// 	"deploy":    deploy,
-	// 	"retry":     retry,
-	// 	"myproject": myproject,
-	// }
-
 	funcs = []action{
 		// {name: "help", fn: help},
 		{name: "hi", fn: hi, help: "say hi."},
@@ -67,12 +54,6 @@ func doAction(dev, cmd string) (out string, err error) {
 		defer sse.UnLock(project, branch)
 	}
 
-	// fn, ok := funcs[c]
-	// if !ok {
-	// 	return help(dev, "")
-	// }
-	// return fn(dev, args)
-
 	var found bool
 	for _, v := range funcs {
 		if v.name != c {
@@ -96,7 +77,6 @@ func help(dev, args string) (out string, err error) {
 		}
 		out = fmt.Sprintf("%v/%v  -> %v\n\n", out, v.name, help)
 	}
-	// out = fmt.Sprintf("list of actions:\n%v", helplist())
 	return
 }
 
@@ -107,7 +87,6 @@ func helplist() (out string) {
 
 	for _, v := range funcs {
 		fmt.Fprintf(w, "%v \t %v\n", v.name, v.help)
-		// out = fmt.Sprintf("%v\t%v\n  %v", out, v.name, v.help)
 	}
 	w.Flush()
 	out = b.String()
@@ -157,12 +136,6 @@ func projectinit(dev, args string) (out string, err error) {
 	if branch == "" {
 		branch = InitBranch // set default
 	}
-
-	// c := projectpkg.ProjectConfig{
-	// 	BuildMode: s.buildmode,
-	// 	DevBranch: s.devbranch,
-	// 	ConfigVer: s.configver,
-	// }
 
 	p, err := projectpkg.NewProject(project, projectpkg.SetBranch(branch), projectpkg.SetNoEnableCheck(true))
 	if err != nil {
