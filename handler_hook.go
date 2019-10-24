@@ -59,11 +59,11 @@ func hookHandler(c echo.Context) (err error) {
 
 	log.Printf("got gitlab event for project: %v/%v\n", ns, projectName)
 
-	if ns != "wenzhenglin" && ns != "donglintong" && ns != "yuzongwei" && ns != "robot" {
-		log.Println("ignore non-test projects")
-		c.JSONPretty(http.StatusOK, E(0, "ignore non-test projects", "ok"), " ")
-		return
-	}
+	// if ns != "wenzhenglin" && ns != "donglintong" && ns != "yuzongwei" && ns != "robot" {
+	// 	log.Println("ignore non-test projects")
+	// 	c.JSONPretty(http.StatusOK, E(0, "ignore non-test projects", "ok"), " ")
+	// 	return
+	// }
 
 	// eventName, _ := a["event_name"].(string)
 	eventName := gjson.GetBytes(payload, "event_name").String()
@@ -132,7 +132,6 @@ func hookHandler(c echo.Context) (err error) {
 		}
 		log.Printf("commits: %v\n", len(event2.Commits))
 
-		// if event2.Project.Namespace == "wenzhenglin" || event2.Project.Namespace == "donglintong" {
 		err = handleRelease(event2)
 		if err != nil {
 			err = fmt.Errorf("tag release err: %v", err)
