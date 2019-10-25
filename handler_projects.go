@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"wen/self-release/git"
+	"wen/self-release/pkg/k8s"
 	"wen/self-release/pkg/resource"
 	projectpkg "wen/self-release/project"
 
@@ -55,6 +56,31 @@ func projectConfigGetHandler(c echo.Context) (err error) {
 		return
 	}
 	return c.JSONPretty(http.StatusOK, EData(0, "read values ok", "ok", out), "")
+}
+
+// get list of pods
+func projectPodsListHandler(c echo.Context) (err error) {
+	user := c.Request().Header.Get("X-Auth-User")
+	ns := c.Param("ns")
+	project := fmt.Sprintf("%v/%v", ns, c.Param("project"))
+	log.Printf("list pods for project: %v, by user %v\n ", project, user)
+
+	if project == "" {
+		err = fmt.Errorf("list pods for project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
+
+		return
+	}
+	r, err := k8s.PodListInfo(project)
+	if err != nil {
+		err = fmt.Errorf("list pods for project: %v, err: %v", project, err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
+		return
+	}
+	log.Printf("list pods for %v ok\n", ns)
+	return c.JSONPretty(http.StatusOK, EData(0, "list pods ok", "ok", r), "")
 }
 
 // save values file
@@ -177,6 +203,7 @@ func getUserHandler(c echo.Context) (err error) {
 	}
 	return c.JSONPretty(http.StatusOK, EData(0, "get user ok", "ok", d), "")
 }
+
 func projectListHandler(c echo.Context) (err error) {
 	refresh := c.FormValue("refresh")
 
@@ -210,12 +237,18 @@ func projectListHandler(c echo.Context) (err error) {
 func projectResourceListHandler(c echo.Context) (err error) {
 	ns := c.Param("ns")
 	if ns == "" {
-		return echo.NewHTTPError(http.StatusOK, "empty ns")
+		err = fmt.Errorf("get resource err, emtpy namespace")
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(1, err.Error(), "failed"), " ")
+		return
 	}
 	log.Printf("try get resource for %v\n", ns)
 	r, err := resource.GetResource(ns)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusOK, "get resource err:", err)
+		err = fmt.Errorf("get resource err: %v", err)
+		log.Println(err)
+		c.JSONPretty(http.StatusOK, E(2, err.Error(), "failed"), " ")
+		return
 	}
 	log.Printf("get resource for %v ok\n", ns)
 	return c.JSONPretty(http.StatusOK, EData(0, "get resource ok", "ok", r), "")

@@ -69,6 +69,8 @@ func main() {
 	p.GET("/:ns/:project/config", projectConfigGetHandler)
 	p.POST("/:ns/:project/config", projectConfigUpdateHandler)
 
+	p.GET("/:ns/:project/pods", projectPodsListHandler)
+
 	p.GET("/", projectListHandler)
 
 	r := g.Group("/resources")
