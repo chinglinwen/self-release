@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	corev1 "github.com/ericchiang/k8s/apis/core/v1"
 	prettyjson "github.com/hokaccha/go-prettyjson"
@@ -15,9 +16,15 @@ type PodInfo struct {
 	Env       string `json:"env,omitempty"`
 	GitName   string `json:"git_name,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
+	IP        string `json:"ip,omitempty"`
 	Node      string `json:"node,omitempty"`
 	Phase     string `json:"phase,omitempty"`
+	Starttime string `json:"starttime,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Reason    string `json:"reason,omitempty"`
 }
+
+const TimeLayout = "2006-1-2_15:04:05"
 
 func PodListInfo(project string) (pods []PodInfo, err error) {
 	k8sgit := strings.Replace(project, "_", "-", -1)
@@ -36,7 +43,11 @@ func PodListInfo(project string) (pods []PodInfo, err error) {
 		st := v.GetStatus()
 		phase := st.GetPhase()
 		node := st.GetHostIP()
+		ip := st.GetPodIP()
 
+		starttime := time.Unix(st.GetStartTime().GetSeconds(),
+			int64(st.GetStartTime().GetNanos())).Local().Format(TimeLayout)
+		//
 		// pretty("status")
 
 		s := fmt.Sprintf("%v/%v", ns, podname)
@@ -48,7 +59,11 @@ func PodListInfo(project string) (pods []PodInfo, err error) {
 				GitName:   getGitName(ns, name),
 				Namespace: ns,
 				Node:      node,
+				IP:        ip,
 				Phase:     phase,
+				Starttime: starttime,
+				Message:   st.GetMessage(),
+				Reason:    st.GetReason(),
 			})
 		}
 	}

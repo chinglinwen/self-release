@@ -10,7 +10,7 @@ func init() {
 }
 
 func TestPodListInfo(t *testing.T) {
-	ss, err := PodListInfo("haodai/main")
+	ss, err := PodListInfo("haodai/insurance")
 	if err != nil {
 		t.Error("PodListInfo err", err)
 		return
@@ -18,7 +18,7 @@ func TestPodListInfo(t *testing.T) {
 	// b, _ := json.MarshalIndent(ss, "", "  ")
 	// fmt.Println(string(b))
 	for _, v := range ss {
-		fmt.Println(v.PodName, v.Env)
+		fmt.Println(v.PodName, v.Env, v.Message, v.Reason)
 	}
 	// pretty("pods", ss)
 }
