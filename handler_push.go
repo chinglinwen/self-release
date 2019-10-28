@@ -162,6 +162,14 @@ func (b *builder) startBuild(event Eventer, bo *buildOption) (err error) {
 		log.Printf("got env from branch: %v\n", env)
 	}
 	commitid := e.CommitID
+	if commitid == "" {
+		var e error
+		// build from wechat need to fetch commitid
+		commitid, e = git.GetCommitIDFromTag(project, branch)
+		if e != nil {
+			log.Printf("get commitid from tag for %v err: %v\n", project, branch)
+		}
+	}
 
 	if err = validateRequest(project, branch, env, commitid); err != nil {
 		return

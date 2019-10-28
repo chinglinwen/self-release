@@ -3,7 +3,6 @@ package git
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	prettyjson "github.com/hokaccha/go-prettyjson"
@@ -109,7 +108,7 @@ func TestSetCommitStatus(t *testing.T) {
 }
 func TestGetCommitFromTag(t *testing.T) {
 
-	u, err := GetCommitFromTag("robot/mileage-planet", "828ead19253b7e6214b6e29db83646c1f3167b1f")
+	u, err := GetCommitFromTag("robot/mileage-planet", "master")
 	if err != nil {
 		t.Error("check tag err ", err)
 		return
@@ -157,30 +156,31 @@ func TestListAllTags(t *testing.T) {
 	}
 	// pretty("tags", u)
 }
-func TestListLastTwoCommits(t *testing.T) {
-	u, err := listLastTwoCommits("robot/mileage-planet")
-	if err != nil {
-		t.Error("listLastTwoCommits err ", err)
-		return
-	}
-	for _, v := range u {
-		fmt.Printf("created at: %v, name: %v\n", v.CreatedAt, v.ShortID)
-	}
-	// pretty("tags", u)
-}
 
-func TestManualPushedImage(t *testing.T) {
-	fmt.Println(time.Now())
-	fmt.Println(time.Now().Unix())
+// func TestListLastTwoCommits(t *testing.T) {
+// 	u, err := listLastTwoCommits("robot/mileage-planet")
+// 	if err != nil {
+// 		t.Error("listLastTwoCommits err ", err)
+// 		return
+// 	}
+// 	for _, v := range u {
+// 		fmt.Printf("created at: %v, name: %v\n", v.CreatedAt, v.ShortID)
+// 	}
+// 	// pretty("tags", u)
+// }
 
-	return
-	imagetag, err := ManualPushedImage("robot/mileage-planet", "6775366d")
-	if err != nil {
-		t.Error("ManualPushedImage err: ", err)
-		return
-	}
-	pretty("got imagetag", imagetag)
-}
+// func TestManualPushedImage(t *testing.T) {
+// 	fmt.Println(time.Now())
+// 	fmt.Println(time.Now().Unix())
+
+// 	return
+// 	imagetag, err := ManualPushedImage("robot/mileage-planet", "6775366d")
+// 	if err != nil {
+// 		t.Error("ManualPushedImage err: ", err)
+// 		return
+// 	}
+// 	pretty("got imagetag", imagetag)
+// }
 
 // func TestGetLastTagCommitIDg(t *testing.T) {
 // 	o, p, err := GetLastTagCommitID("wenzhenglin/project-example")
