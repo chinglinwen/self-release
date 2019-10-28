@@ -39,8 +39,8 @@ func PodListInfo(project string) (pods []PodInfo, err error) {
 
 		// pretty("status")
 
-		a := fmt.Sprintf("%v/%v", ns, podname)
-		if strings.HasPrefix(a, k8sgit) {
+		s := fmt.Sprintf("%v/%v", ns, podname)
+		if hasPrefix(s, k8sgit) {
 			pods = append(pods, PodInfo{
 				Name:      name,
 				PodName:   podname,
@@ -61,6 +61,19 @@ func PodListInfo(project string) (pods []PodInfo, err error) {
 func pretty(prefix string, a interface{}) {
 	out, _ := prettyjson.Marshal(a)
 	fmt.Printf("%v: %s\n", prefix, out)
+}
+
+func hasPrefix(s, k8sgit string) bool {
+	if strings.HasPrefix(s, k8sgit+"-"+ONLINE) {
+		return true
+	}
+	if strings.HasPrefix(s, k8sgit+"-"+PRE) {
+		return true
+	}
+	if strings.HasPrefix(s, k8sgit+"-"+TEST) {
+		return true
+	}
+	return false
 }
 
 const (
