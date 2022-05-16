@@ -31,7 +31,7 @@ require (
 	github.com/peterbourgon/ff v1.6.0
 	github.com/pkg/errors v0.8.1
 	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337 // indirect
-	github.com/tidwall/gjson v1.3.0
+	github.com/tidwall/gjson v1.9.3
 	github.com/xanzy/go-gitlab v0.18.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7 // indirect
