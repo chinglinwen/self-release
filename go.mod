@@ -42,5 +42,5 @@ require (
 	google.golang.org/grpc v1.21.1
 	gopkg.in/resty.v1 v1.12.0
 	gopkg.in/src-d/go-git.v4 v4.12.0
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.8
 )
